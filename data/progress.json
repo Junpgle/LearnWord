@@ -1,0 +1,137 @@
+[
+  {
+    "word": "apple",
+    "definition": "苹果",
+    "pos": "n.",
+    "example": "An apple a day keeps the doctor away.",
+    "stage": 3,
+    "learned": true,
+    "attempts": 3
+  },
+  {
+    "word": "banana",
+    "definition": "香蕉",
+    "pos": "n.",
+    "example": "Monkeys love to eat bananas.",
+    "stage": 3,
+    "learned": true,
+    "attempts": 3
+  },
+  {
+    "word": "computer",
+    "definition": "计算机",
+    "pos": "n.",
+    "example": "The computer is running very fast.",
+    "stage": 3,
+    "learned": true,
+    "attempts": 3
+  },
+  {
+    "word": "develop",
+    "definition": "发展；开发",
+    "pos": "v.",
+    "example": "He wants to develop new software.",
+    "stage": 3,
+    "learned": true,
+    "attempts": 3
+  },
+  {
+    "word": "easy",
+    "definition": "容易的",
+    "pos": "adj.",
+    "example": "This question is very easy to answer.",
+    "stage": 3,
+    "learned": true,
+    "attempts": 4
+  },
+  {
+    "word": "friend",
+    "definition": "朋友",
+    "pos": "n.",
+    "example": "She is my best friend.",
+    "stage": 1,
+    "learned": false,
+    "attempts": 1
+  },
+  {
+    "word": "happy",
+    "definition": "快乐的",
+    "pos": "adj.",
+    "example": "She feels happy every day.",
+    "stage": 3,
+    "learned": true,
+    "attempts": 4
+  },
+  {
+    "word": "language",
+    "definition": "语言",
+    "pos": "n.",
+    "example": "English is an international language.",
+    "stage": 3,
+    "learned": false,
+    "attempts": 1
+  },
+  {
+    "word": "remember",
+    "definition": "记得",
+    "pos": "v.",
+    "example": "Please remember to lock the door.",
+    "stage": 3,
+    "learned": true,
+    "attempts": 5
+  },
+  {
+    "word": "travel",
+    "definition": "旅行",
+    "pos": "v.",
+    "example": "I love to travel around the world.",
+    "stage": 3,
+    "learned": true,
+    "attempts": 4
+  },
+  {
+    "word": "universe",
+    "definition": "宇宙",
+    "pos": "n.",
+    "example": "The universe is full of mysteries.",
+    "stage": 3,
+    "learned": true,
+    "attempts": 3
+  },
+  {
+    "word": "music",
+    "definition": "音乐",
+    "pos": "n.",
+    "example": "She enjoys listening to music.",
+    "stage": 3,
+    "learned": false,
+    "attempts": 0
+  },
+  {
+    "word": "write",
+    "definition": "写",
+    "pos": "v.",
+    "example": "He likes to write stories.",
+    "stage": 3,
+    "learned": false,
+    "attempts": 0
+  },
+  {
+    "word": "water",
+    "definition": "水",
+    "pos": "n.",
+    "example": "We need water to survive.",
+    "stage": 3,
+    "learned": false,
+    "attempts": 0
+  },
+  {
+    "word": "success",
+    "definition": "成功",
+    "pos": "n.",
+    "example": "Hard work leads to success.",
+    "stage": 3,
+    "learned": false,
+    "attempts": 0
+  }
+]

@@ -1,0 +1,62 @@
+/* Background gradient for window */
+QWidget {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+        stop:0 #E6F0FF, stop:0.5 #EFE0FF, stop:1 #FFF6F8);
+    font-family: "Segoe UI", "Helvetica Neue", Arial;
+    color: #222;
+}
+
+/* Card styling */
+#card {
+    background: rgba(255,255,255,0.9);
+    border-radius: 14px;
+    padding: 16px;
+    margin: 8px;
+    border: 1px solid rgba(255,255,255,0.6);
+    box-shadow: 0px 8px 24px rgba(0,0,0,0.08);
+}
+
+/* Buttons */
+QPushButton {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #6DD3FF, stop:1 #A88CFF);
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    min-height: 36px;
+    font-weight: 600;
+}
+QPushButton:hover {
+    filter: brightness(1.06);
+    transform: translateY(-1px);
+}
+QPushButton:disabled {
+    background: rgba(200,200,200,0.6);
+    color: #fff;
+}
+
+/* Input */
+QLineEdit {
+    background: rgba(255,255,255,0.95);
+    border: 1px solid rgba(0,0,0,0.06);
+    padding: 8px;
+    border-radius: 8px;
+}
+
+/* Labels */
+QLabel {
+    color: #222;
+}
+
+/* Tab bar */
+QTabWidget::pane { border: none; }
+QTabBar::tab {
+    background: transparent;
+    padding: 10px 16px;
+    border-radius: 8px;
+}
+QTabBar::tab:selected {
+    background: rgba(255,255,255,0.85);
+    color: #111;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+}
