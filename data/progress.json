@@ -4,9 +4,9 @@
     "definition": "苹果",
     "pos": "n.",
     "example": "An apple a day keeps the doctor away.",
-    "stage": 3,
+    "stage": 1,
     "learned": true,
-    "attempts": 3
+    "attempts": 4
   },
   {
     "word": "banana",
@@ -15,14 +15,14 @@
     "example": "Monkeys love to eat bananas.",
     "stage": 3,
     "learned": true,
-    "attempts": 3
+    "attempts": 4
   },
   {
     "word": "computer",
     "definition": "计算机",
     "pos": "n.",
     "example": "The computer is running very fast.",
-    "stage": 3,
+    "stage": 2,
     "learned": true,
     "attempts": 3
   },
@@ -31,7 +31,7 @@
     "definition": "发展；开发",
     "pos": "v.",
     "example": "He wants to develop new software.",
-    "stage": 3,
+    "stage": 1,
     "learned": true,
     "attempts": 3
   },
@@ -58,7 +58,7 @@
     "definition": "快乐的",
     "pos": "adj.",
     "example": "She feels happy every day.",
-    "stage": 3,
+    "stage": 1,
     "learned": true,
     "attempts": 4
   },
@@ -68,8 +68,8 @@
     "pos": "n.",
     "example": "English is an international language.",
     "stage": 3,
-    "learned": false,
-    "attempts": 1
+    "learned": true,
+    "attempts": 2
   },
   {
     "word": "remember",
@@ -85,7 +85,7 @@
     "definition": "旅行",
     "pos": "v.",
     "example": "I love to travel around the world.",
-    "stage": 3,
+    "stage": 1,
     "learned": true,
     "attempts": 4
   },
@@ -94,7 +94,7 @@
     "definition": "宇宙",
     "pos": "n.",
     "example": "The universe is full of mysteries.",
-    "stage": 3,
+    "stage": 1,
     "learned": true,
     "attempts": 3
   },
@@ -104,8 +104,8 @@
     "pos": "n.",
     "example": "She enjoys listening to music.",
     "stage": 3,
-    "learned": false,
-    "attempts": 0
+    "learned": true,
+    "attempts": 1
   },
   {
     "word": "write",
@@ -121,9 +121,9 @@
     "definition": "水",
     "pos": "n.",
     "example": "We need water to survive.",
-    "stage": 3,
-    "learned": false,
-    "attempts": 0
+    "stage": 1,
+    "learned": true,
+    "attempts": 1
   },
   {
     "word": "success",
