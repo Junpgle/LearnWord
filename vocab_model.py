@@ -11,7 +11,9 @@ class WordItem:
     stage: int = 1
     learned: bool = False
     attempts: int = 0
+
     def to_dict(self): return asdict(self)
+
     @staticmethod
     def from_dict(d):
         return WordItem(
@@ -26,19 +28,35 @@ class WordItem:
 
 class VocabModel:
     def __init__(self):
-        self.words: List[WordItem] = []
-        self.last_words_path = os.path.join("data","last_words.csv")
-        self.progress_path = os.path.join("data","progress.json")
-        self.settings = {"learn_count":10, "review_count":15, "test_count":20}
+            self.words: List[WordItem] = []
+            self.last_words_path = os.path.join("data", "last_words.csv")
+            self.progress_path = os.path.join("data", "progress.json")
+            self.settings_path = os.path.join("data", "settings.json")
+            self.settings = {"learn_count": 10, "review_count": 15, "test_count": 20}
+            self.load_settings()  # ✅ 启动时加载
 
+    # =============== 设置相关 ===============
+    def save_settings(self):
+        os.makedirs("data", exist_ok=True)
+        with open(self.settings_path, "w", encoding="utf-8") as f:
+            json.dump(self.settings, f, ensure_ascii=False, indent=2)
+
+    def load_settings(self):
+        if os.path.exists(self.settings_path):
+            with open(self.settings_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.settings.update(data)
+
+    # =============== 单词库相关 ===============
     def load_words_from_csv(self, path):
         if not os.path.exists(path):
             return []
-        # copy to data/last_words.csv
         try:
+            os.makedirs("data", exist_ok=True)
             shutil.copy(path, self.last_words_path)
         except Exception:
             pass
+
         self.words = []
         with open(path, newline='', encoding='utf-8') as f:
             reader = csv.reader(f)
@@ -61,10 +79,16 @@ class VocabModel:
             return self.load_words_from_csv(self.last_words_path)
         return []
 
+    # =============== 学习进度相关 ===============
     def save_progress(self, path=None):
+        os.makedirs("data", exist_ok=True)
         path = path or self.progress_path
+        data = {
+            "words": [w.to_dict() for w in self.words],
+            "settings": self.settings  # 附带保存当前设置，便于兼容
+        }
         with open(path, "w", encoding="utf-8") as f:
-            json.dump([w.to_dict() for w in self.words], f, ensure_ascii=False, indent=2)
+            json.dump(data, f, ensure_ascii=False, indent=2)
 
     def load_progress(self, path=None):
         path = path or self.progress_path
@@ -72,7 +96,11 @@ class VocabModel:
             return []
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        self.words = [WordItem.from_dict(d) for d in data]
+        if isinstance(data, list):
+            self.words = [WordItem.from_dict(d) for d in data]
+        else:
+            self.words = [WordItem.from_dict(d) for d in data.get("words", [])]
+            self.settings.update(data.get("settings", {}))
         return self.words
 
     def get_stats(self):

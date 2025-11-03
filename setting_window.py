@@ -32,9 +32,15 @@ class SettingWindow(QMainWindow):
         self.progress.setStyleSheet("QProgressBar{border:1px solid #aaa;border-radius:10px;text-align:center;} QProgressBar::chunk{background-color:#0078d7;border-radius:10px;}")
         left_layout.addWidget(QLabel("学习进度：")); left_layout.addWidget(self.progress)
         # mode settings
-        self.learn_spin = QSpinBox(); self.learn_spin.setMaximum(999); self.learn_spin.setValue(self.model.settings.get("learn_count",10))
+        self.learn_spin = QSpinBox(); self.learn_spin.setMaximum(999)
+        self.learn_spin.setValue(self.model.settings.get("learn_count", 10))
         self.review_spin = QSpinBox(); self.review_spin.setMaximum(999); self.review_spin.setValue(self.model.settings.get("review_count",15))
         self.test_spin = QSpinBox(); self.test_spin.setMaximum(999); self.test_spin.setValue(self.model.settings.get("test_count",20))
+
+        self.learn_spin.valueChanged.connect(lambda v: self._auto_save_setting("learn_count", v))
+        self.review_spin.valueChanged.connect(lambda v: self._auto_save_setting("review_count", v))
+        self.test_spin.valueChanged.connect(lambda v: self._auto_save_setting("test_count", v))
+
         for title, spin in [("Learn", self.learn_spin), ("Review", self.review_spin), ("Test", self.test_spin)]:
             gb = QGroupBox(title); gb.setStyleSheet("QGroupBox{border:1px solid #eee;border-radius:10px;padding:8px;}")
             gbl = QHBoxLayout(gb)
@@ -80,12 +86,16 @@ class SettingWindow(QMainWindow):
             QMessageBox.critical(self, "错误", str(e))
 
     def save_progress(self):
-        # store spins into settings
+        # 先保存设置
         self.model.settings["learn_count"] = self.learn_spin.value()
         self.model.settings["review_count"] = self.review_spin.value()
         self.model.settings["test_count"] = self.test_spin.value()
+        self.model.save_settings()  # ✅ 保存 settings.json
+
+        # 再保存学习进度（单词状态）
         self.model.save_progress()
-        QMessageBox.information(self, "保存", "已保存到 data/progress.json")
+
+        QMessageBox.information(self, "保存", "设置与学习进度已保存到 data/")
         self.refresh_view()
 
     def load_progress(self):
@@ -105,3 +115,9 @@ class SettingWindow(QMainWindow):
         # word list plain lines
         lines = [f"{w.word} , {w.definition}" for w in self.model.words]
         self.words_view.setPlainText("\n".join(lines))
+
+    def _auto_save_setting(self, key, value):
+        """当 SpinBox 改变时自动保存设置"""
+        self.model.settings[key] = value
+        self.model.save_settings()  # ✅ 即时写入 settings.json
+

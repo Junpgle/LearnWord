@@ -89,7 +89,8 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setFont(QFont("MiSans", 11, QFont.Bold))
     model = VocabModel()
-    # load progress if exists, else last_words, else default words.csv
+    model.load_settings()
+
     if os.path.exists(os.path.join("data","progress.json")):
         model.load_progress(os.path.join("data","progress.json"))
     elif os.path.exists(os.path.join("data","last_words.csv")):

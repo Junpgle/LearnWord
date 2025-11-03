@@ -11,6 +11,7 @@ class LearnWindow(QMainWindow):
     def __init__(self, model: VocabModel, parent=None):
         super().__init__(parent)
         self.model = model
+        self.model.load_settings()
         self.setWindowTitle("")
         self.setFixedSize(1000, 700)
         central = QWidget();
@@ -37,6 +38,7 @@ class LearnWindow(QMainWindow):
         self.phase_frame = QFrame();
         self.phase_layout = QVBoxLayout(self.phase_frame);
         layout.addWidget(self.phase_frame)
+
         # phase1 options
         opt_row = QHBoxLayout()
         self.opt_buttons = [QPushButton() for _ in range(4)]
@@ -45,6 +47,7 @@ class LearnWindow(QMainWindow):
             b.clicked.connect(self.on_choice);
             opt_row.addWidget(b)
         self.phase_layout.addLayout(opt_row)
+
         # phase2 know/unknow
         know_row = QHBoxLayout();
         know_row.addStretch()
@@ -88,13 +91,14 @@ class LearnWindow(QMainWindow):
         self._prepare_queue_and_start()
 
     def _prepare_queue_and_start(self):
+        all_unlearned = [w for w in self.model.words if not w.learned]
         count = self.model.settings.get("learn_count", 10)
         pool = [w for w in self.model.words]
         if not pool:
             QMessageBox.information(self, "提示", "词库为空")
             return
         pool.sort(key=lambda x: x.stage, reverse=True)
-        selected = pool[:min(count, len(pool))]
+        selected = random.sample(all_unlearned, min(count, len(all_unlearned)))
         stages = {}
         for w in selected:
             stages.setdefault(w.stage, []).append(w)
@@ -107,8 +111,11 @@ class LearnWindow(QMainWindow):
 
     def _show_next(self):
         if not self.queue:
-            QMessageBox.information(self, "完成", "本次学习完成")
+            # 队列为空，学习结束
             self._hide_all()
+            self.word_label.setText("🎉 本次学习完成！ 🎉")
+            # 可以加入动画或定时关闭窗口
+            QTimer.singleShot(3000, self.close)  # 3秒后自动关闭
             return
         self.current = self.queue.popleft()
         phase = min(max(1, self.current.stage), 3)
@@ -151,24 +158,80 @@ class LearnWindow(QMainWindow):
     def _enter_phase2(self, item):
         self.phase_frame.show()
         for b in self.opt_buttons: b.hide()
-        self.know_btn.show();
+
+        # 显示原有认识/不认识按钮
+        self.know_btn.show()
         self.unknow_btn.show()
-        self.cloze_label.hide();
-        self.spell_input.hide();
-        self.submit_btn.hide();
-        self.idk_btn.hide()
+
+        # 解绑旧信号
+        try:
+            self.know_btn.clicked.disconnect()
+            self.unknow_btn.clicked.disconnect()
+        except:
+            pass
+
+        # 点击原按钮后隐藏按钮并显示释义+下一步/我记错了
+        self.know_btn.clicked.connect(lambda checked=False, i=item: self._phase2_handle(i))
+        self.unknow_btn.clicked.connect(lambda checked=False, i=item: self._phase2_handle(i))
+
+        # 隐藏下一步按钮（如果之前创建过）
+        if hasattr(self, 'next_btn'):
+            self.next_btn.hide()
+            self.wrong_btn.hide()
+
         self.word_label.setText(item.word)
+
+    def _phase2_handle(self, item):
+        # 隐藏原有按钮
+        self.know_btn.hide()
+        self.unknow_btn.hide()
+
+        # 显示释义
+        self.word_label.setText(f"{item.word} : {item.definition or '[无释义]'}")
+
+        # 创建或显示下一步/我记错了按钮
+        if not hasattr(self, 'next_btn'):
+            self.next_btn = QPushButton("下一个")
+            self.wrong_btn = QPushButton("我记错了")
+            self.next_btn.setFixedSize(120, 40)
+            self.wrong_btn.setFixedSize(120, 40)
+            self.phase2_btn_row = QHBoxLayout()
+            self.phase2_btn_row.addStretch()
+            self.phase2_btn_row.addWidget(self.next_btn)
+            self.phase2_btn_row.addWidget(self.wrong_btn)
+            self.phase2_btn_row.addStretch()
+            self.phase_layout.addLayout(self.phase2_btn_row)
+
+            # 绑定点击事件时必须把 item 作为参数传入
+            self.next_btn.clicked.connect(self._phase2_next)
+            self.wrong_btn.clicked.connect(lambda checked=False, i=item: self._phase2_wrong(i))
+        else:
+            self.next_btn.show()
+            self.wrong_btn.show()
+
+    def _phase2_next(self):
+        self.next_btn.hide()
+        self.wrong_btn.hide()
+        self._show_next()
+
+    def _phase2_wrong(self, item):
+        # 关键：确保把 item 重新加入队列
+        self.queue.append(item)
+        self.next_btn.hide()
+        self.wrong_btn.hide()
+        self._show_next()
 
     def _enter_phase3(self, item):
         self.phase_frame.hide()
         for b in self.opt_buttons: b.hide()
-        self.know_btn.hide();
+        self.know_btn.hide()
         self.unknow_btn.hide()
-        self.cloze_label.show();
-        self.spell_input.show();
-        self.submit_btn.show();
+        self.cloze_label.show()
+        self.spell_input.show()
+        self.submit_btn.show()
         self.idk_btn.show()
-        self.word_label.setText("拼写：")
+
+        self.word_label.setText(f"拼写：{item.definition or '[无释义]'}")  # 显示释义
         self.cloze_label.setText(self._make_cloze(item.word))
         self.spell_input.setText("")
 
@@ -209,8 +272,6 @@ class LearnWindow(QMainWindow):
             rotated += 1
         QTimer.singleShot(100, self._show_next)
 
-    # *** 修改点：移除了这里错误的 'pro/learn_window.py' 行 ***
-
     def on_submit(self):
         if not self.current: return
         s = self.spell_input.text().strip()
@@ -218,7 +279,6 @@ class LearnWindow(QMainWindow):
         if s.lower() == (self.current.word or "").lower():
             self.current.learned = True
             self.current.stage = min(3, self.current.stage + 0)
-            self.queue.append(self.current)
             self.model.save_progress()
             QMessageBox.information(self, "正确", "拼写正确")
             QTimer.singleShot(1500, self._show_next)

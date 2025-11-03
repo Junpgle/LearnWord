@@ -51,7 +51,6 @@ class ReviewWindow(QMainWindow):
         self.input = QLineEdit()
         p3_layout.addWidget(self.input)
 
-        # *** 修改点：使用和 Learn 模块一样的提交/IDK按钮 ***
         submit_row = QHBoxLayout();
         submit_row.addStretch()
         self.submit_btn = QPushButton("提交");
@@ -90,10 +89,13 @@ class ReviewWindow(QMainWindow):
 
     def _show_next(self):
         if not self.queue:
-            QMessageBox.information(self, "完成", "复习完成");
+            self.word_label.setText("🎉 本次复习完成！ 🎉")
+            self.phase2_widget.hide()
+            self.phase3_widget.hide()
+            # 可添加动画或定时关闭窗口
+            QTimer.singleShot(3000, self.close)
             return
         self.current = self.queue.pop(0)
-
         self.word_label.setText(self.current.word)
         self.phase2_widget.show()
         self.phase3_widget.hide()
@@ -116,7 +118,6 @@ class ReviewWindow(QMainWindow):
         self.model.save_progress()
         self._show_next()
 
-    # *** 修改点：使用和 Learn 模块一样的 on_submit 逻辑 ***
     def on_submit(self):
         if not self.current: return
         s = self.input.text().strip()
@@ -124,7 +125,6 @@ class ReviewWindow(QMainWindow):
             QMessageBox.information(self, "正确", "拼写正确")
             self.current.learned = True
             self.current.stage = min(3, self.current.stage + 1)
-            self.queue.append(self.current)  # <-- 添加到队列重复
             self.model.save_progress()
             QTimer.singleShot(1500, self._show_next)  # <-- 自动前进
         else:
