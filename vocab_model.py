@@ -1,6 +1,8 @@
 import csv, json, os, shutil
 from dataclasses import dataclass, asdict
 from typing import List
+# ✅ 新增：导入 requests 库用于网络下载默认词库
+import requests
 
 
 @dataclass
@@ -90,9 +92,12 @@ class VocabModel:
         try:
             os.makedirs("data", exist_ok=True)
             # 复制导入的文件到 data 目录，作为下次启动的默认词库
-            shutil.copy(path, self.last_words_path)
-        except Exception:
-            # 如果复制失败 (如权限问题)，忽略
+            # 确保只在文件路径不是 last_words_path 本身时才进行复制
+            if os.path.abspath(path) != os.path.abspath(self.last_words_path):
+                shutil.copy(path, self.last_words_path)
+        except Exception as e:
+            # 如果复制失败 (如权限问题)，忽略并打印错误
+            print(f"Warning: Failed to copy {path} to data directory. Error: {e}")
             pass
 
         self.words = []
@@ -164,3 +169,64 @@ class VocabModel:
         # 计算已学习 (learned=True) 的单词数量
         learned = sum(1 for w in self.words if w.learned)
         return learned, total
+
+    def load_all_data(self):
+        """
+        统一加载所有数据：尝试加载进度 -> 尝试加载上次词库 -> 强制加载 '六级.csv' (本地或网络下载)
+        此方法应在应用程序启动时调用。
+        """
+        self.load_settings()
+
+        # 1. 尝试加载进度文件 (包含词库和状态)
+        if os.path.exists(self.progress_path):
+            self.load_progress(self.progress_path)
+            if self.words:
+                print("Data loaded from progress file.")
+                return True
+
+        # 2. 尝试加载上次导入的词库文件
+        if os.path.exists(self.last_words_path):
+            self.load_words_from_csv(self.last_words_path)
+            if self.words:
+                print("Data loaded from last used CSV.")
+                return True
+
+        # 3. 如果前面都没加载成功, 尝试加载 '六级.csv' (本地或网络下载)
+        default_csv_path = "六级.csv"
+        DEFAULT_CSV_URL = "https://raw.githubusercontent.com/Junpgle/LearnWord/refs/heads/master/六级.csv"
+
+        # 3a. 尝试本地加载
+        if os.path.exists(default_csv_path):
+            print(f"Loading default dictionary locally: {default_csv_path}")
+            self.load_words_from_csv(default_csv_path)
+            if self.words:
+                return True
+
+        # 3b. 如果本地文件不存在或加载失败，尝试网络下载
+        if not self.words:
+            print(f"Local default file '{default_csv_path}' not found. Attempting to download from network.")
+            try:
+                # 设置超时 10 秒
+                response = requests.get(DEFAULT_CSV_URL, timeout=10)
+                response.raise_for_status()  # 检查 HTTP 错误
+
+                # 成功下载，保存到本地文件
+                with open(default_csv_path, "wb") as f:
+                    f.write(response.content)
+
+                print(f"Download successful. Loading new dictionary: {default_csv_path}")
+                # 加载新下载的文件。load_words_from_csv 会自动复制到 data/last_words.csv
+                self.load_words_from_csv(default_csv_path)
+
+            except requests.exceptions.RequestException as e:
+                # 网络连接或 HTTP 错误
+                print(f"Error downloading default dictionary: {e}")
+            except Exception as e:
+                # 其他文件操作错误
+                print(f"Error processing downloaded file: {e}")
+
+        if not self.words:
+            print(f"Error: No words loaded. Could not load/download default file.")
+            return False
+
+        return True

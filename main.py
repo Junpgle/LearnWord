@@ -9,14 +9,15 @@ from PySide6.QtGui import QFont, QDesktopServices
 # ✅ 新增：导入 json 库用于解析远程更新清单
 import json
 import requests
-from vocab_model import VocabModel
+# 假设 vocab_model 存在
+from vocab_model import VocabModel  # , WordItem
 from learn_window import LearnWindow
 from review_window import ReviewWindow
 from test_window import TestWindow
 from setting_window import SettingWindow
 
 # 设定当前程序版本号
-CURRENT_VERSION = "v1.0.0"
+CURRENT_VERSION = "v1.0.1"
 
 
 # =================================================================
@@ -305,7 +306,8 @@ class MainWindow(QMainWindow):
 
         # 定义一个内部函数，用于清除版本号前的 'v' 前缀，方便比较
         def clean_version(v):
-            return v.lstrip('v').replace('.', '')
+            # 确保版本号是字符串，并移除 'v' 和 '.'，方便整数比较
+            return str(v).lstrip('v').replace('.', '')
 
         if not success:
             # 检查失败，data_or_error 是错误信息
@@ -326,14 +328,20 @@ class MainWindow(QMainWindow):
 
         # 进行版本比较
         current_version = CURRENT_VERSION
-        clean_latest = clean_version(latest_version_tag)
-        clean_current = clean_version(current_version)
 
-        if int(clean_latest) > int(clean_current):
+        try:
+            clean_latest = int(clean_version(latest_version_tag))
+            clean_current = int(clean_version(current_version))
+        except ValueError:
+            # 如果版本号格式不正确，则跳过比较
+            print("Warning: Version tag is not numeric for comparison.")
+            return
+
+        if clean_latest > clean_current:
             # 发现新版本
             notes_text = "\n- " + "\n- ".join(update_notes)
 
-            # ✅ 修改 1: 将下载链接整合到 informativeText 中，并移除 setDetailedText() 调用
+            # ✅ 移除 setDetailedText()，将下载链接整合到 informativeText 中
             informative_text = (
                 f"更新内容：\n{notes_text}"
                 f"\n\n下载链接：{download_url}"
@@ -342,12 +350,10 @@ class MainWindow(QMainWindow):
             msg = QMessageBox(self)
             msg.setWindowTitle("发现新版本")
             msg.setIcon(QMessageBox.Information)
-            msg.setText(f"版本更新:\n{current_version}->{latest_version_tag}")
+            msg.setText(f"发现新版本：{latest_version_tag}")
             msg.setInformativeText(informative_text)
 
             # === 按钮设置 START ===
-
-            # 移除 setDetailedText()，因此不再创建“显示详情”按钮
 
             # 1. 定义自定义按钮 "前往下载"
             download_button = QPushButton("前往下载")
@@ -366,20 +372,15 @@ class MainWindow(QMainWindow):
 
         else:
             # 当前已是最新版本
-            # 只有用户点击按钮时才弹出提示。如果是自动启动，则保持静默。
-            # 这里我假设您希望手动点击时显示“已是最新”信息。
-            if not self.update_thread.isRunning():  # 只有非自动启动时才显示
+            # 只有手动点击按钮时才弹出提示。
+            # 我们通过检查按钮文本状态来简单区分（尽管不是最严谨的方式，但对 GUI 来说足够）
+            if self.btn_update.text() == "检查更新":  # 如果按钮文本已经恢复，说明是手动点击后结束
                 QMessageBox.information(
                     self,
                     "检查更新",
                     f"当前版本 ({current_version}) 已经是最新版本。",
                     QMessageBox.Ok
                 )
-
-    # ✅ 移除旧的 check_for_updates 方法，它的功能已被拆分到 _start_update_check 和 _handle_update_result
-    # def check_for_updates(self):
-    #     """... (旧逻辑被移除) ..."""
-    #     pass
 
 
 if __name__ == "__main__":
@@ -389,18 +390,19 @@ if __name__ == "__main__":
 
     # 初始化数据模型
     model = VocabModel()
-    model.load_settings()
 
-    # 启动加载逻辑：按优先级加载进度文件、最新词库文件、或默认词库文件
-    if os.path.exists(os.path.join("data", "progress.json")):
-        # 如果存在进度文件，先加载进度，进度文件中包含词库信息
-        model.load_progress(os.path.join("data", "progress.json"))
-    elif os.path.exists(os.path.join("data", "last_words.csv")):
-        # 如果没有进度文件，加载上次导入的词库
-        model.load_words_from_csv(os.path.join("data", "last_words.csv"))
-    elif os.path.exists("words.csv"):
-        # 如果都没有，加载根目录下的默认词库
-        model.load_words_from_csv("words.csv")
+    # 🚨 关键修改：调用统一的加载方法，实现自动加载和默认词库的兜底逻辑
+    model.load_all_data()
+
+    # 检查是否成功加载了单词
+    if not model.words:
+        QMessageBox.critical(
+            None,
+            "致命错误",
+            "未能加载任何单词。请确保 '六级.csv' 文件存在且格式正确，或导入其他词库。",
+            QMessageBox.Ok
+        )
+        sys.exit(1)
 
     # 创建并显示主窗口
     mw = MainWindow(model)
