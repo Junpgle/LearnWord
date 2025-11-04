@@ -1,0 +1,10 @@
+{
+  "latest_version": "v1.0.0",
+  "release_date": "2025-11-04",
+  "update_notes": [
+    "修复了输入框高度和宽度问题。",
+    "主界面增加了检查更新功能。",
+    "支持黑色主题。"
+  ],
+  "download_url": "https://github.com/Junpgle/LearnWord/releases/download/stable/LearnWord.v1.0.0.exe"
+}
