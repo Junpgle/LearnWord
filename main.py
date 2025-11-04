@@ -1,17 +1,21 @@
 import sys, os
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
-    QLabel, QPushButton, QGridLayout, QHBoxLayout, QMessageBox  # 导入 QHBoxLayout 和 QMessageBox
+    QLabel, QPushButton, QGridLayout, QHBoxLayout, QMessageBox
 )
 from PySide6.QtCore import Qt, QPropertyAnimation, QRect
 from PySide6.QtGui import QFont
-# ✅ 新增：导入 requests 库以进行网络请求
+# ✅ 新增：导入 json 库用于解析远程更新清单
+import json
 import requests
 from vocab_model import VocabModel
 from learn_window import LearnWindow
 from review_window import ReviewWindow
 from test_window import TestWindow
 from setting_window import SettingWindow
+
+# 设定当前程序版本号
+CURRENT_VERSION = "v1.0.0"
 
 
 class MainWindow(QMainWindow):
@@ -57,13 +61,7 @@ class MainWindow(QMainWindow):
         self.layout.addLayout(top_bar_layout)
         # ----------------------------------------------------
 
-        # 将标题和按钮网格之间的间距从 60px 调整为 30px (因为顶部栏已占空间)
         self.layout.addSpacing(30)
-
-        # 移除旧的 self.title，因为现在它被放在 top_bar_layout 中
-        # self.title = QLabel("LearnWord")
-        # self.layout.addWidget(self.title)
-        # self.layout.addSpacing(60)
 
         # ✅ 关键修改 1: 添加垂直弹簧，将所有内容向下推动 (现在用于将网格推到中央)
         self.layout.addStretch(1)
@@ -84,10 +82,6 @@ class MainWindow(QMainWindow):
             b.setFont(QFont("MiSans", 16, QFont.Bold))
             # 设置对象名，用于QSS区分样式
             b.setObjectName(f"mode_btn_{b.text().lower()}")
-
-            # 使用更灵活的 QSS 替换行内样式
-            # b.setStyleSheet(
-            #     "QPushButton{background-color:#0078d7;color:white;border:none;border-radius:18px;} QPushButton:hover{background-color:#339af0;}")
 
         # 将按钮添加到网格布局
         grid.addWidget(self.btn_learn, 0, 0)
@@ -232,59 +226,66 @@ class MainWindow(QMainWindow):
             self.setting_win.refresh_view()
 
     def check_for_updates(self):
-        """检查更新的功能实现 (通过 GitHub API 获取最新版本)"""
-        repo_owner = "Junpgle"
-        repo_name = "LearnWord"
-        github_api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest"
+        """检查更新的功能实现 (通过远程 JSON 清单获取最新版本)"""
+        # 远程清单文件的 URL
+        manifest_url = "https://raw.githubusercontent.com/Junpgle/LearnWord/refs/heads/master/update_manifest.json"
 
-        # 尝试从模型设置中获取当前版本，默认为 v1.0.0
-        current_version = self.model.settings.get("current_version", "v1.0.0")
+        # 使用模块级的常量
+        current_version = CURRENT_VERSION
 
         # 定义一个内部函数，用于清除版本号前的 'v' 前缀，方便比较
         def clean_version(v):
-            return v.lstrip('v')
+            return v.lstrip('v').replace('.', '')  # 移除点号，进行纯数字字符串比较
 
         try:
             # 实际网络请求，设置超时 5 秒
-            # 注：在某些受限的 PySide6 环境中，requests 请求可能被阻止。
-            response = requests.get(github_api_url, timeout=5)
+            response = requests.get(manifest_url, timeout=5)
             response.raise_for_status()  # 对 4xx 或 5xx 状态码抛出异常
 
-            latest_release = response.json()
-            # 获取 GitHub Release 的 tag_name，通常是版本号，如 "v1.0.1"
-            latest_version_tag = latest_release.get("tag_name", "v0.0.0")
+            # 解析 JSON 响应
+            manifest = response.json()
+            latest_version_tag = manifest.get("latest_version", "v0.0.0")
+            update_notes = manifest.get("update_notes", [])
+            download_url = manifest.get("download_url", manifest_url)
 
             # 清理版本号进行比较
             clean_latest = clean_version(latest_version_tag)
             clean_current = clean_version(current_version)
 
-            # 简单的字符串版本比较 (适用于 major.minor.patch 格式)
-            if clean_latest > clean_current:
+            if int(clean_latest) > int(clean_current):
+                # 构造更新说明
+                notes_text = "\n- " + "\n- ".join(update_notes)
+
                 QMessageBox.information(
                     self,
-                    "检查更新",
-                    f"发现新版本 ({latest_version_tag})！\n请访问 GitHub 项目页面下载。",
+                    "发现新版本",
+                    f"最新版本：{latest_version_tag}\n\n更新内容：{notes_text}\n\n请前往下载地址更新：{download_url}",
                     QMessageBox.Ok
                 )
             else:
                 QMessageBox.information(
                     self,
                     "检查更新",
-                    f"当前版本 (v{current_version}) 已经是最新版本。\n(最新版本: {latest_version_tag})",
+                    f"当前版本 ({current_version}) 已经是最新版本。",
                     QMessageBox.Ok
                 )
 
 
         except requests.exceptions.RequestException as e:
-            # 处理网络请求失败，如连接超时、DNS 错误、GitHub API 限制等
             QMessageBox.warning(
                 self,
                 "检查更新失败",
-                f"无法连接到 GitHub 检查更新。\n请检查您的网络连接。\n错误: {e}",
+                f"无法获取更新信息。\n请检查您的网络连接或 URL 是否正确。\n错误: {e}",
+                QMessageBox.Ok
+            )
+        except json.JSONDecodeError:
+            QMessageBox.warning(
+                self,
+                "检查更新失败",
+                "远程更新清单格式错误，无法解析。",
                 QMessageBox.Ok
             )
         except Exception as e:
-            # 处理其他可能的错误，如 JSON 解析失败
             QMessageBox.warning(
                 self,
                 "检查更新错误",
