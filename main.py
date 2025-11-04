@@ -3,8 +3,9 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QLabel, QPushButton, QGridLayout, QHBoxLayout, QMessageBox
 )
-from PySide6.QtCore import Qt, QPropertyAnimation, QRect
-from PySide6.QtGui import QFont
+# ✅ 修改：导入 QThread 和 Signal/Slot 机制所需的 QObject, Signal, Slot
+from PySide6.QtCore import Qt, QPropertyAnimation, QRect, QUrl, QThread, QObject, Signal, Slot
+from PySide6.QtGui import QFont, QDesktopServices
 # ✅ 新增：导入 json 库用于解析远程更新清单
 import json
 import requests
@@ -18,6 +19,42 @@ from setting_window import SettingWindow
 CURRENT_VERSION = "v1.0.0"
 
 
+# =================================================================
+# 1. 后台线程类：执行网络请求，保持 GUI 响应性
+# =================================================================
+class UpdateChecker(QObject):
+    # 定义信号，用于通知主线程检查结果
+    # signal_result: (success: bool, data: dict or error_message: str)
+    signal_result = Signal(bool, object)
+
+    def run_check(self):
+        """执行检查更新的网络请求和数据处理"""
+        manifest_url = "https://raw.githubusercontent.com/Junpgle/LearnWord/refs/heads/master/update_manifest.json"
+
+        try:
+            # 实际网络请求，设置超时 5 秒
+            response = requests.get(manifest_url, timeout=5)
+            response.raise_for_status()  # 对 4xx 或 5xx 状态码抛出异常
+
+            # 解析 JSON 响应
+            manifest = response.json()
+            # 成功后发射信号，附带版本数据
+            self.signal_result.emit(True, manifest)
+
+        except requests.exceptions.RequestException as e:
+            # 网络错误或HTTP错误
+            self.signal_result.emit(False, f"无法获取更新信息。\n请检查您的网络连接或 URL 是否正确。\n错误: {e}")
+        except json.JSONDecodeError:
+            # JSON 解析错误
+            self.signal_result.emit(False, "远程更新清单格式错误，无法解析。")
+        except Exception as e:
+            # 其他错误
+            self.signal_result.emit(False, f"处理版本信息时发生未知错误。\n错误: {e}")
+
+
+# =================================================================
+# 2. 主窗口类：MainWindow
+# =================================================================
 class MainWindow(QMainWindow):
     def __init__(self, model: VocabModel):
         super().__init__()
@@ -51,7 +88,8 @@ class MainWindow(QMainWindow):
         # 1.3 检查更新按钮 (位于右上角)
         self.btn_update = QPushButton("检查更新")
         self.btn_update.setObjectName("update_check_btn")
-        self.btn_update.clicked.connect(self.check_for_updates)
+        # 将按钮连接到新的启动线程的槽
+        self.btn_update.clicked.connect(self._start_update_check)
         self.btn_update.setFixedSize(100, 40)  # 设置一个固定大小
         top_bar_layout.addWidget(self.btn_update)
 
@@ -171,6 +209,9 @@ class MainWindow(QMainWindow):
         """)
         # ----------------------------------------------------
 
+        # ✅ 新增：在初始化结束时自动检查更新
+        self._start_update_check()
+
     def center_on_screen(self):
         """将主窗口移动到屏幕中央"""
         screen = QApplication.primaryScreen().availableGeometry()
@@ -225,44 +266,109 @@ class MainWindow(QMainWindow):
             # 步骤 2: 刷新设置窗口，显示新状态
             self.setting_win.refresh_view()
 
-    def check_for_updates(self):
-        """检查更新的功能实现 (通过远程 JSON 清单获取最新版本)"""
-        # 远程清单文件的 URL
-        manifest_url = "https://raw.githubusercontent.com/Junpgle/LearnWord/refs/heads/master/update_manifest.json"
+    # ✅ 新增：启动后台检查线程的槽函数
+    @Slot()
+    def _start_update_check(self):
+        # 禁用按钮，避免重复点击
+        self.btn_update.setEnabled(False)
+        self.btn_update.setText("检查中...")
 
-        # 使用模块级的常量
-        current_version = CURRENT_VERSION
+        # 1. 创建 QThread 实例
+        self.update_thread = QThread()
+        # 2. 创建工作对象（Worker）
+        self.update_worker = UpdateChecker()
+
+        # 3. 将工作对象移动到线程中
+        self.update_worker.moveToThread(self.update_thread)
+
+        # 4. 连接信号和槽：
+        # 当线程启动时，执行 worker.run_check
+        self.update_thread.started.connect(self.update_worker.run_check)
+        # 当 worker 完成时，将结果连接到主线程的槽函数
+        self.update_worker.signal_result.connect(self._handle_update_result)
+        # 线程完成后自动退出并清理
+        self.update_worker.signal_result.connect(self.update_thread.quit)
+        self.update_thread.finished.connect(self.update_thread.deleteLater)
+        self.update_worker.signal_result.connect(self.update_worker.deleteLater)
+
+        # 5. 启动线程
+        self.update_thread.start()
+
+    # ✅ 修改：将检查逻辑主体移动到这个槽函数中
+    @Slot(bool, object)
+    def _handle_update_result(self, success: bool, data_or_error: object):
+        """处理后台线程返回的检查结果"""
+
+        # 检查完成后，重新启用按钮
+        self.btn_update.setEnabled(True)
+        self.btn_update.setText("检查更新")
 
         # 定义一个内部函数，用于清除版本号前的 'v' 前缀，方便比较
         def clean_version(v):
-            return v.lstrip('v').replace('.', '')  # 移除点号，进行纯数字字符串比较
+            return v.lstrip('v').replace('.', '')
 
-        try:
-            # 实际网络请求，设置超时 5 秒
-            response = requests.get(manifest_url, timeout=5)
-            response.raise_for_status()  # 对 4xx 或 5xx 状态码抛出异常
+        if not success:
+            # 检查失败，data_or_error 是错误信息
+            error_message = str(data_or_error)
+            QMessageBox.warning(
+                self,
+                "检查更新失败",
+                error_message,
+                QMessageBox.Ok
+            )
+            return
 
-            # 解析 JSON 响应
-            manifest = response.json()
-            latest_version_tag = manifest.get("latest_version", "v0.0.0")
-            update_notes = manifest.get("update_notes", [])
-            download_url = manifest.get("download_url", manifest_url)
+        # 检查成功，data_or_error 是 JSON manifest 字典
+        manifest = data_or_error
+        latest_version_tag = manifest.get("latest_version", "v0.0.0")
+        update_notes = manifest.get("update_notes", [])
+        download_url = manifest.get("download_url", "")  # 失败时为空字符串
 
-            # 清理版本号进行比较
-            clean_latest = clean_version(latest_version_tag)
-            clean_current = clean_version(current_version)
+        # 进行版本比较
+        current_version = CURRENT_VERSION
+        clean_latest = clean_version(latest_version_tag)
+        clean_current = clean_version(current_version)
 
-            if int(clean_latest) > int(clean_current):
-                # 构造更新说明
-                notes_text = "\n- " + "\n- ".join(update_notes)
+        if int(clean_latest) > int(clean_current):
+            # 发现新版本
+            notes_text = "\n- " + "\n- ".join(update_notes)
 
-                QMessageBox.information(
-                    self,
-                    "发现新版本",
-                    f"最新版本：{latest_version_tag}\n\n更新内容：{notes_text}\n\n请前往下载地址更新：{download_url}",
-                    QMessageBox.Ok
-                )
-            else:
+            # ✅ 修改 1: 将下载链接整合到 informativeText 中，并移除 setDetailedText() 调用
+            informative_text = (
+                f"更新内容：\n{notes_text}"
+                f"\n\n下载链接：{download_url}"
+            )
+
+            msg = QMessageBox(self)
+            msg.setWindowTitle("发现新版本")
+            msg.setIcon(QMessageBox.Information)
+            msg.setText(f"版本更新:\n{current_version}->{latest_version_tag}")
+            msg.setInformativeText(informative_text)
+
+            # === 按钮设置 START ===
+
+            # 移除 setDetailedText()，因此不再创建“显示详情”按钮
+
+            # 1. 定义自定义按钮 "前往下载"
+            download_button = QPushButton("前往下载")
+            # 关联点击事件到打开 URL
+            download_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(download_url)))
+
+            # 2. 将按钮添加到 QMessageBox
+            msg.addButton(download_button, QMessageBox.AcceptRole)
+
+            # 3. 汉化 Cancel 按钮：使用自定义 QPushButton 并赋予 RejectRole
+            cancel_button = QPushButton("取消")
+            msg.addButton(cancel_button, QMessageBox.RejectRole)
+            # === 按钮设置 END ===
+
+            msg.exec()
+
+        else:
+            # 当前已是最新版本
+            # 只有用户点击按钮时才弹出提示。如果是自动启动，则保持静默。
+            # 这里我假设您希望手动点击时显示“已是最新”信息。
+            if not self.update_thread.isRunning():  # 只有非自动启动时才显示
                 QMessageBox.information(
                     self,
                     "检查更新",
@@ -270,28 +376,10 @@ class MainWindow(QMainWindow):
                     QMessageBox.Ok
                 )
 
-
-        except requests.exceptions.RequestException as e:
-            QMessageBox.warning(
-                self,
-                "检查更新失败",
-                f"无法获取更新信息。\n请检查您的网络连接或 URL 是否正确。\n错误: {e}",
-                QMessageBox.Ok
-            )
-        except json.JSONDecodeError:
-            QMessageBox.warning(
-                self,
-                "检查更新失败",
-                "远程更新清单格式错误，无法解析。",
-                QMessageBox.Ok
-            )
-        except Exception as e:
-            QMessageBox.warning(
-                self,
-                "检查更新错误",
-                f"处理版本信息时发生错误。\n请稍后重试。\n错误: {e}",
-                QMessageBox.Ok
-            )
+    # ✅ 移除旧的 check_for_updates 方法，它的功能已被拆分到 _start_update_check 和 _handle_update_result
+    # def check_for_updates(self):
+    #     """... (旧逻辑被移除) ..."""
+    #     pass
 
 
 if __name__ == "__main__":
