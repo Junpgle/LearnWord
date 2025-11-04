@@ -1,7 +1,6 @@
 import csv, json, os, shutil
 from dataclasses import dataclass, asdict
 from typing import List
-# ✅ 新增：导入 requests 库用于网络下载默认词库
 import requests
 
 
@@ -53,6 +52,7 @@ class VocabModel:
 
     def __init__(self):
         self.words: List[WordItem] = []  # 存储 WordItem 对象的列表
+        self.current_wordlist_name = "未加载"  # 新增：用于跟踪当前加载的词库文件名
 
         # 文件路径配置
         self.last_words_path = os.path.join("data", "last_words.csv")  # 最近一次导入的 CSV 文件的拷贝路径
@@ -121,6 +121,11 @@ class VocabModel:
                 if w:
                     # 创建新的 WordItem 实例 (所有状态都将是默认值)
                     self.words.append(WordItem(word=w, definition=d, pos=pos, example=ex))
+
+        # 关键修改：成功加载后，更新词库名称
+        if self.words:
+            self.current_wordlist_name = os.path.basename(path)
+
         return self.words
 
     def load_last_words(self):
@@ -131,23 +136,38 @@ class VocabModel:
 
     # =============== 学习进度相关 ===============
     def save_progress(self, path=None):
-        """将当前单词列表的所有状态 (stage, learned, attempts 等) 保存到 JSON 文件。"""
-        os.makedirs("data", exist_ok=True)
+        """
+        将当前单词列表的所有状态 (stage, learned, attempts 等) 保存到 JSON 文件。
+        如果 path 为 None，则保存到默认路径。
+        """
+        # 确保保存路径有效，如果传入 None 则使用默认路径
         path = path or self.progress_path
+
+        # 如果是默认路径，确保 data 目录存在
+        if path == self.progress_path:
+            os.makedirs("data", exist_ok=True)
 
         data = {
             "words": [w.to_dict() for w in self.words],  # 序列化单词列表
-            "settings": self.settings  # 附带保存当前设置，便于兼容和恢复
+            "settings": self.settings,  # 附带保存当前设置，便于兼容和恢复
+            "current_wordlist_name": self.current_wordlist_name  # 保存当前词库名称
         }
 
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
     def load_progress(self, path=None):
-        """从 progress.json 文件加载单词状态和进度。"""
+        """
+        从 progress.json 文件加载单词状态和进度。
+        如果 path 为 None，则从默认路径加载。
+        """
         path = path or self.progress_path
         if not os.path.exists(path):
             return []
+
+        # 检查文件是否存在，如果不存在则引发异常，由调用方处理
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"进度文件未找到: {path}")
 
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -160,6 +180,22 @@ class VocabModel:
             self.words = [WordItem.from_dict(d) for d in data.get("words", [])]
             # 尝试更新设置
             self.settings.update(data.get("settings", {}))
+            # 新增：加载词库名称
+            self.current_wordlist_name = data.get("current_wordlist_name", "来自进度文件")
+        for w in self.words:
+            if not hasattr(w, "reviewed"):
+                w.reviewed = False
+            if not hasattr(w, "tested"):
+                w.tested = False
+        # 保持词库同步
+        if self.words:
+            os.makedirs("data", exist_ok=True)
+            with open(self.last_words_path, "w", encoding="utf-8", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["单词", "词性", "释义", "例句"])
+                for w in self.words:
+                    writer.writerow(
+                        [w.word, getattr(w, "pos", ""), getattr(w, "definition", ""), getattr(w, "example", "")])
 
         return self.words
 
@@ -176,16 +212,22 @@ class VocabModel:
         此方法应在应用程序启动时调用。
         """
         self.load_settings()
+        self.current_wordlist_name = "未加载"  # 重置名称
 
         # 1. 尝试加载进度文件 (包含词库和状态)
         if os.path.exists(self.progress_path):
-            self.load_progress(self.progress_path)
-            if self.words:
-                print("Data loaded from progress file.")
-                return True
+            # load_progress 会更新 self.current_wordlist_name
+            try:
+                self.load_progress(self.progress_path)
+                if self.words:
+                    print("Data loaded from progress file.")
+                    return True
+            except Exception as e:
+                print(f"Error loading default progress file: {e}. Attempting next method.")
 
         # 2. 尝试加载上次导入的词库文件
         if os.path.exists(self.last_words_path):
+            # load_words_from_csv 会更新 self.current_wordlist_name
             self.load_words_from_csv(self.last_words_path)
             if self.words:
                 print("Data loaded from last used CSV.")
@@ -198,6 +240,7 @@ class VocabModel:
         # 3a. 尝试本地加载
         if os.path.exists(default_csv_path):
             print(f"Loading default dictionary locally: {default_csv_path}")
+            # load_words_from_csv 会更新 self.current_wordlist_name
             self.load_words_from_csv(default_csv_path)
             if self.words:
                 return True
@@ -215,7 +258,7 @@ class VocabModel:
                     f.write(response.content)
 
                 print(f"Download successful. Loading new dictionary: {default_csv_path}")
-                # 加载新下载的文件。load_words_from_csv 会自动复制到 data/last_words.csv
+                # 加载新下载的文件。load_words_from_csv 会自动复制到 data/last_words.csv，并更新 self.current_wordlist_name
                 self.load_words_from_csv(default_csv_path)
 
             except requests.exceptions.RequestException as e:
@@ -227,6 +270,7 @@ class VocabModel:
 
         if not self.words:
             print(f"Error: No words loaded. Could not load/download default file.")
+            self.current_wordlist_name = "加载失败"  # 最终失败状态
             return False
 
         return True

@@ -31,8 +31,10 @@ class SettingWindow(QMainWindow):
         # 按钮定义
         self.btn_import = QPushButton("导入单词库")
         self.btn_open = QPushButton("打开单词库")
-        self.btn_save = QPushButton("保存学习进度")
-        self.btn_load = QPushButton("加载学习进度")
+
+        # 按钮文本修改以反映自定义路径功能
+        self.btn_save = QPushButton("保存进度到文件")
+        self.btn_load = QPushButton("从文件加载进度")
 
         # 统一设置按钮样式
         for b in [self.btn_import, self.btn_open, self.btn_save, self.btn_load]:
@@ -115,6 +117,16 @@ class SettingWindow(QMainWindow):
         right_group = QGroupBox("当前单词库")
         right_group.setStyleSheet("QGroupBox{border:1px solid #ccc;border-radius:12px;padding:10px;}")
         right_layout = QVBoxLayout(right_group)
+
+        # 用于显示当前词库名称的 QLabel (已修复斜体错误)
+        self.wordlist_name_label = QLabel()
+        name_font = QFont("MiSans", 12)
+        name_font.setItalic(True)  # 使用 setItalic() 替代 QFont.Italic
+        self.wordlist_name_label.setFont(name_font)
+
+        self.wordlist_name_label.setStyleSheet("color: #0078d7; padding-bottom: 5px;")
+        right_layout.addWidget(self.wordlist_name_label)  # 放置在 QGroupBox 标题下，words_view上
+
         self.words_view = QTextEdit()
         self.words_view.setReadOnly(True)  # 设置为只读
         right_layout.addWidget(self.words_view)
@@ -125,8 +137,9 @@ class SettingWindow(QMainWindow):
         # --- 信号连接 ---
         self.btn_import.clicked.connect(self.import_csv)
         self.btn_open.clicked.connect(self.open_csv)
-        self.btn_save.clicked.connect(self.save_progress)
-        self.btn_load.clicked.connect(self.load_progress)
+        # 关联到新的自定义路径方法
+        self.btn_save.clicked.connect(self.save_progress_to_file)
+        self.btn_load.clicked.connect(self.load_progress_from_file)
 
         # 初始化视图
         self.refresh_view()
@@ -137,14 +150,14 @@ class SettingWindow(QMainWindow):
         path, _ = QFileDialog.getOpenFileName(self, "选择 CSV 单词库文件", "", "CSV Files (*.csv);;All Files (*)")
         if not path: return
 
-        # 加载新的词库
+        # 加载新的词库。load_words_from_csv 会更新 model.current_wordlist_name
         self.model.load_words_from_csv(path)
-        # 立即保存进度，将新的词库作为当前进度的一部分保存
+        # 立即保存进度到默认路径 (data/progress.json)
         self.model.save_progress()
 
         QMessageBox.information(self, "导入成功",
                                 f"成功导入 {len(self.model.words)} 个单词并保存到 data/last_words.csv")
-        self.refresh_view()  # 刷新界面显示新的统计数据和单词列表
+        self.refresh_view()  # 刷新界面显示新的统计数据、单词列表和词库名称
 
     def open_csv(self):
         """打开并预览当前单词库的内容。"""
@@ -175,32 +188,74 @@ class SettingWindow(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "错误", f"打开文件失败: {str(e)}")
 
-    def save_progress(self):
-        """保存当前的所有设置（SpinBox 值）和单词学习进度（Stage、Learned 状态）。"""
-        # 1. 保存设置 (Settings.json)
+    def save_progress_to_file(self):
+        """
+        保存当前的所有设置和单词学习进度到用户指定的文件。
+        """
+        # 1. 保存设置到内部文件 (settings.json)
         self.model.settings["learn_count"] = self.learn_spin.value()
         self.model.settings["review_count"] = self.review_spin.value()
         self.model.settings["test_count"] = self.test_spin.value()
         self.model.save_settings()
 
-        # 2. 保存学习进度 (Progress.json)
-        self.model.save_progress()
+        # 2. 使用 QFileDialog 获取保存路径
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "选择保存学习进度的文件",
+            "progress.json",  # 默认文件名
+            "学习进度文件 (*.json);;所有文件 (*)"
+        )
 
-        QMessageBox.information(self, "保存成功", "设置与学习进度已保存到 data/ 目录")
-        self.refresh_view()
+        if not path: return
 
-    def load_progress(self):
-        """从 progress.json 文件中加载单词学习进度。"""
-        path = os.path.join("data", "progress.json")
-        if os.path.exists(path):
+        try:
+            # 3. 保存学习进度到指定路径
+            self.model.save_progress(path)
+            # 同时也保存一份到默认路径，确保下次启动时能恢复
+            self.model.save_progress()
+
+            QMessageBox.information(self, "保存成功",
+                                    f"设置与学习进度已保存到:\n{path}\n(同时已保存到默认路径 data/progress.json)")
+            self.refresh_view()
+        except Exception as e:
+            QMessageBox.critical(self, "保存失败", f"保存文件失败: {str(e)}")
+
+    def load_progress_from_file(self):
+        """
+        从用户指定的文件中加载单词学习进度。
+        """
+        # 1. 使用 QFileDialog 获取加载路径
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "选择学习进度文件",
+            "",
+            "学习进度文件 (*.json);;所有文件 (*)"
+        )
+
+        if not path: return
+
+        try:
+            # 2. 从指定路径加载进度
             self.model.load_progress(path)
-            QMessageBox.information(self, "加载成功", "已从 data/progress.json 加载进度")
-            self.refresh_view()  # 刷新界面显示加载后的数据
-        else:
-            QMessageBox.information(self, "加载失败", "没有找到 data/progress.json 进度文件")
+
+            # 3. 立即保存一份到默认路径，确保下次启动时恢复
+            self.model.save_progress()
+
+            QMessageBox.information(self, "加载成功", f"已从 {os.path.basename(path)} 加载进度")
+            self.refresh_view()  # 刷新界面显示加载后的数据和词库名称
+        except FileNotFoundError:
+            QMessageBox.information(self, "加载失败", f"文件未找到: {path}")
+        except json.JSONDecodeError:
+            QMessageBox.critical(self, "加载失败", f"文件内容格式错误，无法解析为 JSON: {path}")
+        except Exception as e:
+            QMessageBox.critical(self, "加载失败", f"加载文件失败: {str(e)}")
 
     def refresh_view(self):
-        """更新所有进度条和单词列表的显示。"""
+        """更新所有进度条、单词列表和当前词库名称的显示。"""
+
+        # 关键修改：更新词库名称标签
+        self.wordlist_name_label.setText(f"当前文件: {self.model.current_wordlist_name}")
+
         # 获取基础统计数据
         learned, total = self.model.get_stats()
 
