@@ -5,18 +5,22 @@
       "definition": "放弃；遗弃",
       "pos": "v.",
       "example": "She had to abandon her dream of becoming an artist due to family reasons.",
-      "stage": 1,
-      "learned": false,
-      "attempts": 0
+      "stage": 3,
+      "learned": true,
+      "attempts": 1,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "benefit",
       "definition": "益处；有益于",
       "pos": "n./v.",
       "example": "Regular reading benefits both mental health and knowledge accumulation. / The new policy will benefit low-income families.",
-      "stage": 1,
+      "stage": 3,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "category",
@@ -25,7 +29,9 @@
       "example": "Online shopping platforms usually classify goods into multiple categories for easy search.",
       "stage": 1,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "diverse",
@@ -34,7 +40,9 @@
       "example": "The university attracts students from diverse cultural backgrounds.",
       "stage": 3,
       "learned": true,
-      "attempts": 1
+      "attempts": 1,
+      "reviewed": false,
+      "tested": true
     },
     {
       "word": "efficient",
@@ -43,7 +51,9 @@
       "example": "The new workflow makes the team more efficient in completing tasks.",
       "stage": 1,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": true
     },
     {
       "word": "feedback",
@@ -52,16 +62,20 @@
       "example": "After the presentation",
       "stage": 1,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "generate",
       "definition": "产生；生成",
       "pos": "v.",
       "example": "This new technology can generate electricity with less environmental pollution.",
-      "stage": 1,
+      "stage": 2,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "hesitate",
@@ -70,7 +84,9 @@
       "example": "When facing important decisions",
       "stage": 1,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": true
     },
     {
       "word": "identify",
@@ -79,16 +95,20 @@
       "example": "Scientists are working to identify the cause of this rare disease.",
       "stage": 3,
       "learned": true,
-      "attempts": 2
+      "attempts": 2,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "journey",
       "definition": "旅行；行程",
       "pos": "n.",
       "example": "His journey of learning English lasted for more than ten years.",
-      "stage": 1,
-      "learned": false,
-      "attempts": 0
+      "stage": 3,
+      "learned": true,
+      "attempts": 1,
+      "reviewed": true,
+      "tested": false
     },
     {
       "word": "kernel",
@@ -97,16 +117,20 @@
       "example": "The kernel of the theory lies in the connection between human behavior and social environment.",
       "stage": 1,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "landscape",
       "definition": "风景；景观",
       "pos": "n.",
       "example": "The urban landscape has changed greatly with the development of the city.",
-      "stage": 1,
+      "stage": 2,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": true
     },
     {
       "word": "maintain",
@@ -115,43 +139,53 @@
       "example": "It's necessary to maintain regular communication with team members to avoid misunderstandings.",
       "stage": 2,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "negotiate",
       "definition": "谈判；协商",
       "pos": "v.",
       "example": "The two sides spent three months negotiating the terms of the cooperation agreement.",
-      "stage": 1,
+      "stage": 2,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": true
     },
     {
       "word": "obstacle",
       "definition": "障碍；阻碍",
       "pos": "n.",
       "example": "Language barrier is a major obstacle for international students studying abroad.",
-      "stage": 1,
-      "learned": false,
-      "attempts": 0
+      "stage": 3,
+      "learned": true,
+      "attempts": 4,
+      "reviewed": true,
+      "tested": false
     },
     {
       "word": "parallel",
       "definition": "平行的；平行线",
       "pos": "adj./n.",
       "example": "These two rivers run parallel to each other across the plain. / There are obvious parallels between the two historical events.",
-      "stage": 1,
+      "stage": 2,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "qualify",
       "definition": "使具有资格；合格",
       "pos": "v.",
       "example": "Passing this exam will qualify you for the advanced training course.",
-      "stage": 3,
+      "stage": 2,
       "learned": true,
-      "attempts": 1
+      "attempts": 2,
+      "reviewed": false,
+      "tested": true
     },
     {
       "word": "relevant",
@@ -160,16 +194,20 @@
       "example": "Please only include relevant data in the research report to ensure its conciseness.",
       "stage": 2,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "simulate",
       "definition": "模拟；模仿",
       "pos": "v.",
       "example": "The flight simulator can simulate various bad weather conditions for pilot training.",
-      "stage": 2,
-      "learned": false,
-      "attempts": 0
+      "stage": 3,
+      "learned": true,
+      "attempts": 2,
+      "reviewed": true,
+      "tested": false
     },
     {
       "word": "target",
@@ -178,43 +216,53 @@
       "example": "Our team set a target of increasing sales by 20% this quarter. / The marketing campaign is targeted at young consumers.",
       "stage": 3,
       "learned": true,
-      "attempts": 1
+      "attempts": 1,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "ultimate",
       "definition": "最终的；最后的",
       "pos": "adj.",
       "example": "The ultimate goal of this project is to improve people's quality of life.",
-      "stage": 1,
+      "stage": 2,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "validate",
       "definition": "证实；验证",
       "pos": "v.",
       "example": "Researchers need to validate the experiment results through repeated tests.",
-      "stage": 1,
-      "learned": false,
-      "attempts": 0
+      "stage": 3,
+      "learned": true,
+      "attempts": 1,
+      "reviewed": false,
+      "tested": true
     },
     {
       "word": "witness",
       "definition": "目击者；目睹",
       "pos": "n./v.",
       "example": "A witness reported seeing a suspicious car near the crime scene. / She witnessed the great changes in her hometown over the past decade.",
-      "stage": 1,
+      "stage": 2,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "yield",
       "definition": "屈服；产量",
       "pos": "v./n.",
       "example": "The farm's grain yield has increased significantly thanks to new farming techniques. / He refused to yield to unfair demands.",
-      "stage": 2,
-      "learned": false,
-      "attempts": 0
+      "stage": 3,
+      "learned": true,
+      "attempts": 1,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "zone",
@@ -223,7 +271,9 @@
       "example": "The city plans to build a new technology zone to attract high-tech enterprises.",
       "stage": 1,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "analyze",
@@ -232,16 +282,20 @@
       "example": "Experts will analyze the market data to predict future trends.",
       "stage": 1,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": true
     },
     {
       "word": "behalf",
       "definition": "代表；利益",
       "pos": "n.",
       "example": "On behalf of all employees",
-      "stage": 1,
+      "stage": 2,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "concept",
@@ -250,16 +304,20 @@
       "example": "The concept of \"sustainable development\" has been widely accepted around the world.",
       "stage": 1,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "decline",
       "definition": "下降；衰退",
       "pos": "v./n.",
       "example": "The number of traditional bookstores has declined with the rise of e-books. / She politely declined the invitation to the dinner party.",
-      "stage": 1,
-      "learned": false,
-      "attempts": 0
+      "stage": 3,
+      "learned": true,
+      "attempts": 1,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "element",
@@ -267,8 +325,10 @@
       "pos": "n.",
       "example": "Teamwork is an essential element for the success of any group project.",
       "stage": 1,
-      "learned": false,
-      "attempts": 0
+      "learned": true,
+      "attempts": 6,
+      "reviewed": false,
+      "tested": true
     },
     {
       "word": "facilitate",
@@ -277,7 +337,9 @@
       "example": "Online tools facilitate long-distance communication between teachers and students.",
       "stage": 3,
       "learned": true,
-      "attempts": 1
+      "attempts": 1,
+      "reviewed": false,
+      "tested": true
     },
     {
       "word": "guarantee",
@@ -286,25 +348,31 @@
       "example": "The company guarantees a one-year after-sales service for this product. / A good education is not a guarantee of success",
       "stage": 3,
       "learned": true,
-      "attempts": 2
+      "attempts": 2,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "hypothesis",
       "definition": "假设；假说",
       "pos": "n.",
       "example": "Scientists put forward a new hypothesis to explain the origin of the universe.",
-      "stage": 1,
-      "learned": false,
-      "attempts": 0
+      "stage": 3,
+      "learned": true,
+      "attempts": 1,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "illustrate",
       "definition": "说明；阐明",
       "pos": "v.",
       "example": "The teacher used examples to illustrate the difficult grammar point.",
-      "stage": 1,
+      "stage": 3,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "justify",
@@ -313,25 +381,31 @@
       "example": "He tried to justify his late arrival with an excuse about traffic jams.",
       "stage": 1,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "logic",
       "definition": "逻辑；逻辑学",
       "pos": "n.",
       "example": "His argument lacks logic and fails to convince others.",
-      "stage": 2,
-      "learned": false,
-      "attempts": 0
+      "stage": 3,
+      "learned": true,
+      "attempts": 1,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "mechanism",
       "definition": "机制；原理",
       "pos": "n.",
       "example": "The body has a natural mechanism to fight against harmful bacteria.",
-      "stage": 1,
-      "learned": false,
-      "attempts": 1
+      "stage": 3,
+      "learned": true,
+      "attempts": 3,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "notion",
@@ -340,16 +414,20 @@
       "example": "Many people hold the notion that hard work leads to success.",
       "stage": 1,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "objective",
       "definition": "目标；客观的",
       "pos": "n./adj.",
       "example": "Our main objective this year is to expand the overseas market. / When evaluating a project",
-      "stage": 1,
-      "learned": false,
-      "attempts": 0
+      "stage": 3,
+      "learned": true,
+      "attempts": 1,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "perspective",
@@ -358,7 +436,9 @@
       "example": "From a historical perspective",
       "stage": 1,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "priority",
@@ -367,7 +447,9 @@
       "example": "Improving public health should be the government's top priority.",
       "stage": 1,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": true
     },
     {
       "word": "quantity",
@@ -376,70 +458,86 @@
       "example": "The factory needs to increase the quantity of products to meet market demand.",
       "stage": 1,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "reference",
       "definition": "参考；提及",
       "pos": "n./v.",
       "example": "You can find more details in the reference materials attached to the report. / The professor referenced several important studies in his lecture.",
-      "stage": 1,
-      "learned": false,
-      "attempts": 0
+      "stage": 3,
+      "learned": true,
+      "attempts": 1,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "strategy",
       "definition": "策略；战略",
       "pos": "n.",
       "example": "The company adopted a new marketing strategy to compete with rivals.",
-      "stage": 1,
-      "learned": false,
-      "attempts": 0
+      "stage": 2,
+      "learned": true,
+      "attempts": 3,
+      "reviewed": true,
+      "tested": false
     },
     {
       "word": "temporary",
       "definition": "暂时的；临时的",
       "pos": "adj.",
       "example": "She took a temporary job while waiting for the postgraduate entrance exam results.",
-      "stage": 1,
+      "stage": 3,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "undergo",
       "definition": "经历；承受",
       "pos": "v.",
       "example": "The new product will undergo a series of tests before being put on the market.",
-      "stage": 2,
-      "learned": false,
-      "attempts": 0
+      "stage": 3,
+      "learned": true,
+      "attempts": 1,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "visible",
       "definition": "可见的；明显的",
       "pos": "adj.",
       "example": "The damage to the building is visible even from a distance.",
-      "stage": 2,
-      "learned": false,
-      "attempts": 0
+      "stage": 3,
+      "learned": true,
+      "attempts": 1,
+      "reviewed": false,
+      "tested": true
     },
     {
       "word": "weaken",
       "definition": "削弱；使变弱",
       "pos": "v.",
       "example": "Long-term stress can weaken the body's immune system.",
-      "stage": 2,
-      "learned": false,
-      "attempts": 0
+      "stage": 3,
+      "learned": true,
+      "attempts": 1,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "xenophobia",
       "definition": "仇外；对外国人的恐惧",
       "pos": "n.",
       "example": "Xenophobia is harmful to the development of a multicultural society.",
-      "stage": 1,
+      "stage": 2,
       "learned": false,
-      "attempts": 0
+      "attempts": 1,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "yield",
@@ -448,25 +546,31 @@
       "example": "He finally yielded his seat to the elderly man on the crowded bus.",
       "stage": 3,
       "learned": true,
-      "attempts": 2
+      "attempts": 2,
+      "reviewed": true,
+      "tested": false
     },
     {
       "word": "zero",
       "definition": "零；归零",
       "pos": "n./v.",
       "example": "The temperature dropped to zero degrees Celsius last night. / Please zero the instrument before starting the measurement.",
-      "stage": 1,
+      "stage": 3,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "accelerate",
       "definition": "加速；促进",
       "pos": "v.",
       "example": "The government has taken measures to accelerate the development of the digital economy.",
-      "stage": 1,
+      "stage": 3,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "budget",
@@ -475,7 +579,9 @@
       "example": "The company has set a strict budget for this year's research and development. / We need to budget carefully to avoid overspending.",
       "stage": 1,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "circumstance",
@@ -484,7 +590,9 @@
       "example": "Under no circumstances should you disclose this confidential information.",
       "stage": 3,
       "learned": true,
-      "attempts": 1
+      "attempts": 3,
+      "reviewed": true,
+      "tested": false
     },
     {
       "word": "demonstrate",
@@ -493,16 +601,20 @@
       "example": "The experiment demonstrates that this new material is more durable.",
       "stage": 2,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "evaluate",
       "definition": "评价；评估",
       "pos": "v.",
       "example": "Employers usually evaluate employees' performance based on their work results.",
-      "stage": 2,
-      "learned": false,
-      "attempts": 0
+      "stage": 3,
+      "learned": true,
+      "attempts": 1,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "flexible",
@@ -511,16 +623,20 @@
       "example": "The company offers flexible working hours to help employees balance work and life.",
       "stage": 1,
       "learned": false,
-      "attempts": 0
+      "attempts": 1,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "guideline",
       "definition": "指导方针；准则",
       "pos": "n.",
       "example": "The government issued new guidelines on environmental protection.",
-      "stage": 3,
+      "stage": 1,
       "learned": true,
-      "attempts": 3
+      "attempts": 3,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "hypothetical",
@@ -529,7 +645,9 @@
       "example": "The question is based on a hypothetical situation that may not happen in reality.",
       "stage": 2,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "implement",
@@ -538,16 +656,20 @@
       "example": "The team will implement the new plan starting from next month.",
       "stage": 1,
       "learned": false,
-      "attempts": 0
+      "attempts": 1,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "judgment",
       "definition": "判断；看法",
       "pos": "n.",
       "example": "Her judgment on this matter is based on years of work experience.",
-      "stage": 2,
-      "learned": false,
-      "attempts": 0
+      "stage": 3,
+      "learned": true,
+      "attempts": 2,
+      "reviewed": true,
+      "tested": true
     },
     {
       "word": "magnify",
@@ -556,7 +678,9 @@
       "example": "This microscope can magnify small objects by 500 times. / Don't magnify the problem; we can solve it step by step.",
       "stage": 2,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "network",
@@ -565,7 +689,9 @@
       "example": "She has built a wide professional network through industry conferences. / The company plans to network with more international partners.",
       "stage": 2,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "occupy",
@@ -574,16 +700,20 @@
       "example": "The meeting room is occupied until 3 o'clock this afternoon. / He occupies an important position in the company.",
       "stage": 1,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "participate",
       "definition": "参与；参加",
       "pos": "v.",
       "example": "All students are encouraged to participate in extracurricular activities.",
-      "stage": 1,
+      "stage": 2,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": true
     },
     {
       "word": "potential",
@@ -592,7 +722,9 @@
       "example": "This young employee has great potential for development. / We need to tap into the potential of new technologies.",
       "stage": 2,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "questionnaire",
@@ -601,34 +733,42 @@
       "example": "The researchers distributed questionnaires to collect public opinions on the new policy.",
       "stage": 1,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "regulate",
       "definition": "调节；管理",
       "pos": "v.",
       "example": "The government has introduced new laws to regulate the financial market.",
-      "stage": 1,
-      "learned": false,
-      "attempts": 0
+      "stage": 3,
+      "learned": true,
+      "attempts": 1,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "substitute",
       "definition": "替代品；代替",
       "pos": "n./v.",
       "example": "Plant-based milk can be a substitute for cow's milk for people with lactose intolerance. / She will substitute for the manager during his absence.",
-      "stage": 2,
-      "learned": false,
-      "attempts": 0
+      "stage": 3,
+      "learned": true,
+      "attempts": 1,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "transform",
       "definition": "使改变形态；转变",
       "pos": "v.",
       "example": "The Internet has transformed the way people communicate and work.",
-      "stage": 1,
+      "stage": 2,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "utilize",
@@ -637,7 +777,9 @@
       "example": "We should utilize resources wisely to avoid waste.",
       "stage": 1,
       "learned": false,
-      "attempts": 0
+      "attempts": 0,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "visible",
@@ -646,7 +788,9 @@
       "example": "The improvement in his English level is visible after half a year of study.",
       "stage": 3,
       "learned": true,
-      "attempts": 1
+      "attempts": 1,
+      "reviewed": false,
+      "tested": false
     },
     {
       "word": "withdraw",
@@ -655,12 +799,14 @@
       "example": "He decided to withdraw his application for the job. / She withdrew some money from the bank to pay the rent",
       "stage": 1,
       "learned": false,
-      "attempts": 0
+      "attempts": 1,
+      "reviewed": false,
+      "tested": true
     }
   ],
   "settings": {
     "learn_count": 3,
-    "review_count": 1,
-    "test_count": 1
+    "review_count": 2,
+    "test_count": 3
   }
 }
