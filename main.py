@@ -1,7 +1,12 @@
 import sys, os
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, QGridLayout
+from PySide6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout,
+    QLabel, QPushButton, QGridLayout, QHBoxLayout, QMessageBox  # 导入 QHBoxLayout 和 QMessageBox
+)
 from PySide6.QtCore import Qt, QPropertyAnimation, QRect
 from PySide6.QtGui import QFont
+# ✅ 新增：导入 requests 库以进行网络请求
+import requests
 from vocab_model import VocabModel
 from learn_window import LearnWindow
 from review_window import ReviewWindow
@@ -23,22 +28,45 @@ class MainWindow(QMainWindow):
         # 将布局内容整体居中，并保持对齐方式
         self.layout.setAlignment(Qt.AlignTop | Qt.AlignHCenter)
 
-        # ✅ 关键修改 1: 添加垂直弹簧，将所有内容向下推动
-        # 权重设为 1，确保其能占据顶部多余空间，从而实现内容的整体下移。
-        self.layout.addStretch(1)
+        # ----------------------------------------------------
+        # 1. 顶部栏 (包含标题和检查更新按钮)
+        top_bar_layout = QHBoxLayout()
 
-        # Title
+        # 顶部栏左侧间距（抵消主布局的 AlignTop | AlignHCenter 影响）
+        top_bar_layout.addSpacing(20)
+
+        # 1.1 程序标题
         self.title = QLabel("LearnWord")
         self.title.setFont(QFont("MiSans", 34, QFont.Bold))
         self.title.setAlignment(Qt.AlignCenter)
 
-        # 初始的 20px 间距，可保留或删除
-        # self.layout.addSpacing(20)
+        # 1.2 标题占位（左侧）
+        top_bar_layout.addWidget(self.title)
+        top_bar_layout.addStretch()  # 伸缩项推开内容到右上角
 
-        self.layout.addWidget(self.title)
+        # 1.3 检查更新按钮 (位于右上角)
+        self.btn_update = QPushButton("检查更新")
+        self.btn_update.setObjectName("update_check_btn")
+        self.btn_update.clicked.connect(self.check_for_updates)
+        self.btn_update.setFixedSize(100, 40)  # 设置一个固定大小
+        top_bar_layout.addWidget(self.btn_update)
 
-        # 标题和按钮网格之间的间距
-        self.layout.addSpacing(60)
+        # 顶部栏右侧间距
+        top_bar_layout.addSpacing(20)
+
+        self.layout.addLayout(top_bar_layout)
+        # ----------------------------------------------------
+
+        # 将标题和按钮网格之间的间距从 60px 调整为 30px (因为顶部栏已占空间)
+        self.layout.addSpacing(30)
+
+        # 移除旧的 self.title，因为现在它被放在 top_bar_layout 中
+        # self.title = QLabel("LearnWord")
+        # self.layout.addWidget(self.title)
+        # self.layout.addSpacing(60)
+
+        # ✅ 关键修改 1: 添加垂直弹簧，将所有内容向下推动 (现在用于将网格推到中央)
+        self.layout.addStretch(1)
 
         # grid: 按钮网格布局
         grid = QGridLayout()
@@ -54,8 +82,12 @@ class MainWindow(QMainWindow):
         for b in [self.btn_learn, self.btn_review, self.btn_test, self.btn_setting]:
             b.setFixedSize(200, 100)
             b.setFont(QFont("MiSans", 16, QFont.Bold))
-            b.setStyleSheet(
-                "QPushButton{background-color:#0078d7;color:white;border:none;border-radius:18px;} QPushButton:hover{background-color:#339af0;}")
+            # 设置对象名，用于QSS区分样式
+            b.setObjectName(f"mode_btn_{b.text().lower()}")
+
+            # 使用更灵活的 QSS 替换行内样式
+            # b.setStyleSheet(
+            #     "QPushButton{background-color:#0078d7;color:white;border:none;border-radius:18px;} QPushButton:hover{background-color:#339af0;}")
 
         # 将按钮添加到网格布局
         grid.addWidget(self.btn_learn, 0, 0)
@@ -63,12 +95,16 @@ class MainWindow(QMainWindow):
         grid.addWidget(self.btn_test, 1, 0)
         grid.addWidget(self.btn_setting, 1, 1)
 
-        # 将网格布局添加到主布局
-        self.layout.addLayout(grid)
+        # 创建一个居中的 QHBoxLayout 来放置 Grid
+        grid_container = QHBoxLayout()
+        grid_container.addStretch()
+        grid_container.addLayout(grid)
+        grid_container.addStretch()
+
+        # 将居中后的网格布局添加到主布局
+        self.layout.addLayout(grid_container)
 
         # ✅ 关键修改 2: 在内容底部也添加一个垂直弹簧
-        # 如果您希望内容在中央偏下的位置，可以添加一个较小权重的弹簧。
-        # 如果您只想要下移而不是居中，可以移除这一行，或者保持其权重小于顶部的弹簧。
         self.layout.addStretch(1)
 
         # child windows placeholders
@@ -85,6 +121,61 @@ class MainWindow(QMainWindow):
 
         # center on screen
         self.center_on_screen()
+
+        # ----------------------------------------------------
+        # 3. 样式表 (统一 QSS 样式)
+        self.central.setStyleSheet("""
+            QWidget {
+                background-color: #000000; /* 黑色背景 */
+            }
+
+            QLabel {
+                color: #ffffff; /* 白色文字 */
+            }
+
+            /* 模式按钮基础样式 */
+            QPushButton {
+                padding: 10px 20px;
+                border: none;
+                border-radius: 18px;
+                font-weight: 700;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5); /* 黑色背景下阴影更明显 */
+                transition: background-color 0.3s, box-shadow 0.3s;
+            }
+
+            /* 主要按钮样式 (Learn, Review, Test) */
+            #mode_btn_learn, #mode_btn_review, #mode_btn_test {
+                background-color: #0078d7; 
+                color: white;
+            }
+            #mode_btn_learn:hover, #mode_btn_review:hover, #mode_btn_test:hover {
+                background-color: #339af0;
+            }
+
+            /* 设置按钮样式 */
+            #mode_btn_设置 {
+                background-color: #95a5a6; 
+                color: white;
+            }
+            #mode_btn_设置:hover {
+                background-color: #7f8c8d;
+            }
+
+            /* 检查更新按钮样式 (右上角) */
+            #update_check_btn {
+                padding: 5px 10px;
+                font-size: 14px;
+                font-weight: 500;
+                background-color: #e74c3c; /* 红色 */
+                color: white;
+                border-radius: 8px;
+                box-shadow: none;
+            }
+            #update_check_btn:hover {
+                background-color: #c0392b;
+            }
+        """)
+        # ----------------------------------------------------
 
     def center_on_screen(self):
         """将主窗口移动到屏幕中央"""
@@ -139,6 +230,67 @@ class MainWindow(QMainWindow):
 
             # 步骤 2: 刷新设置窗口，显示新状态
             self.setting_win.refresh_view()
+
+    def check_for_updates(self):
+        """检查更新的功能实现 (通过 GitHub API 获取最新版本)"""
+        repo_owner = "Junpgle"
+        repo_name = "LearnWord"
+        github_api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest"
+
+        # 尝试从模型设置中获取当前版本，默认为 v1.0.0
+        current_version = self.model.settings.get("current_version", "v1.0.0")
+
+        # 定义一个内部函数，用于清除版本号前的 'v' 前缀，方便比较
+        def clean_version(v):
+            return v.lstrip('v')
+
+        try:
+            # 实际网络请求，设置超时 5 秒
+            # 注：在某些受限的 PySide6 环境中，requests 请求可能被阻止。
+            response = requests.get(github_api_url, timeout=5)
+            response.raise_for_status()  # 对 4xx 或 5xx 状态码抛出异常
+
+            latest_release = response.json()
+            # 获取 GitHub Release 的 tag_name，通常是版本号，如 "v1.0.1"
+            latest_version_tag = latest_release.get("tag_name", "v0.0.0")
+
+            # 清理版本号进行比较
+            clean_latest = clean_version(latest_version_tag)
+            clean_current = clean_version(current_version)
+
+            # 简单的字符串版本比较 (适用于 major.minor.patch 格式)
+            if clean_latest > clean_current:
+                QMessageBox.information(
+                    self,
+                    "检查更新",
+                    f"发现新版本 ({latest_version_tag})！\n请访问 GitHub 项目页面下载。",
+                    QMessageBox.Ok
+                )
+            else:
+                QMessageBox.information(
+                    self,
+                    "检查更新",
+                    f"当前版本 (v{current_version}) 已经是最新版本。\n(最新版本: {latest_version_tag})",
+                    QMessageBox.Ok
+                )
+
+
+        except requests.exceptions.RequestException as e:
+            # 处理网络请求失败，如连接超时、DNS 错误、GitHub API 限制等
+            QMessageBox.warning(
+                self,
+                "检查更新失败",
+                f"无法连接到 GitHub 检查更新。\n请检查您的网络连接。\n错误: {e}",
+                QMessageBox.Ok
+            )
+        except Exception as e:
+            # 处理其他可能的错误，如 JSON 解析失败
+            QMessageBox.warning(
+                self,
+                "检查更新错误",
+                f"处理版本信息时发生错误。\n请稍后重试。\n错误: {e}",
+                QMessageBox.Ok
+            )
 
 
 if __name__ == "__main__":
