@@ -1,9 +1,9 @@
 {
-  "latest_version": "v1.0.2",
-  "release_date": "2025-11-04",
+  "latest_version": "v1.0.3",
+  "release_date": "2025-11-05",
   "update_notes": [
-    "支持保存学习进度到指定文件夹",
-    "支持从指定文件读取学习进度。"
+    "支持导入json格式词库",
+    "支持从在线下载选定词库"
   ],
-  "download_url": "https://github.com/Junpgle/LearnWord/releases/download/v1.0.2/LearnWord.v1.0.2.exe"
+  "download_url": "https://github.com/Junpgle/LearnWord/releases/download/v1.0.3/LearnWord.v1.0.3.exe"
 }
