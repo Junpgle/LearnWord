@@ -29,8 +29,9 @@ class SettingWindow(QMainWindow):
         top_layout = QHBoxLayout(top_group)
 
         # 按钮定义
-        self.btn_import = QPushButton("导入单词库")
-        self.btn_open = QPushButton("打开单词库")
+        # **修改按钮文本，以反映支持多种文件类型**
+        self.btn_import = QPushButton("导入单词库 (CSV/JSON)")
+        self.btn_open = QPushButton("打开当前词库")
 
         # 按钮文本修改以反映自定义路径功能
         self.btn_save = QPushButton("保存进度到文件")
@@ -135,8 +136,9 @@ class SettingWindow(QMainWindow):
         main_layout.addLayout(bottom_layout)
 
         # --- 信号连接 ---
-        self.btn_import.clicked.connect(self.import_csv)
-        self.btn_open.clicked.connect(self.open_csv)
+        # **将 import_csv 替换为 import_wordlist**
+        self.btn_import.clicked.connect(self.import_wordlist)
+        self.btn_open.clicked.connect(self.open_current_wordlist)  # **将 open_csv 替换为 open_current_wordlist**
         # 关联到新的自定义路径方法
         self.btn_save.clicked.connect(self.save_progress_to_file)
         self.btn_load.clicked.connect(self.load_progress_from_file)
@@ -144,31 +146,52 @@ class SettingWindow(QMainWindow):
         # 初始化视图
         self.refresh_view()
 
-    def import_csv(self):
-        """导入新的 CSV 单词库，替换现有数据并保存进度。"""
-        # 打开文件对话框，筛选 CSV 文件
-        path, _ = QFileDialog.getOpenFileName(self, "选择 CSV 单词库文件", "", "CSV Files (*.csv);;All Files (*)")
+    # **新增或修改 import_wordlist 方法以支持 CSV 和 JSON**
+    def import_wordlist(self):
+        """导入新的单词库 (支持 CSV 或 JSON)，替换现有数据并保存进度。"""
+        # 打开文件对话框，筛选 CSV 和 JSON 文件
+        file_filter = "单词库文件 (*.csv *.json);;CSV Files (*.csv);;JSON Files (*.json);;All Files (*)"
+        path, file_type = QFileDialog.getOpenFileName(self, "选择单词库文件", "", file_filter)
+
         if not path: return
 
-        # 加载新的词库。load_words_from_csv 会更新 model.current_wordlist_name
-        self.model.load_words_from_csv(path)
-        # 立即保存进度到默认路径 (data/progress.json)
+        # 1. 根据文件扩展名调用不同的加载方法
+        loaded_words = []
+        if path.lower().endswith('.json'):
+            loaded_words = self.model.load_words_from_json(path)
+        elif path.lower().endswith('.csv'):
+            loaded_words = self.model.load_words_from_csv(path)
+        else:
+            QMessageBox.warning(self, "导入失败", "不支持的文件类型。请选择 CSV 或 JSON 文件。")
+            return
+
+        # 2. 检查是否成功加载
+        if not loaded_words:
+            # load_words_from_json/csv 会打印具体的错误信息
+            QMessageBox.critical(self, "导入失败", f"文件格式错误或文件为空: {os.path.basename(path)}")
+            return
+
+        # 3. 立即保存进度到默认路径 (data/progress.json)
         self.model.save_progress()
 
         QMessageBox.information(self, "导入成功",
-                                f"成功导入 {len(self.model.words)} 个单词并保存到 data/last_words.csv")
+                                f"成功导入 {len(self.model.words)} 个单词。新词库已设置为当前词库。")
         self.refresh_view()  # 刷新界面显示新的统计数据、单词列表和词库名称
 
-    def open_csv(self):
-        """打开并预览当前单词库的内容。"""
-        # 尝试获取上次导入的 CSV 路径
-        path = self.model.last_words_path if os.path.exists(self.model.last_words_path) else None
+    # **修改 open_csv 方法为 open_current_wordlist，使其支持打开 JSON 文件**
+    def open_current_wordlist(self):
+        """打开并预览当前单词库的内容 (根据上次导入的文件类型)。"""
 
-        # 如果路径不存在，让用户选择一个文件
+        # 确定当前词库文件的路径（优先 JSON，其次 CSV）
+        path = None
+        if os.path.exists(self.model.last_json_path):
+            path = self.model.last_json_path
+        elif os.path.exists(self.model.last_words_path):
+            path = self.model.last_words_path
+
         if not path:
-            path, _ = QFileDialog.getOpenFileName(self, "选择 CSV 单词库文件进行预览", "",
-                                                  "CSV Files (*.csv);;All Files (*)")
-            if not path: return
+            QMessageBox.warning(self, "打开失败", "未找到上次导入的单词库文件 (last_words.json 或 last_words.csv)。")
+            return
 
         try:
             # 读取文件内容
@@ -292,5 +315,6 @@ class SettingWindow(QMainWindow):
 
     def _auto_save_setting(self, key, value):
         """当 SpinBox 改变时自动保存单个设置到 settings.json 文件。"""
+        # 这部分逻辑不需要修改，因为它只处理 settings.json 中的学习数量配置，与词库加载无关。
         self.model.settings[key] = value
         self.model.save_settings()  # 即时写入 settings.json

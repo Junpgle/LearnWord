@@ -1,10 +1,11 @@
 import random, os, csv
 from collections import deque
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QLineEdit, \
-    QMessageBox, QFrame
+    QMessageBox, QFrame, QGridLayout  # 导入 QGridLayout
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QFont
-from vocab_model import VocabModel, WordItem
+from PySide6.QtGui import QFont, QPalette, QColor  # 导入 QPalette 和 QColor
+
+from vocab_model import VocabModel
 
 
 class LearnWindow(QMainWindow):
@@ -54,9 +55,11 @@ class LearnWindow(QMainWindow):
         # 1. 第一个垂直弹簧：将内容从顶部向下推
         layout.addStretch(1)
 
-        # 单词显示标签
+        # 单词显示标签 - 用于阶段 1/2 的单词或阶段 3 的释义提示
         self.word_label = QLabel("", alignment=Qt.AlignCenter)
         self.word_label.setFont(QFont("MiSans", 28, QFont.Bold))
+        # **启用自动换行**
+        self.word_label.setWordWrap(True)
         layout.addWidget(self.word_label)
 
         # 阶段内容框架：用于切换显示不同阶段的控件
@@ -65,14 +68,33 @@ class LearnWindow(QMainWindow):
         layout.addWidget(self.phase_frame)
 
         # 阶段 1: 词义选择题布局 (四选一)
-        opt_row = QHBoxLayout()
+        # **使用 QGridLayout 替代 QHBoxLayout 实现 2x2 布局**
+        self.opt_grid = QGridLayout()
         self.opt_buttons = [QPushButton() for _ in range(4)]
-        for b in self.opt_buttons:
+
+        # 2x2 布局设置
+        for i, b in enumerate(self.opt_buttons):
             b.setObjectName("choice_btn")  # 设置对象名
-            b.setFixedHeight(64)  # 保持高度控制
+            b.setFixedHeight(80)  # 增加高度以容纳多行文字
+            # **删除 b.setWordWrap(True) 这行代码**
+            # b.setWordWrap(True) # <- 移除这一行!
+
+            # 使用 CSS 替代 setWordWrap 来间接控制换行
+            b.setStyleSheet(
+                "text-align: center; white-space: normal;"  # 关键：设置 white-space: normal
+            )
+
+            b.setMinimumWidth(300)
             b.clicked.connect(self.on_choice)  # 绑定选择点击事件
-            opt_row.addWidget(b)
-        self.phase_layout.addLayout(opt_row)
+            # 将按钮依次放置在 0,0 0,1 1,0 1,1
+            row = i // 2
+            col = i % 2
+            self.opt_grid.addWidget(b, row, col)
+
+        # 居中对齐网格布局
+        self.opt_grid.setAlignment(Qt.AlignCenter)
+        self.phase_layout.addLayout(self.opt_grid)
+        self.phase_layout.setAlignment(self.opt_grid, Qt.AlignCenter)
 
         # 阶段 2: 认识/不认识按钮布局
         know_row = QHBoxLayout()
@@ -92,6 +114,8 @@ class LearnWindow(QMainWindow):
         # 阶段 3: 拼写填空内容（直接添加到主布局，位于 phase_frame 之外）
         self.cloze_label = QLabel("", alignment=Qt.AlignCenter)
         self.cloze_label.setFont(QFont("MiSans", 20, QFont.Bold))
+        # **启用自动换行**
+        self.cloze_label.setWordWrap(True)
         layout.addWidget(self.cloze_label)
 
         # 输入框居中和宽度限制
@@ -149,12 +173,24 @@ class LearnWindow(QMainWindow):
                 min-width: 100px; /* 确保最小宽度 */
             }
 
-            /* 主要/积极动作 (认识, 提交, 选择题, 下一个) - 蓝色 */
-            #know_btn, #submit_btn, #choice_btn, #next_btn {
+            /* **重点：阶段 1 选择题按钮样式，确保文本自动换行** */
+            #choice_btn {
+                text-align: center; 
+                background-color: #0078d7; 
+                color: #ffffff;
+                /* 必须设置足够大的最小高度，让文字换行 */
+                min-height: 50px; 
+            }
+            #choice_btn:hover {
+                background-color: #005bb5;
+            }
+
+            /* 主要/积极动作 (认识, 提交, 下一个) - 蓝色 */
+            #know_btn, #submit_btn, #next_btn {
                 background-color: #0078d7; 
                 color: #ffffff;
             }
-            #know_btn:hover, #submit_btn:hover, #choice_btn:hover, #next_btn:hover {
+            #know_btn:hover, #submit_btn:hover, #next_btn:hover {
                 background-color: #005bb5;
             }
 
@@ -187,7 +223,7 @@ class LearnWindow(QMainWindow):
 
             /* 输入框样式 */
             QLineEdit {
-                padding: 12px 10px; /* ✅ 增加垂直 padding (12px) 确保文字显示完整 */
+                padding: 12px 10px; /* 增加垂直 padding 确保文字显示完整 */
                 border: 2px solid #ccc;
                 border-radius: 8px;
                 font-size: 18px;
@@ -333,8 +369,9 @@ class LearnWindow(QMainWindow):
         self.know_btn.hide()
         self.unknow_btn.hide()
 
-        # 显示单词和释义
+        # **修改：确保 word_label 文本显示正确且自动换行已设置**
         self.word_label.setText(f"{item.word} : {item.definition or '[无释义]'}")
+        self.word_label.setWordWrap(True)  # 再次确保换行开启
 
         # 创建或显示下一步/我记错了按钮 (用于处理结果)
         if not hasattr(self, 'next_btn'):
@@ -394,10 +431,14 @@ class LearnWindow(QMainWindow):
         self.idk_btn.show()
 
         # word_label 显示释义作为提示
+        # **修改：确保 word_label 文本显示正确且自动换行已设置**
         self.word_label.setText(f"拼写：{item.definition or '[无释义]'}")
+        self.word_label.setWordWrap(True)  # 再次确保换行开启
 
         # cloez_label 显示带下划线的单词（提示）
         self.cloze_label.setText(self._make_cloze(item.word))
+        self.cloze_label.setWordWrap(True)  # 再次确保换行开启
+
         self.spell_input.setText("")  # 清空输入框
 
     def on_choice(self):
