@@ -3,6 +3,7 @@ from dataclasses import dataclass, asdict
 from typing import List
 import requests
 import random  # 导入 random 用于后面构建选项
+from io import StringIO  # 新增：用于处理内存中的 CSV 字符串
 
 
 @dataclass
@@ -84,33 +85,20 @@ class VocabModel:
             # 使用 update() 方法，加载文件中的设置，同时保留默认设置中未在文件中出现的项
             self.settings.update(data)
 
-    # =============== 单词库相关 ===============
+    # =============== 单词库相关 - 基于文件路径 ===============
 
-    # **新增方法：用于加载用户提供的 JSON 格式文件**
-    def load_words_from_json(self, path: str) -> List[WordItem]:
+    # **新增辅助函数：从 JSON 字符串内容解析并加载单词**
+    def _parse_json_content(self, content: str) -> List[WordItem]:
         """
-        从指定的 JSON 文件加载单词。
-        JSON 文件格式期望包含：[{"word": "...", "translations": [...]}, ...]
+        从 JSON 字符串内容解析单词列表。
+        返回解析出的 WordItem 列表。
         """
-        if not os.path.exists(path):
-            return []
-
-        print(f"尝试从 JSON 文件加载: {path}")
-
+        words_list = []
         try:
-            os.makedirs("data", exist_ok=True)
-            # 复制导入的文件到 data 目录，作为下次启动的默认词库
-            if os.path.abspath(path) != os.path.abspath(self.last_json_path):
-                shutil.copy(path, self.last_json_path)
+            data = json.loads(content)
 
-            with open(path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-
-            self.words = []
-
-            # 确保 data 是一个列表
             if not isinstance(data, list):
-                print("JSON 文件格式错误: 根元素不是列表。")
+                print("JSON 内容格式错误: 根元素不是列表。")
                 return []
 
             for item in data:
@@ -120,11 +108,9 @@ class VocabModel:
                 if not word or not translations:
                     continue
 
-                # 从 translations 列表中提取所有释义和词性
                 definition_parts = []
                 pos_parts = []
                 for t in translations:
-                    # 组合释义 (e.g., "n. 庄严，端庄；尊严")
                     part_of_speech = t.get('type', 'n/a')
                     translation = t.get('translation', '')
 
@@ -133,55 +119,34 @@ class VocabModel:
                         if part_of_speech != 'n/a':
                             pos_parts.append(part_of_speech)
 
-                # 提取第一个词性作为主要词性
                 pos = ", ".join(sorted(list(set(pos_parts))))
-
-                # 组合所有释义为一个字符串
                 definition = "; ".join(definition_parts)
 
-                # 注意：这个 JSON 文件格式不包含例句 (example)，因此例句为空
-                self.words.append(WordItem(
+                words_list.append(WordItem(
                     word=word,
                     definition=definition,
                     pos=pos,
                     example=""
                 ))
+            return words_list
 
-            # 关键修改：成功加载后，更新词库名称
-            if self.words:
-                self.current_wordlist_name = os.path.basename(path)
-                print(f"成功从 JSON 文件加载 {len(self.words)} 个单词。")
-
-            return self.words
-
+        except json.JSONDecodeError as e:
+            print(f"解析 JSON 内容时发生错误: {e}")
+            return []
         except Exception as e:
-            print(f"加载 JSON 文件时发生错误: {e}")
+            print(f"处理 JSON 单词数据时发生未知错误: {e}")
             return []
 
-    def load_words_from_csv(self, path):
+    # **新增辅助函数：从 CSV 字符串内容解析并加载单词**
+    def _parse_csv_content(self, content: str) -> List[WordItem]:
         """
-        从指定的 CSV 文件加载单词。
-        CSV 文件格式期望至少包含：单词, 词性, 释义, 例句。
+        从 CSV 字符串内容解析单词列表。
+        返回解析出的 WordItem 列表。
         """
-        if not os.path.exists(path):
-            return []
-
+        words_list = []
         try:
-            os.makedirs("data", exist_ok=True)
-            # 复制导入的文件到 data 目录，作为下次启动的默认词库
-            # 确保只在文件路径不是 last_words_path 本身时才进行复制
-            if os.path.abspath(path) != os.path.abspath(self.last_words_path):
-                # 移除上次导入的 JSON 文件的记录，以 CSV 为准
-                if os.path.exists(self.last_json_path):
-                    os.remove(self.last_json_path)
-                shutil.copy(path, self.last_words_path)
-        except Exception as e:
-            # 如果复制失败 (如权限问题)，忽略并打印错误
-            print(f"Warning: Failed to copy {path} to data directory. Error: {e}")
-            pass
-
-        self.words = []
-        with open(path, newline='', encoding='utf-8') as f:
+            # 使用 StringIO 将字符串内容模拟成文件
+            f = StringIO(content)
             reader = csv.reader(f)
             rows = list(reader)
             start = 0
@@ -200,14 +165,126 @@ class VocabModel:
 
                 if w:
                     # 创建新的 WordItem 实例 (所有状态都将是默认值)
-                    self.words.append(WordItem(word=w, definition=d, pos=pos, example=ex))
+                    words_list.append(WordItem(word=w, definition=d, pos=pos, example=ex))
+            return words_list
 
-        # 关键修改：成功加载后，更新词库名称
+        except Exception as e:
+            print(f"解析 CSV 内容时发生错误: {e}")
+            return []
+
+    # **新增方法：基于内存中的 JSON 字符串内容导入单词**
+    def load_words_from_json_content(self, content: str) -> List[WordItem]:
+        """
+        从 JSON 字符串内容加载单词，替换现有数据。用于网络下载导入。
+        """
+        self.words = self._parse_json_content(content)
+
+        # 成功加载后，将内容保存到 last_json_path 作为持久化备份
         if self.words:
-            self.current_wordlist_name = os.path.basename(path)
-            print(f"成功从 CSV 文件加载 {len(self.words)} 个单词。")
+            os.makedirs("data", exist_ok=True)
+            with open(self.last_json_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            # 清理 CSV 备份
+            if os.path.exists(self.last_words_path):
+                os.remove(self.last_words_path)
+            print(f"成功从 JSON 内容加载 {len(self.words)} 个单词。")
+            return self.words
+        return []
 
-        return self.words
+    # **新增方法：基于内存中的 CSV 字符串内容导入单词**
+    def load_words_from_csv_content(self, content: str) -> List[WordItem]:
+        """
+        从 CSV 字符串内容加载单词，替换现有数据。用于网络下载导入。
+        """
+        self.words = self._parse_csv_content(content)
+
+        # 成功加载后，将内容保存到 last_words_path 作为持久化备份
+        if self.words:
+            os.makedirs("data", exist_ok=True)
+            with open(self.last_words_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            # 清理 JSON 备份
+            if os.path.exists(self.last_json_path):
+                os.remove(self.last_json_path)
+            print(f"成功从 CSV 内容加载 {len(self.words)} 个单词。")
+            return self.words
+        return []
+
+    # **修改 load_words_from_json 方法，使其调用 _parse_json_content**
+    def load_words_from_json(self, path: str) -> List[WordItem]:
+        """
+        从指定的 JSON 文件加载单词。
+        JSON 文件格式期望包含：[{"word": "...", "translations": [...]}, ...]
+        """
+        if not os.path.exists(path):
+            return []
+
+        print(f"尝试从 JSON 文件加载: {path}")
+
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            self.words = self._parse_json_content(content)
+
+            # 成功加载后，执行文件复制和名称更新
+            if self.words:
+                os.makedirs("data", exist_ok=True)
+                # 复制导入的文件到 data 目录，作为下次启动的默认词库
+                if os.path.abspath(path) != os.path.abspath(self.last_json_path):
+                    shutil.copy(path, self.last_json_path)
+                # 移除上次导入的 CSV 文件的记录，以 JSON 为准
+                if os.path.exists(self.last_words_path):
+                    os.remove(self.last_words_path)
+
+                # 关键修改：成功加载后，更新词库名称
+                self.current_wordlist_name = os.path.basename(path)
+                print(f"成功从 JSON 文件加载 {len(self.words)} 个单词。")
+                return self.words
+
+            return []
+
+        except Exception as e:
+            print(f"加载 JSON 文件时发生错误: {e}")
+            return []
+
+    # **修改 load_words_from_csv 方法，使其调用 _parse_csv_content**
+    def load_words_from_csv(self, path):
+        """
+        从指定的 CSV 文件加载单词。
+        CSV 文件格式期望至少包含：单词, 词性, 释义, 例句。
+        """
+        if not os.path.exists(path):
+            return []
+
+        print(f"尝试从 CSV 文件加载: {path}")
+
+        try:
+            with open(path, newline='', encoding='utf-8') as f:
+                content = f.read()
+
+            self.words = self._parse_csv_content(content)
+
+            # 成功加载后，执行文件复制和名称更新
+            if self.words:
+                os.makedirs("data", exist_ok=True)
+                # 复制导入的文件到 data 目录，作为下次启动的默认词库
+                if os.path.abspath(path) != os.path.abspath(self.last_words_path):
+                    # 移除上次导入的 JSON 文件的记录，以 CSV 为准
+                    if os.path.exists(self.last_json_path):
+                        os.remove(self.last_json_path)
+                    shutil.copy(path, self.last_words_path)
+
+                # 关键修改：成功加载后，更新词库名称
+                self.current_wordlist_name = os.path.basename(path)
+                print(f"成功从 CSV 文件加载 {len(self.words)} 个单词。")
+                return self.words
+
+            return []
+
+        except Exception as e:
+            print(f"加载 CSV 文件时发生错误: {e}")
+            return []
 
     def load_last_words(self):
         """加载最近一次成功导入的 CSV 或 JSON 单词库。"""
@@ -275,7 +352,7 @@ class VocabModel:
             if not hasattr(w, "tested"):
                 w.tested = False
 
-        # 保持词库同步：将加载的进度文件中的单词库内容同步到 last_words.csv 或 last_words.json (为简化起见，此处统一同步到 CSV)
+        # 保持词库同步：将加载的进度文件中的单词库内容同步到 last_words.csv 或 last_words.json
         if self.words:
             os.makedirs("data", exist_ok=True)
             # 统一同步到 CSV 格式，方便下一次 load_all_data 的逻辑
@@ -299,7 +376,6 @@ class VocabModel:
         learned = sum(1 for w in self.words if w.learned)
         return learned, total
 
-    # **修改 load_all_data 方法，新增对默认 JSON 文件的尝试加载**
     def load_all_data(self):
         """
         统一加载所有数据：尝试加载进度 -> 尝试加载上次词库 (JSON/CSV) -> 强制加载默认文件 (JSON/CSV)
@@ -327,16 +403,18 @@ class VocabModel:
         # 3. 如果前面都没加载成功, 尝试加载默认文件
         DEFAULT_JSON_PATH = "4-CET6-顺序.json"  # 您提供的 JSON 文件
         default_csv_path = "六级.csv"
-        DEFAULT_CSV_URL = "https://github.com/Junpgle/LearnWord/blob/master/%E8%AF%8D%E5%BA%93/%E5%85%AD%E7%BA%A7-%E4%B9%B1%E5%BA%8F.csv"
+        # 修正：使用 raw.githubusercontent.com 获取原始文件内容
+        DEFAULT_CSV_URL = "https://raw.githubusercontent.com/Junpgle/LearnWord/master/%E8%AF%8D%E5%BA%93/%E5%85%AD%E7%BA%A7-%E4%B9%B1%E5%BA%8F.csv"
 
         # 3a. **新增：尝试加载默认 JSON 文件**
         if os.path.exists(DEFAULT_JSON_PATH):
             print(f"Loading default JSON dictionary locally: {DEFAULT_JSON_PATH}")
+            # load_words_from_json 会更新 self.current_wordlist_name
             self.load_words_from_json(DEFAULT_JSON_PATH)
             if self.words:
                 return True
 
-        # 3b. 尝试加载默认 CSV 文件 (本地或网络下载)
+        # 3b. 尝试加载默认 CSV 文件 (本地)
         if os.path.exists(default_csv_path):
             print(f"Loading default CSV dictionary locally: {default_csv_path}")
             # load_words_from_csv 会更新 self.current_wordlist_name
@@ -352,13 +430,13 @@ class VocabModel:
                 response = requests.get(DEFAULT_CSV_URL, timeout=10)
                 response.raise_for_status()  # 检查 HTTP 错误
 
-                # 成功下载，保存到本地文件
-                with open(default_csv_path, "wb") as f:
-                    f.write(response.content)
+                # 成功下载，直接使用内容加载
+                content = response.text
 
-                print(f"Download successful. Loading new dictionary: {default_csv_path}")
-                # 加载新下载的文件。load_words_from_csv 会自动复制到 data/last_words.csv，并更新 self.current_wordlist_name
-                self.load_words_from_csv(default_csv_path)
+                print(f"Download successful. Loading new dictionary from network content.")
+                # 使用新的 content 方法加载，并设置临时名称
+                self.load_words_from_csv_content(content)
+                self.current_wordlist_name = f"[下载] 六级.csv"
 
             except requests.exceptions.RequestException as e:
                 # 网络连接或 HTTP 错误

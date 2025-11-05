@@ -1,6 +1,6 @@
-import os, csv, json
+import os, csv, json, requests, io
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QProgressBar, \
-    QSpinBox, QTextEdit, QGroupBox, QFileDialog, QMessageBox
+    QSpinBox, QTextEdit, QGroupBox, QFileDialog, QMessageBox, QInputDialog
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from vocab_model import VocabModel  # 假设 VocabModel 和 WordItem 都在 vocab_model.py 中
@@ -29,8 +29,9 @@ class SettingWindow(QMainWindow):
         top_layout = QHBoxLayout(top_group)
 
         # 按钮定义
-        # **修改按钮文本，以反映支持多种文件类型**
         self.btn_import = QPushButton("导入单词库 (CSV/JSON)")
+        # **新增下载按钮**
+        self.btn_download = QPushButton("从网络下载词库")
         self.btn_open = QPushButton("打开当前词库")
 
         # 按钮文本修改以反映自定义路径功能
@@ -38,7 +39,7 @@ class SettingWindow(QMainWindow):
         self.btn_load = QPushButton("从文件加载进度")
 
         # 统一设置按钮样式
-        for b in [self.btn_import, self.btn_open, self.btn_save, self.btn_load]:
+        for b in [self.btn_import, self.btn_download, self.btn_open, self.btn_save, self.btn_load]:
             b.setFont(font)
             b.setFixedHeight(36)
             b.setStyleSheet(
@@ -136,17 +137,16 @@ class SettingWindow(QMainWindow):
         main_layout.addLayout(bottom_layout)
 
         # --- 信号连接 ---
-        # **将 import_csv 替换为 import_wordlist**
         self.btn_import.clicked.connect(self.import_wordlist)
-        self.btn_open.clicked.connect(self.open_current_wordlist)  # **将 open_csv 替换为 open_current_wordlist**
-        # 关联到新的自定义路径方法
+        # **新增下载信号连接**
+        self.btn_download.clicked.connect(self.download_wordlist)
+        self.btn_open.clicked.connect(self.open_current_wordlist)
         self.btn_save.clicked.connect(self.save_progress_to_file)
         self.btn_load.clicked.connect(self.load_progress_from_file)
 
         # 初始化视图
         self.refresh_view()
 
-    # **新增或修改 import_wordlist 方法以支持 CSV 和 JSON**
     def import_wordlist(self):
         """导入新的单词库 (支持 CSV 或 JSON)，替换现有数据并保存进度。"""
         # 打开文件对话框，筛选 CSV 和 JSON 文件
@@ -158,8 +158,10 @@ class SettingWindow(QMainWindow):
         # 1. 根据文件扩展名调用不同的加载方法
         loaded_words = []
         if path.lower().endswith('.json'):
+            # model.load_words_from_json 内部会更新 model.words
             loaded_words = self.model.load_words_from_json(path)
         elif path.lower().endswith('.csv'):
+            # model.load_words_from_csv 内部会更新 model.words
             loaded_words = self.model.load_words_from_csv(path)
         else:
             QMessageBox.warning(self, "导入失败", "不支持的文件类型。请选择 CSV 或 JSON 文件。")
@@ -167,7 +169,6 @@ class SettingWindow(QMainWindow):
 
         # 2. 检查是否成功加载
         if not loaded_words:
-            # load_words_from_json/csv 会打印具体的错误信息
             QMessageBox.critical(self, "导入失败", f"文件格式错误或文件为空: {os.path.basename(path)}")
             return
 
@@ -178,7 +179,91 @@ class SettingWindow(QMainWindow):
                                 f"成功导入 {len(self.model.words)} 个单词。新词库已设置为当前词库。")
         self.refresh_view()  # 刷新界面显示新的统计数据、单词列表和词库名称
 
-    # **修改 open_csv 方法为 open_current_wordlist，使其支持打开 JSON 文件**
+    def download_wordlist(self):
+        """显示网络词库列表，供用户选择下载并导入。"""
+
+        # 词库 GitHub 路径
+        BASE_URL = "https://raw.githubusercontent.com/Junpgle/LearnWord/master/%E8%AF%8D%E5%BA%93/"
+
+        # 预设可下载的文件名列表 (这些文件存在于 GitHub 路径下)
+        available_dics = ["1-初中-顺序.json", "2-高中-顺序.json", "3-CET4-顺序.json", "4-CET6-顺序.json", "5-考研-顺序.json","6-托福-顺序.json","7-SAT-顺序.json"]
+
+        # 1. 弹出选择对话框
+        item, ok = QInputDialog.getItem(
+            self,
+            "下载词库",
+            "选择要下载的词库文件:",
+            available_dics,
+            0,
+            False  # 不允许编辑
+        )
+
+        if not ok or not item:
+            return
+
+        # 2. 构造完整的下载 URL
+        download_url = BASE_URL + item
+
+        # 3. 询问用户是否确认下载
+        reply = QMessageBox.question(self, '确认下载',
+                                     f"确认从网络下载文件: \n{item}\n这将覆盖当前词库。",
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+
+        if reply == QMessageBox.No:
+            return
+
+        # 4. 执行下载
+        temp_msg = QMessageBox(QMessageBox.Information, "下载中", f"正在下载 {item}，请稍候...", QMessageBox.NoButton)
+        temp_msg.show()
+
+        try:
+            # 使用 requests 库进行下载
+            response = requests.get(download_url, timeout=15)
+            response.raise_for_status()  # 检查 HTTP 错误 (如 404, 500)
+
+            file_content = response.text
+            temp_msg.close()  # 关闭提示框
+
+            # 5. 导入下载的内容
+            self._import_downloaded_content(item, file_content)
+
+        except requests.exceptions.RequestException as e:
+            temp_msg.close()
+            QMessageBox.critical(self, "下载失败", f"网络请求失败或文件未找到: {e}")
+        except Exception as e:
+            temp_msg.close()
+            QMessageBox.critical(self, "导入失败", f"处理下载内容时出错: {e}")
+
+    # **辅助方法 _import_downloaded_content：调用 model 中基于 content 的导入方法**
+    def _import_downloaded_content(self, filename, content):
+        """导入下载的 CSV 或 JSON 文件内容。"""
+
+        loaded_words = []
+        is_json = filename.lower().endswith('.json')
+        is_csv = filename.lower().endswith('.csv')
+
+        if is_json:
+            # 调用 model 的 content-based 导入方法
+            loaded_words = self.model.load_words_from_json_content(content)
+        elif is_csv:
+            # 调用 model 的 content-based 导入方法
+            loaded_words = self.model.load_words_from_csv_content(content)
+        else:
+            QMessageBox.warning(self, "导入失败", f"不支持的文件扩展名: {filename}。")
+            return
+
+        if not loaded_words:
+            QMessageBox.critical(self, "导入失败", f"下载的文件格式错误或内容为空: {filename}")
+            return
+
+        # 成功导入后，更新当前词库名称 (在 model 中已保存备份)
+        self.model.current_wordlist_name = f"[网络下载] {filename}"
+        self.model.save_progress()  # 立即保存进度和更新后的词库名称
+
+        QMessageBox.information(self, "导入成功",
+                                f"成功导入 {len(self.model.words)} 个单词。新词库已设置为当前词库。")
+        self.refresh_view()
+
     def open_current_wordlist(self):
         """打开并预览当前单词库的内容 (根据上次导入的文件类型)。"""
 
@@ -315,6 +400,5 @@ class SettingWindow(QMainWindow):
 
     def _auto_save_setting(self, key, value):
         """当 SpinBox 改变时自动保存单个设置到 settings.json 文件。"""
-        # 这部分逻辑不需要修改，因为它只处理 settings.json 中的学习数量配置，与词库加载无关。
         self.model.settings[key] = value
         self.model.save_settings()  # 即时写入 settings.json
