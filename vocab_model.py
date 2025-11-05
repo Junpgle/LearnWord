@@ -156,9 +156,9 @@ class VocabModel:
 
             for row in rows[start:]:
                 if not row: continue
-                # 假设单词在第 0 列
+                # 单词在第 0 列
                 w = row[0].strip()
-                # 假设词性在第 1 列，释义在第 2 列，例句在第 3 列
+                # 词性在第 1 列，释义在第 2 列，例句在第 3 列
                 pos = row[1].strip() if len(row) > 1 else ""
                 d = row[2].strip() if len(row) > 2 else ""
                 ex = row[3].strip() if len(row) > 3 else ""
@@ -191,7 +191,7 @@ class VocabModel:
             return self.words
         return []
 
-    # **新增方法：基于内存中的 CSV 字符串内容导入单词**
+    # 基于内存中的 CSV 字符串内容导入单词
     def load_words_from_csv_content(self, content: str) -> List[WordItem]:
         """
         从 CSV 字符串内容加载单词，替换现有数据。用于网络下载导入。
@@ -210,7 +210,7 @@ class VocabModel:
             return self.words
         return []
 
-    # **修改 load_words_from_json 方法，使其调用 _parse_json_content**
+    # 从 json 文件加载单词
     def load_words_from_json(self, path: str) -> List[WordItem]:
         """
         从指定的 JSON 文件加载单词。
@@ -237,7 +237,7 @@ class VocabModel:
                 if os.path.exists(self.last_words_path):
                     os.remove(self.last_words_path)
 
-                # 关键修改：成功加载后，更新词库名称
+                # 成功加载后，更新词库名称
                 self.current_wordlist_name = os.path.basename(path)
                 print(f"成功从 JSON 文件加载 {len(self.words)} 个单词。")
                 return self.words
@@ -248,7 +248,7 @@ class VocabModel:
             print(f"加载 JSON 文件时发生错误: {e}")
             return []
 
-    # **修改 load_words_from_csv 方法，使其调用 _parse_csv_content**
+    # 从 CSV 文件加载单词
     def load_words_from_csv(self, path):
         """
         从指定的 CSV 文件加载单词。
@@ -275,7 +275,7 @@ class VocabModel:
                         os.remove(self.last_json_path)
                     shutil.copy(path, self.last_words_path)
 
-                # 关键修改：成功加载后，更新词库名称
+                # 成功加载后，更新词库名称
                 self.current_wordlist_name = os.path.basename(path)
                 print(f"成功从 CSV 文件加载 {len(self.words)} 个单词。")
                 return self.words
@@ -401,12 +401,12 @@ class VocabModel:
             return True
 
         # 3. 如果前面都没加载成功, 尝试加载默认文件
-        DEFAULT_JSON_PATH = "4-CET6-顺序.json"  # 您提供的 JSON 文件
+        DEFAULT_JSON_PATH = "4-CET6-顺序.json"
         default_csv_path = "六级.csv"
-        # 修正：使用 raw.githubusercontent.com 获取原始文件内容
+        # 使用 raw.githubusercontent.com 获取原始文件内容
         DEFAULT_CSV_URL = "https://raw.githubusercontent.com/Junpgle/LearnWord/master/%E8%AF%8D%E5%BA%93/%E5%85%AD%E7%BA%A7-%E4%B9%B1%E5%BA%8F.csv"
 
-        # 3a. **新增：尝试加载默认 JSON 文件**
+        # 3a. 尝试加载默认 JSON 文件
         if os.path.exists(DEFAULT_JSON_PATH):
             print(f"Loading default JSON dictionary locally: {DEFAULT_JSON_PATH}")
             # load_words_from_json 会更新 self.current_wordlist_name

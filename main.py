@@ -102,7 +102,7 @@ class MainWindow(QMainWindow):
 
         self.layout.addSpacing(30)
 
-        # ✅ 关键修改 1: 添加垂直弹簧，将所有内容向下推动 (现在用于将网格推到中央)
+        # 添加垂直弹簧，将所有内容向下推动 (现在用于将网格推到中央)
         self.layout.addStretch(1)
 
         # grid: 按钮网格布局
@@ -137,7 +137,7 @@ class MainWindow(QMainWindow):
         # 将居中后的网格布局添加到主布局
         self.layout.addLayout(grid_container)
 
-        # ✅ 关键修改 2: 在内容底部也添加一个垂直弹簧
+        # 在内容底部也添加一个垂直弹簧
         self.layout.addStretch(1)
 
         # child windows placeholders
@@ -210,7 +210,7 @@ class MainWindow(QMainWindow):
         """)
         # ----------------------------------------------------
 
-        # ✅ 新增：在初始化结束时自动检查更新
+        # 在初始化结束时自动检查更新
         self._start_update_check()
 
     def center_on_screen(self):
@@ -267,7 +267,7 @@ class MainWindow(QMainWindow):
             # 步骤 2: 刷新设置窗口，显示新状态
             self.setting_win.refresh_view()
 
-    # ✅ 新增：启动后台检查线程的槽函数
+    # 启动后台检查线程的槽函数
     @Slot()
     def _start_update_check(self):
         # 禁用按钮，避免重复点击
@@ -295,7 +295,7 @@ class MainWindow(QMainWindow):
         # 5. 启动线程
         self.update_thread.start()
 
-    # ✅ 修改：将检查逻辑主体移动到这个槽函数中
+    # 将检查逻辑主体槽函数
     @Slot(bool, object)
     def _handle_update_result(self, success: bool, data_or_error: object):
         """处理后台线程返回的检查结果"""
@@ -341,7 +341,7 @@ class MainWindow(QMainWindow):
             # 发现新版本
             notes_text = "\n- " + "\n- ".join(update_notes)
 
-            # ✅ 移除 setDetailedText()，将下载链接整合到 informativeText 中
+            #
             informative_text = (
                 f"更新内容：\n{notes_text}"
                 f"\n\n下载链接：{download_url}"
@@ -350,7 +350,7 @@ class MainWindow(QMainWindow):
             msg = QMessageBox(self)
             msg.setWindowTitle("发现新版本")
             msg.setIcon(QMessageBox.Information)
-            msg.setText(f"发现新版本：{latest_version_tag}")
+            msg.setText(f"发现新版本：{current_version}->{latest_version_tag}")
             msg.setInformativeText(informative_text)
 
             # === 按钮设置 START ===
@@ -373,7 +373,7 @@ class MainWindow(QMainWindow):
         else:
             # 当前已是最新版本
             # 只有手动点击按钮时才弹出提示。
-            # 我们通过检查按钮文本状态来简单区分（尽管不是最严谨的方式，但对 GUI 来说足够）
+            # 我们通过检查按钮文本状态来简单区分
             if self.btn_update.text() == "检查更新":  # 如果按钮文本已经恢复，说明是手动点击后结束
                 QMessageBox.information(
                     self,
