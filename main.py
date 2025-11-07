@@ -17,7 +17,7 @@ from test_window import TestWindow
 from setting_window import SettingWindow
 
 # 设定当前程序版本号
-CURRENT_VERSION = "v1.0.5"
+CURRENT_VERSION = "v1.0.6"
 CURRENT_VERSION_DATE = "20251107"
 
 
