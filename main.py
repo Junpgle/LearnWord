@@ -255,7 +255,7 @@ class MainWindow(QMainWindow):
 
     def _load_announcement_state(self):
         """从本地文件加载已读公告 ID 列表"""
-        state_file = "announcement_state.json"
+        state_file = "data/announcement_state.json"
         if os.path.exists(state_file):
             try:
                 with open(state_file, 'r', encoding='utf-8') as f:
@@ -267,7 +267,7 @@ class MainWindow(QMainWindow):
 
     def _save_announcement_state(self, read_set: set):
         """保存已读公告 ID 到本地文件"""
-        state_file = "announcement_state.json"
+        state_file = "data/announcement_state.json"
         try:
             with open(state_file, 'w', encoding='utf-8') as f:
                 json.dump({"read_announcements": list(read_set)}, f, ensure_ascii=False, indent=2)
