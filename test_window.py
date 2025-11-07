@@ -7,13 +7,14 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, \
     QHBoxLayout
 
-from vocab_model import VocabModel  # Assuming this import is correct
+from vocab_model import VocabModel
 
 
 class TestWindow(QMainWindow):
     def __init__(self, model: VocabModel, parent=None):
         super().__init__(parent)
         self.model = model
+        self.model.load_settings()
         self.setWindowTitle("单词测试模式")  # Add window title
         self.setFixedSize(1000, 700)
         central = QWidget()
@@ -37,7 +38,7 @@ class TestWindow(QMainWindow):
         # 用户输入框 (修改点 1: 居中和最大宽度)
         self.input = QLineEdit()
         self.input.setObjectName("test_input")  # 设置对象名
-        self.input.setMaximumWidth(600)  # 限制最大宽度 (与LearnWindow一致)
+        self.input.setMaximumWidth(600)  # 限制最大宽度
 
         input_row = QHBoxLayout()
         input_row.addStretch()
@@ -73,10 +74,11 @@ class TestWindow(QMainWindow):
         self.btn_return.clicked.connect(self.close)
         self.submit.clicked.connect(self.on_submit)
         self.next_btn.clicked.connect(self.next_q)
+        # Enter 键绑定到提交
+        self.input.returnPressed.connect(self.on_submit)
 
         # 数据初始化
         self.words = []
-        self._load_words()
 
         self.test_list = []
         self.current = None
@@ -133,44 +135,13 @@ class TestWindow(QMainWindow):
             }
         """)
 
-    def _load_words(self):
-        """
-        从当前词库 CSV 文件中加载单词到本地 self.words 列表中。
-        """
-        path = os.path.join("data", "last_words.csv")
-        if not os.path.exists(path):
-            # 尝试加载默认的 words.csv
-            path = "words.csv" if os.path.exists("words.csv") else None
-
-        if not path:
-            return
-
-        # 简单的 CSV 读取逻辑
-        with open(path, newline='', encoding='utf-8') as f:
-            reader = csv.reader(f)
-            rows = list(reader)
-            start = 0
-            if rows and any('单词' in c or 'word' in c.lower() for c in rows[0]):
-                start = 1
-
-            for row in rows[start:]:
-                if not row: continue
-                w = row[0].strip()
-                d = row[2].strip() if len(row) >= 3 else (row[1].strip() if len(row) >= 2 else "")
-
-                # 创建一个简单的对象来存储单词和释义
-                wi = type("W", (object,), {})()
-                wi.word = w
-                wi.definition = d
-                self.words.append(wi)
-
     def _prepare_and_start(self):
         """
         根据设置准备测试单词列表，并开始测试。
         """
         # 从 VocabModel 的设置中获取单次测试数量
         count = self.model.settings.get("test_count", 20)
-        pool = self.words.copy()
+        pool = [w for w in self.model.words if not w.tested] # 只测试未测试过的单词
 
         if not pool:
             QMessageBox.information(self, "提示", "词库为空，请导入单词库。")
@@ -192,8 +163,14 @@ class TestWindow(QMainWindow):
         self.next_btn.setEnabled(False)  # 禁用下一题按钮
 
         if not self.test_list:
-            QMessageBox.information(self, "完成", f"本轮测试完成！得分：{self.correct} / {self.total}")
+            self.cloze.setText(f"🎉 本次复习完成！ 🎉\n" f"得分：{self.correct} / {self.total}")
+            self.submit.hide()
+            self.next_btn.hide()
+            self.input.hide()
+            self.score.hide()
             self.current = None  # 标记测试结束
+            # 3 秒后自动关闭窗口
+            QTimer.singleShot(3000, self.close)
             return
 
         # 弹出测试列表的第一个单词
@@ -202,11 +179,12 @@ class TestWindow(QMainWindow):
         # 制作填空提示
         cloze = self._make_cloze(self.current.word)
 
-        # 在界面上显示填空提示和释义
+        # 在界面上显示填空提示和词性和释义
         if self.current.definition:
             # 移除释义中的换行符，确保显示在一行
             clean_definition = self.current.definition.replace('\n', ' / ')
-            self.cloze.setText(f"{cloze}\n\n释义: {clean_definition}")
+            pos = self.current.pos
+            self.cloze.setText(f"{cloze}\n\n词性:{pos}.\n释义: {clean_definition}\n")
         else:
             self.cloze.setText(cloze)
 

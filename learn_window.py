@@ -120,8 +120,8 @@ class LearnWindow(QMainWindow):
 
         # 输入框居中和宽度限制
         self.spell_input = QLineEdit()
-        # self.spell_input.setFixedHeight(36) # 移除固定高度设置
         self.spell_input.setMaximumWidth(600)  # 限制最大宽度，使其居中后视觉更舒适
+        self.spell_input.setFocus()
 
         input_row = QHBoxLayout()
         input_row.addStretch()
@@ -246,7 +246,7 @@ class LearnWindow(QMainWindow):
         # 根据 stage 阶段降序排序，确保高阶段单词优先被选中
         pool.sort(key=lambda x: x.stage, reverse=True)
 
-        # 从未学完的单词中随机选择本次要学的数量
+        # 从未学完的单词中随机选择本次要学的数量的单词
         selected = random.sample(all_unlearned, min(count, len(all_unlearned)))
 
         # 按阶段分组 (stages = {1: [w1, w2], 2: [w3], ...})
@@ -262,6 +262,35 @@ class LearnWindow(QMainWindow):
             for w in grp: self.queue.append(w)
 
         self._show_next()
+
+    def keyPressEvent(self, event):
+        """全局键盘事件：Enter/Return 键绑定到当前阶段的主要操作"""
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            if self.current is None:
+                return
+
+            phase = min(max(1, self.current.stage), 3)
+
+            if phase == 1:
+                # 阶段1：无法用Enter提交（因为有4个选项，不知道选哪个）
+                pass  # 可忽略，或弹出提示
+            elif phase == 2:
+                # 阶段2：判断是否处于“初始选择”状态
+                if self.know_btn.isVisible() and self.unknow_btn.isVisible():
+                    # 此时处于“认识/不认识”界面，Enter 触发“认识”
+                    self._phase2_handle(self.current)
+                # 如果已进入“下一个/我记错了”界面，则 Enter 触发"下一个"
+                elif phase == 2:
+                    if self.know_btn.isVisible() and self.unknow_btn.isVisible():
+                        self._phase2_handle(self.current)
+                    elif hasattr(self, 'next_btn') and self.next_btn.isVisible():
+                        self._phase2_next()  # Enter 触发“下一个”
+            elif phase == 3:
+                # 阶段3：直接提交
+                self.on_submit()
+
+        else:
+            super().keyPressEvent(event)
 
     def _show_next(self):
         """显示下一个单词的当前学习阶段界面。"""
@@ -321,9 +350,9 @@ class LearnWindow(QMainWindow):
         self.word_label.setText(item.word)
 
         # 准备选项
-        correct = item.definition or ""
+        correct = item.pos+"."+item.definition or ""
         # 筛选 3 个干扰项 (确保不与当前单词重复，且有释义)
-        distract = [w.definition for w in self.model.words if w.word != item.word and w.definition]
+        distract = [w.pos+"."+w.definition for w in self.model.words if w.word != item.word and w.definition]
         distract = list(dict.fromkeys(distract))  # 去重
         random.shuffle(distract)
 
@@ -369,8 +398,8 @@ class LearnWindow(QMainWindow):
         self.know_btn.hide()
         self.unknow_btn.hide()
 
-        # **修改：确保 word_label 文本显示正确且自动换行已设置**
-        self.word_label.setText(f"{item.word} : {item.definition or '[无释义]'}")
+        # 修改：确保 word_label 文本显示正确且自动换行已设置
+        self.word_label.setText(f"{item.word} \n {item.pos}.{item.definition or '[无释义]'}")
         self.word_label.setWordWrap(True)  # 再次确保换行开启
 
         # 创建或显示下一步/我记错了按钮 (用于处理结果)
@@ -430,16 +459,16 @@ class LearnWindow(QMainWindow):
         self.submit_btn.show()
         self.idk_btn.show()
 
-        # word_label 显示释义作为提示
-        # **修改：确保 word_label 文本显示正确且自动换行已设置**
-        self.word_label.setText(f"拼写：{item.definition or '[无释义]'}")
-        self.word_label.setWordWrap(True)  # 再次确保换行开启
-
         # cloez_label 显示带下划线的单词（提示）
         self.cloze_label.setText(self._make_cloze(item.word))
         self.cloze_label.setWordWrap(True)  # 再次确保换行开启
 
+        # word_label 显示释义作为提示 自动换行已设置
+        self.word_label.setText(f"拼写：\n{item.pos}. {item.definition or '[无释义]'}")
+        self.word_label.setWordWrap(True)  # 再次确保换行开启
+
         self.spell_input.setText("")  # 清空输入框
+        self.spell_input.setFocus()
 
     def on_choice(self):
         """处理阶段 1 的选择题答案提交。"""
@@ -447,13 +476,13 @@ class LearnWindow(QMainWindow):
         if not self.current: return
 
         # 检查答案是否正确
-        if btn.text().strip() == (self.current.definition or "").strip():
+        if btn.text().strip() == (self.current.pos+"."+self.current.definition or "").strip():
             self.current.stage = min(3, self.current.stage + 1)  # 答对：阶段 +1
             QMessageBox.information(self, "正确", "回答正确")
         else:
             self.current.stage = max(1, self.current.stage - 1)  # 答错：阶段 -1 (最低到 1)
             self.current.attempts += 1
-            QMessageBox.warning(self, "错误", f"正确释义: {self.current.definition or ''}")
+            QMessageBox.warning(self, "错误", f"正确释义: {self.current.pos+"."+self.current.definition or ""}")
 
         self.queue.append(self.current)  # 重新加入队列
         self.model.save_progress()

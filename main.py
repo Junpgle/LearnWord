@@ -17,7 +17,7 @@ from test_window import TestWindow
 from setting_window import SettingWindow
 
 # 设定当前程序版本号
-CURRENT_VERSION = "v1.0.3"
+CURRENT_VERSION = "v1.0.5"
 
 
 # =================================================================
@@ -324,6 +324,7 @@ class MainWindow(QMainWindow):
         manifest = data_or_error
         latest_version_tag = manifest.get("latest_version", "v0.0.0")
         update_notes = manifest.get("update_notes", [])
+        release_date = manifest.get("release_date", "")
         download_url = manifest.get("download_url", "")  # 失败时为空字符串
 
         # 进行版本比较
@@ -343,8 +344,9 @@ class MainWindow(QMainWindow):
 
             #
             informative_text = (
-                f"更新内容：\n{notes_text}"
-                f"\n\n下载链接：{download_url}"
+                f"更新日期:{release_date}\n"
+                f"\n更新内容：\n{notes_text}"
+
             )
 
             msg = QMessageBox(self)

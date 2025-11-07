@@ -197,6 +197,23 @@ class ReviewWindow(QMainWindow):
         self.queue = use_pool[:min(count, len(use_pool))]
         self._show_next()
 
+    def keyPressEvent(self, event):
+        """全局处理 Enter 键：阶段一触发“认识”，阶段二触发“提交”"""
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            if not self.current:
+                return
+
+            # 判断当前处于哪个阶段
+            if self.phase2_widget.isVisible():
+                # 阶段一：识别阶段，“认识/不认识”可见
+                self.on_know()
+            elif self.phase3_widget.isVisible():
+                # 阶段二：拼写阶段，输入框可见
+                self.on_submit()
+            # 其他情况（如复习完成）忽略
+        else:
+            super().keyPressEvent(event)
+
     def _update_stage_indicator(self, phase):
         """
         更新复习阶段指示灯。
@@ -244,7 +261,7 @@ class ReviewWindow(QMainWindow):
         self._update_stage_indicator(2)  # 阶段指示灯设为 2
 
         # 阶段二显示释义和填空提示
-        self.word_label.setText(self.current.definition or "[没有释义]")
+        self.word_label.setText(f"{self.current.pos}. {self.current.definition}")
         self.cloze.setText(self._make_cloze(self.current.word))
         self.input.setText("")
         self.input.setFocus()

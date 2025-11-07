@@ -13,7 +13,7 @@ class WordItem:
     """
     word: str
     definition: str = ""  # 释义
-    pos: str = ""  # 词性 (Part of Speech)
+    pos: str = ""  # 词性
     example: str = ""  # 例句
     stage: int = 1  # 学习阶段 (1: 选择题, 2: 自测, 3: 拼写)
     learned: bool = False  # 是否已完成学习 (通过 Stage 3 拼写)
@@ -55,7 +55,7 @@ class VocabModel:
 
     def __init__(self):
         self.words: List[WordItem] = []  # 存储 WordItem 对象的列表
-        self.current_wordlist_name = "未加载"  # 新增：用于跟踪当前加载的词库文件名
+        self.current_wordlist_name = "未加载"  # 用于跟踪当前加载的词库文件名
 
         # 文件路径配置
         self.last_words_path = os.path.join("data", "last_words.csv")  # 最近一次导入的 CSV 文件的拷贝路径
@@ -137,7 +137,7 @@ class VocabModel:
             print(f"处理 JSON 单词数据时发生未知错误: {e}")
             return []
 
-    # **新增辅助函数：从 CSV 字符串内容解析并加载单词**
+    #  CSV 字符串内容解析并加载单词
     def _parse_csv_content(self, content: str) -> List[WordItem]:
         """
         从 CSV 字符串内容解析单词列表。
@@ -156,9 +156,8 @@ class VocabModel:
 
             for row in rows[start:]:
                 if not row: continue
-                # 单词在第 0 列
+                # 单词在第 0 列 词性在第 1 列，释义在第 2 列，例句在第 3 列
                 w = row[0].strip()
-                # 词性在第 1 列，释义在第 2 列，例句在第 3 列
                 pos = row[1].strip() if len(row) > 1 else ""
                 d = row[2].strip() if len(row) > 2 else ""
                 ex = row[3].strip() if len(row) > 3 else ""
