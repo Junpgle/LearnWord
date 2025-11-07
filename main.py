@@ -18,6 +18,7 @@ from setting_window import SettingWindow
 
 # 设定当前程序版本号
 CURRENT_VERSION = "v1.0.5"
+CURRENT_VERSION_DATE = "20251107"
 
 
 # =================================================================
@@ -86,7 +87,15 @@ class MainWindow(QMainWindow):
         top_bar_layout.addWidget(self.title)
         top_bar_layout.addStretch()  # 伸缩项推开内容到右上角
 
-        # 1.3 检查更新按钮 (位于右上角)
+
+        # 1.3 关于按钮
+        self.btn_about = QPushButton("关于")
+        self.btn_about.setObjectName("about_btn")
+        self.btn_about.clicked.connect(self._about)
+        self.btn_about.setFixedSize(100, 40)  # 设置一个固定大小
+        top_bar_layout.addWidget(self.btn_about)
+
+        # 1.4 检查更新按钮 (位于右上角)
         self.btn_update = QPushButton("检查更新")
         self.btn_update.setObjectName("update_check_btn")
         # 将按钮连接到新的启动线程的槽
@@ -201,10 +210,25 @@ class MainWindow(QMainWindow):
                 font-weight: 500;
                 background-color: #e74c3c; /* 红色 */
                 color: white;
-                border-radius: 8px;
+                border-radius: 10px;
                 box-shadow: none;
             }
             #update_check_btn:hover {
+                background-color: #c0392b;
+            }
+            
+            
+            /* 关于按钮样式 (右上角) */
+            #about_btn {
+                padding: 5px 10px;
+                font-size: 14px;
+                font-weight: 500;
+                background-color: #FFA500; /* 橙色 */
+                color: white;
+                border-radius: 10px;
+                box-shadow: none;
+            }
+            #about_btn:hover {
                 background-color: #c0392b;
             }
         """)
@@ -266,6 +290,10 @@ class MainWindow(QMainWindow):
 
             # 步骤 2: 刷新设置窗口，显示新状态
             self.setting_win.refresh_view()
+
+    def _about(self):
+        about_dialog = AboutDialog(self)
+        about_dialog.exec()
 
     # 启动后台检查线程的槽函数
     @Slot()
@@ -383,6 +411,106 @@ class MainWindow(QMainWindow):
                     f"当前版本 ({current_version}) 已经是最新版本。",
                     QMessageBox.Ok
                 )
+
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QHBoxLayout
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont, QPixmap
+
+
+class AboutDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("关于 LearnWord")
+        self.setFixedSize(400, 300)
+        self.setWindowModality(Qt.WindowModal)
+
+        layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignTop | Qt.AlignHCenter)
+
+        # 标题
+        title_label = QLabel("LearnWord")
+        title_label.setFont(QFont("MiSans", 20, QFont.Bold))
+        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setStyleSheet("color: white; margin-top: 20px;")
+
+        # 版本信息
+        version_label = QLabel(f"版本: {CURRENT_VERSION}\n"
+                               f"构建日期:{CURRENT_VERSION_DATE}")
+        version_label.setAlignment(Qt.AlignCenter)
+        version_label.setStyleSheet("color: #cccccc; font-size: 14px; margin-top: 5px;")
+
+
+        # 作者信息
+        author_label = QLabel("作者: Junpgle")
+        author_label.setAlignment(Qt.AlignCenter)
+        author_label.setStyleSheet("color: #cccccc; font-size: 14px; margin-top: 5px;")
+
+        # 项目描述
+        desc_label = QLabel(
+            "一款轻量级英语词汇学习工具，\n"
+            "支持学习、复习、测试与进度管理。"
+        )
+        desc_label.setAlignment(Qt.AlignCenter)
+        desc_label.setStyleSheet("color: #aaaaaa; font-size: 13px; margin: 15px 0;")
+
+        # GitHub 链接按钮
+        github_button = QPushButton("访问项目主页 (GitHub)")
+        github_button.setObjectName("github_btn")
+        github_button.clicked.connect(self._open_github)
+
+        # 关闭按钮
+        close_button = QPushButton("关闭")
+        close_button.setObjectName("close_button")
+        close_button.clicked.connect(self.accept)
+
+        # 按钮布局
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        btn_layout.addWidget(github_button)
+        btn_layout.addWidget(close_button)
+        btn_layout.addStretch()
+
+        # 添加到主布局
+        layout.addWidget(title_label)
+        layout.addWidget(version_label)
+        layout.addWidget(author_label)
+        layout.addWidget(desc_label)
+        layout.addLayout(btn_layout)
+
+        # 设置样式
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #000000;
+                border: 1px solid #333333;
+            }
+            QLabel {
+                color: white;
+            }
+            QPushButton {
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            #github_btn {
+                background-color: #0969da;
+                color: white;
+            }
+            #github_btn:hover {
+                background-color: #0757b7;
+            }
+            
+            #close_button{
+                background-color: #0757b7;
+                color: white;
+            }
+            #close_button:hover {
+                background-color: #D3D3D3;
+            }
+            
+        """)
+
+    def _open_github(self):
+        QDesktopServices.openUrl(QUrl("https://github.com/Junpgle/LearnWord"))
 
 
 if __name__ == "__main__":
