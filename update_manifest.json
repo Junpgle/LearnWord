@@ -1,11 +1,13 @@
 {
-  "latest_version": "v1.0.5",
+  "latest_version": "v1.0.7",
   "release_date": "2025-11-07",
   "update_notes": [
     "支持在Learn模块、Review模块和Test模块显示词性",
     "支持键盘enter绑定'提交'、'下一个'键",
     "拼写词汇时键盘焦点自动定位到输入框",
-    "优化了使用体验~"
+    "添加了关于界面",
+    "优化了使用体验~",
+    "新增了公告系统"
   ],
-  "download_url": "https://github.com/Junpgle/LearnWord/releases/download/v1.0.5/LearnWord.v1.0.5.exe"
+  "download_url": "https://github.com/Junpgle/LearnWord/releases/download/v1.0.7/LearnWord.v1.0.7.exe"
 }

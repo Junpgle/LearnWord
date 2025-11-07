@@ -1,0 +1,10 @@
+{
+  "announcements": [
+    {
+      "version": "v1.0.7",
+      "title": "🎉 欢迎使用 v1.0.7！",
+      "content": "支持在Learn模块、Review模块和Test模块显示词性\n ,支持键盘enter绑定'提交'、'下一个'键\n, 拼写词汇时键盘焦点自动定位到输入框\n,添加了关于界面\n, 优化了使用体验~\n,新增了公告系统"
+      "show_mode": "once"
+    }
+  ]
+}
