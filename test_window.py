@@ -163,7 +163,7 @@ class TestWindow(QMainWindow):
         self.next_btn.setEnabled(False)  # 禁用下一题按钮
 
         if not self.test_list:
-            self.cloze.setText(f"🎉 本次复习完成！ 🎉\n" f"得分：{self.correct} / {self.total}")
+            self.cloze.setText(f"🎉 本次测试完成！ 🎉\n" f"得分：{self.correct} / {self.total}")
             self.submit.hide()
             self.next_btn.hide()
             self.input.hide()

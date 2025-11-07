@@ -17,7 +17,7 @@ from test_window import TestWindow
 from setting_window import SettingWindow
 
 # 设定当前程序版本号
-CURRENT_VERSION = "v1.0.6"
+CURRENT_VERSION = "v1.0.7"
 CURRENT_VERSION_DATE = "20251107"
 
 
@@ -53,9 +53,24 @@ class UpdateChecker(QObject):
             # 其他错误
             self.signal_result.emit(False, f"处理版本信息时发生未知错误。\n错误: {e}")
 
+# =================================================================
+# 2. 后台线程类：加载公告内容
+# =================================================================
+class AnnouncementLoader(QObject):
+    signal_result = Signal(bool, object)  # (success, data or error_msg)
+
+    def run_load(self):
+        url = "https://raw.githubusercontent.com/Junpgle/LearnWord/refs/heads/master/announcement.json"
+        try:
+            response = requests.get(url, timeout=5)
+            response.raise_for_status()
+            data = response.json()
+            self.signal_result.emit(True, data)
+        except Exception as e:
+            self.signal_result.emit(False, f"加载公告失败：{e}")
 
 # =================================================================
-# 2. 主窗口类：MainWindow
+# 3. 主窗口类：MainWindow
 # =================================================================
 class MainWindow(QMainWindow):
     def __init__(self, model: VocabModel):
@@ -234,8 +249,30 @@ class MainWindow(QMainWindow):
         """)
         # ----------------------------------------------------
 
-        # 在初始化结束时自动检查更新
+        # 在初始化结束时自动获取公告和检查更新
+        self._start_announcement_load()
         self._start_update_check()
+
+    def _load_announcement_state(self):
+        """从本地文件加载已读公告 ID 列表"""
+        state_file = "announcement_state.json"
+        if os.path.exists(state_file):
+            try:
+                with open(state_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    return set(data.get("read_announcements", []))
+            except Exception:
+                pass
+        return set()
+
+    def _save_announcement_state(self, read_set: set):
+        """保存已读公告 ID 到本地文件"""
+        state_file = "announcement_state.json"
+        try:
+            with open(state_file, 'w', encoding='utf-8') as f:
+                json.dump({"read_announcements": list(read_set)}, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"保存公告状态失败: {e}")
 
     def center_on_screen(self):
         """将主窗口移动到屏幕中央"""
@@ -411,6 +448,61 @@ class MainWindow(QMainWindow):
                     f"当前版本 ({current_version}) 已经是最新版本。",
                     QMessageBox.Ok
                 )
+
+    @Slot()
+    def _start_announcement_load(self):
+        """启动后台线程加载公告"""
+        self.announcement_thread = QThread()
+        self.announcement_worker = AnnouncementLoader()
+        self.announcement_worker.moveToThread(self.announcement_thread)
+
+        self.announcement_thread.started.connect(self.announcement_worker.run_load)
+        self.announcement_worker.signal_result.connect(self._handle_announcement_result)
+        self.announcement_worker.signal_result.connect(self.announcement_thread.quit)
+        self.announcement_thread.finished.connect(self.announcement_thread.deleteLater)
+        self.announcement_worker.signal_result.connect(self.announcement_worker.deleteLater)
+
+        self.announcement_thread.start()
+
+    @Slot(bool, object)
+    def _handle_announcement_result(self, success: bool, data_or_error: object):
+        """处理公告加载结果，并根据 show_mode 决定是否显示"""
+        if not success:
+            print(data_or_error)
+            return
+
+        announcements = data_or_error.get("announcements", [])
+        current_version = CURRENT_VERSION
+
+        # 加载本地已读公告 ID 集合
+        read_ann_ids = self._load_announcement_state()
+
+        showed_any = False  # 可选：避免重复弹窗（按需）
+
+        for ann in announcements:
+            if ann.get("version") != current_version:
+                continue
+
+            title = ann.get("title", "公告")
+            content = ann.get("content", "暂无内容。")
+            show_mode = ann.get("show_mode", "once")  # 默认 once
+
+            # 生成唯一 ID：建议用 version + title（简单且可读）
+            ann_id = f"{current_version}||{title}"
+
+            should_show = False
+            if show_mode == "always":
+                should_show = True
+            elif show_mode == "once":
+                if ann_id not in read_ann_ids:
+                    should_show = True
+
+            if should_show:
+                QMessageBox.information(self, title, content, QMessageBox.Ok)
+                if show_mode == "once":
+                    read_ann_ids.add(ann_id)
+                    self._save_announcement_state(read_ann_ids)
+                showed_any = True
 
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QHBoxLayout
 from PySide6.QtCore import Qt
