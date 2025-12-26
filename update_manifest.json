@@ -1,10 +1,10 @@
 {
-  "latest_version": "v1.0.8",
+  "latest_version": "v1.1.0",
   "release_date": "2025-12-26",
   "update_notes": [
-    "修复了Test板块 释义显示遮挡的问题",
-    "修复了Learn模块 部分逻辑错误",
-    "修复了Review模块部分逻辑错误,新增不认识单词的释义显示",
+    "刚考完离散数学就来更新啦🎉🎉🎉",
+    "重构了用户文件保存位置，默认保存到/AppData,防止权限不足导致无法保存文件。",
+    "从网络下载词库新增加载动画~",
     "优化了使用体验~"
   ],
   "download_url": "https://github.com/Junpgle/LearnWord/releases/download/v1.0.8/LearnWord.v1.0.8.exe"
