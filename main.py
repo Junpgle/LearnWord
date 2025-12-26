@@ -19,7 +19,7 @@ from setting_window import SettingWindow
 
 # 设定当前程序版本号
 CURRENT_VERSION = "v1.1.0"
-CURRENT_VERSION_DATE = "20251226"
+CURRENT_VERSION_DATE = "20251226-2"
 
 
 # ★★★ 资源路径获取函数 (用于加载字体和图标) ★★★
