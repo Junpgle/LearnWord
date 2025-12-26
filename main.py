@@ -25,13 +25,11 @@ CURRENT_VERSION_DATE = "20251226-2"
 # ★★★ 资源路径获取函数 (用于加载字体和图标) ★★★
 def get_resource_path(relative_path):
     if getattr(sys, 'frozen', False):
+        # 打包后指向 _internal 目录
         base_path = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
     else:
         base_path = os.getcwd()
-
-    # 针对某些打包配置，尝试补全 _internal 路径
-    full_path = os.path.join(base_path, relative_path)
-    return full_path
+    return os.path.join(base_path, relative_path)
 
 
 # =================================================================
@@ -140,10 +138,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("LearnWord")
         self.setFixedSize(1000, 700)
 
-        # ★★★ 新增：设置窗口图标 ★★★
-        icon_path = get_resource_path("icon.ico")
-        if os.path.exists(icon_path):
-            self.setWindowIcon(QIcon(icon_path))
+        self.setWindowIcon(QIcon(get_resource_path("icon.ico")))
         # ==========================
 
         self.central = QWidget()
@@ -418,21 +413,18 @@ class MainWindow(QMainWindow):
                     self._save_announcement_state(read_ann_ids)
 
 if __name__ == "__main__":
-    # ★★★ 强制 Windows 使用独立图标，解决任务栏图标显示为 Python 的问题 ★★★
+    # 这里的 ID 必须是唯一的字符串，用于告知 Windows 将此进程与图标关联
     try:
-        # 这里的字符串 ID 可以随意定义，但要保证唯一
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("Junpgle.LearnWord.v1.0.8")
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("Junpgle.LearnWord")
     except AttributeError:
         pass
 
     app = QApplication(sys.argv)
 
-    # ★★★ 3. 设置应用程序全局图标 ★★★
+    # 重点：确保这里加载的是打包进去的图标
     app_icon_path = get_resource_path("icon.ico")
     if os.path.exists(app_icon_path):
-        app.setWindowIcon(QIcon(app_icon_path))
-    else:
-        print(f"⚠️ Warning: Application icon not found at {app_icon_path}")
+        app.setWindowIcon(QIcon(app_icon_path)) # 设置全局图标
 
     # ★★★ 2. 加载字体 ★★★
     font_path = get_resource_path("MiSans.ttf")
