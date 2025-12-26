@@ -3,7 +3,7 @@
     {
       "version": "v1.0.8",
       "title": "🎉 欢迎使用 v1.0.8！",
-      "content": "修复了Test板块 释义显示遮挡的问题\n修复了Learn模块 部分逻辑错误\n修复了Review模块部分逻辑错误,新增不认识单词的释义显示"
+      "content": "修复了Test板块 释义显示遮挡的问题\n修复了Learn模块 部分逻辑错误\n修复了Review模块部分逻辑错误,新增不认识单词的释义显示",
       "show_mode": "once"
     },
     {
