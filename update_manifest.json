@@ -5,13 +5,7 @@
     "修复了Test板块 释义显示遮挡的问题",
     "修复了Learn模块 部分逻辑错误",
     "修复了Review模块部分逻辑错误,新增不认识单词的释义显示",
-    "最近更新内容:",
-    "支持在Learn模块、Review模块和Test模块显示词性",
-    "支持键盘enter绑定'提交'、'下一个'键",
-    "拼写词汇时键盘焦点自动定位到输入框",
-    "添加了关于界面",
-    "优化了使用体验~",
-    "新增了公告系统"
+    "优化了使用体验~"
   ],
   "download_url": "https://github.com/Junpgle/LearnWord/releases/download/v1.0.8/LearnWord.v1.0.8.exe"
 }

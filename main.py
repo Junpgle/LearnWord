@@ -3,22 +3,20 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QLabel, QPushButton, QGridLayout, QHBoxLayout, QMessageBox
 )
-# ✅ 修改：导入 QThread 和 Signal/Slot 机制所需的 QObject, Signal, Slot
 from PySide6.QtCore import Qt, QPropertyAnimation, QRect, QUrl, QThread, QObject, Signal, Slot
 from PySide6.QtGui import QFont, QDesktopServices
-# ✅ 新增：导入 json 库用于解析远程更新清单
+# 导入 json 库用于解析远程更新清单
 import json
 import requests
-# 假设 vocab_model 存在
-from vocab_model import VocabModel  # , WordItem
+from vocab_model import VocabModel  # WordItem
 from learn_window import LearnWindow
 from review_window import ReviewWindow
 from test_window import TestWindow
 from setting_window import SettingWindow
 
 # 设定当前程序版本号
-CURRENT_VERSION = "v1.0.7"
-CURRENT_VERSION_DATE = "20251107"
+CURRENT_VERSION = "v1.0.8"
+CURRENT_VERSION_DATE = "20251226"
 
 
 # =================================================================
