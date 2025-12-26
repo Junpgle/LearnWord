@@ -1,9 +1,171 @@
-import os, csv, json, requests, io, datetime
+import os, csv, json, requests, io, datetime, sys
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QProgressBar, \
-    QSpinBox, QTextEdit, QGroupBox, QFileDialog, QMessageBox, QInputDialog
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
+    QSpinBox, QTextEdit, QGroupBox, QFileDialog, QMessageBox, QInputDialog, QDialog
+from PySide6.QtCore import Qt, QThread, Signal, QSize
+from PySide6.QtGui import QFont, QMovie  # 引入 QMovie 用于播放 GIF
+
 from vocab_model import VocabModel
+
+
+class DownloadWorker(QThread):
+    """后台下载线程，支持进度条显示"""
+    finished = Signal(bool, str, str)  # 信号：成功与否, 内容或错误信息, 文件名
+    progress_updated = Signal(int)  # 新增信号：当前进度百分比 (0-100)
+
+    def __init__(self, url, filename):
+        super().__init__()
+        self.url = url
+        self.filename = filename
+        self._is_running = True  # 运行标志位，用于取消下载
+
+    def stop(self):
+        """停止下载"""
+        self._is_running = False
+
+    def run(self):
+        try:
+            # stream=True 允许分块下载，从而计算进度
+            response = requests.get(self.url, stream=True, timeout=15)
+            response.raise_for_status()
+
+            total_length = response.headers.get('content-length')
+
+            if total_length is None:
+                # 如果服务器没有返回长度，退化为普通下载
+                response.encoding = 'utf-8'
+                self.progress_updated.emit(50)  # 模拟进度
+                content = response.text
+                self.progress_updated.emit(100)
+            else:
+                dl = 0
+                total_length = int(total_length)
+                content_bytes = bytearray()
+
+                # 分块读取数据 (每块 4KB)
+                for data in response.iter_content(chunk_size=4096):
+                    if not self._is_running:
+                        return  # 用户取消，退出线程
+
+                    dl += len(data)
+                    content_bytes.extend(data)
+
+                    # 计算并发送进度
+                    percent = int(100 * dl / total_length)
+                    self.progress_updated.emit(percent)
+
+                # 下载完成，解码数据
+                content = content_bytes.decode('utf-8')
+
+            if self._is_running:
+                self.finished.emit(True, content, self.filename)
+
+        except Exception as e:
+            if self._is_running:
+                self.finished.emit(False, str(e), self.filename)
+
+
+class DownloadProgressDialog(QDialog):
+    """
+    下载进度弹窗。
+    使用 QMovie 播放 GIF 动画，简单稳定，无需额外组件。
+    """
+    canceled = Signal()
+
+    def __init__(self, title, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setFixedSize(320, 350)
+        self.setWindowModality(Qt.WindowModal)
+        self.setWindowFlags(Qt.Dialog | Qt.CustomizeWindowHint | Qt.WindowTitleHint)  # 去掉关闭按钮
+
+        # ★★★ 修复颜色奇怪的问题：强制设置白色背景和深色文字 ★★★
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #ffffff;
+            }
+            QLabel {
+                color: #333333;
+                background-color: transparent;
+            }
+        """)
+
+        layout = QVBoxLayout(self)
+
+        # 1. 动画显示区域 (QMovie)
+        self.animation_label = QLabel()
+        self.animation_label.setAlignment(Qt.AlignCenter)
+        # 设置最小高度，防止界面跳动
+        self.animation_label.setMinimumHeight(200)
+
+        # 假设 GIF 文件名为 download.gif，放在 Animation 文件夹下
+        gif_path = os.path.join(os.getcwd(), "Animation", "download.gif")
+
+        if os.path.exists(gif_path):
+            self.movie = QMovie(gif_path)
+            # 设置缩放大小，保持动画大小适中 (例如 200x200)
+            self.movie.setScaledSize(QSize(200, 200))
+            self.animation_label.setMovie(self.movie)
+            self.movie.start()
+        else:
+            # 降级处理：如果没有找到 GIF，显示静态图标
+            self.animation_label.setText("⬇️")
+            self.animation_label.setFont(QFont("Segoe UI Emoji", 80))
+            # 提示用户文件缺失
+            print(f"未找到动画文件: {gif_path}")
+
+        layout.addWidget(self.animation_label, 1)  # 动画占主要空间
+
+        # 2. 状态文字
+        self.status_label = QLabel("准备下载...")
+        self.status_label.setAlignment(Qt.AlignCenter)
+        self.status_label.setFont(QFont("MiSans", 10))
+        layout.addWidget(self.status_label)
+
+        # 3. 进度条
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: 1px solid #e0e0e0;
+                background-color: #f5f5f5;
+                border-radius: 5px;
+                text-align: center;
+                height: 15px;
+                color: #333333;
+            }
+            QProgressBar::chunk {
+                background-color: #0078d7;
+                border-radius: 5px;
+            }
+        """)
+        layout.addWidget(self.progress_bar)
+
+        # 4. 取消按钮
+        self.cancel_btn = QPushButton("取消下载")
+        self.cancel_btn.setStyleSheet("""
+            QPushButton { 
+                background-color: #f0f0f0; 
+                border: 1px solid #ccc; 
+                border-radius: 5px; 
+                padding: 6px; 
+                color: #333333;
+            }
+            QPushButton:hover { 
+                background-color: #e0e0e0; 
+            }
+            QPushButton:pressed {
+                background-color: #d0d0d0;
+            }
+        """)
+        self.cancel_btn.clicked.connect(self.on_cancel)
+        layout.addWidget(self.cancel_btn)
+
+    def setValue(self, val):
+        self.progress_bar.setValue(val)
+        self.status_label.setText(f"正在下载资源... {val}%")
+
+    def on_cancel(self):
+        self.canceled.emit()
+        self.close()
 
 
 class SettingWindow(QMainWindow):
@@ -239,24 +401,33 @@ class SettingWindow(QMainWindow):
         if reply == QMessageBox.No:
             return
 
-        temp_msg = QMessageBox(QMessageBox.Information, "下载中", f"正在下载 {item}，请稍候...", QMessageBox.NoButton)
-        temp_msg.show()
+        # --- 使用自定义的 DownloadProgressDialog ---
 
-        try:
-            response = requests.get(download_url, timeout=15)
-            response.raise_for_status()
+        # 1. 创建带有 Lottie 动画的进度对话框
+        self.progress_dialog = DownloadProgressDialog(f"下载中: {item}", self)
 
-            file_content = response.text
-            temp_msg.close()
+        # 2. 创建并启动下载线程
+        self.downloader = DownloadWorker(download_url, item)
+        self.downloader.progress_updated.connect(self.progress_dialog.setValue)  # 连接进度信号
+        self.downloader.finished.connect(self.on_download_finished)
 
-            self._import_downloaded_content(item, file_content)
+        # 3. 处理取消按钮点击
+        self.progress_dialog.canceled.connect(self.downloader.stop)
 
-        except requests.exceptions.RequestException as e:
-            temp_msg.close()
-            QMessageBox.critical(self, "下载失败", f"网络请求失败或文件未找到: {e}")
-        except Exception as e:
-            temp_msg.close()
-            QMessageBox.critical(self, "导入失败", f"处理下载内容时出错: {e}")
+        # 4. 启动
+        self.downloader.start()
+        self.progress_dialog.exec()
+
+    def on_download_finished(self, success, content, filename):
+        """下载线程结束的回调"""
+        self.progress_dialog.close()  # 关闭进度条
+
+        if success:
+            self._import_downloaded_content(filename, content)
+        else:
+            # 如果不是用户手动取消导致的失败 (空内容通常是取消的副作用之一)
+            if "取消" not in content and content:
+                QMessageBox.critical(self, "下载失败", f"错误信息: {content}")
 
     def _import_downloaded_content(self, filename, content):
         """导入下载的 CSV 或 JSON 文件内容。"""
