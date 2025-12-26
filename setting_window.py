@@ -1,10 +1,69 @@
-import os, csv, json, requests, io, datetime, sys
-from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QProgressBar, \
-    QSpinBox, QTextEdit, QGroupBox, QFileDialog, QMessageBox, QInputDialog, QDialog
+import os
+import json
+import requests
+import datetime
+import sys
+from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+                               QPushButton, QProgressBar, QSpinBox, QTextEdit, QGroupBox,
+                               QFileDialog, QMessageBox, QInputDialog, QDialog)
 from PySide6.QtCore import Qt, QThread, Signal, QSize
-from PySide6.QtGui import QFont, QMovie  # 引入 QMovie 用于播放 GIF
+from PySide6.QtGui import QFont, QMovie
 
 from vocab_model import VocabModel
+
+# ★★★ 样式常量 (减少代码重复) ★★★
+BTN_STYLE = """
+    QPushButton {
+        background-color: #0078d7;
+        color: white;
+        border: none;
+        border-radius: 8px;
+    }
+    QPushButton:hover {
+        background-color: #339af0;
+    }
+"""
+
+GROUP_BOX_STYLE = "QGroupBox{border:1px solid #ccc;border-radius:12px;padding:10px;}"
+
+PROGRESS_BAR_STYLE = """
+    QProgressBar {
+        border: 1px solid #aaa;
+        border-radius: 10px;
+        text-align: center;
+    }
+    QProgressBar::chunk {
+        background-color: %s;
+        border-radius: 10px;
+    }
+"""
+
+
+def get_resource_path(relative_path):
+    """
+    获取资源的绝对路径。
+    """
+    # 使用 getattr 避免静态检查工具报错 "Cannot find reference '_MEIPASS'"
+    if getattr(sys, 'frozen', False):
+        # PyInstaller 打包后的路径处理
+        if hasattr(sys, '_MEIPASS'):
+            base_path = sys._MEIPASS
+        else:
+            base_path = os.path.dirname(sys.executable)
+    else:
+        # 开发环境
+        base_path = os.getcwd()
+
+    full_path = os.path.join(base_path, relative_path)
+
+    # 如果在 _MEIPASS 找不到，尝试在 exe 旁边找 (用于外部放置的资源)
+    if getattr(sys, 'frozen', False) and not os.path.exists(full_path):
+        base_path_exe = os.path.dirname(sys.executable)
+        full_path_exe = os.path.join(base_path_exe, relative_path)
+        if os.path.exists(full_path_exe):
+            return full_path_exe
+
+    return full_path
 
 
 class DownloadWorker(QThread):
@@ -16,7 +75,7 @@ class DownloadWorker(QThread):
         super().__init__()
         self.url = url
         self.filename = filename
-        self._is_running = True  # 运行标志位，用于取消下载
+        self._is_running = True
 
     def stop(self):
         """停止下载"""
@@ -24,16 +83,15 @@ class DownloadWorker(QThread):
 
     def run(self):
         try:
-            # stream=True 允许分块下载，从而计算进度
             response = requests.get(self.url, stream=True, timeout=15)
             response.raise_for_status()
 
             total_length = response.headers.get('content-length')
+            content = ""
 
             if total_length is None:
-                # 如果服务器没有返回长度，退化为普通下载
                 response.encoding = 'utf-8'
-                self.progress_updated.emit(50)  # 模拟进度
+                self.progress_updated.emit(50)
                 content = response.text
                 self.progress_updated.emit(100)
             else:
@@ -41,19 +99,16 @@ class DownloadWorker(QThread):
                 total_length = int(total_length)
                 content_bytes = bytearray()
 
-                # 分块读取数据 (每块 4KB)
                 for data in response.iter_content(chunk_size=4096):
                     if not self._is_running:
-                        return  # 用户取消，退出线程
+                        return
 
                     dl += len(data)
                     content_bytes.extend(data)
 
-                    # 计算并发送进度
-                    percent = int(100 * dl / total_length)
+                    percent = min(100, int(100 * dl / total_length))
                     self.progress_updated.emit(percent)
 
-                # 下载完成，解码数据
                 content = content_bytes.decode('utf-8')
 
             if self._is_running:
@@ -65,59 +120,47 @@ class DownloadWorker(QThread):
 
 
 class DownloadProgressDialog(QDialog):
-    """
-    下载进度弹窗。
-    使用 QMovie 播放 GIF 动画，简单稳定，无需额外组件。
-    """
     canceled = Signal()
 
     def __init__(self, title, parent=None):
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setFixedSize(320, 350)
-        self.setWindowModality(Qt.WindowModal)
-        self.setWindowFlags(Qt.Dialog | Qt.CustomizeWindowHint | Qt.WindowTitleHint)  # 去掉关闭按钮
 
-        # ★★★ 修复颜色奇怪的问题：强制设置白色背景和深色文字 ★★★
+        # PySide6 Enum 修复
+        self.setWindowModality(Qt.WindowModality.WindowModal)
+        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)
+
         self.setStyleSheet("""
-            QDialog {
-                background-color: #ffffff;
-            }
-            QLabel {
-                color: #333333;
-                background-color: transparent;
-            }
+            QDialog { background-color: #ffffff; }
+            QLabel { color: #333333; background-color: transparent; }
         """)
 
         layout = QVBoxLayout(self)
 
-        # 1. 动画显示区域 (QMovie)
+        # 1. 动画显示区域
         self.animation_label = QLabel()
-        self.animation_label.setAlignment(Qt.AlignCenter)
-        # 设置最小高度，防止界面跳动
+        self.animation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)  # PySide6 Enum
         self.animation_label.setMinimumHeight(200)
 
-        # 假设 GIF 文件名为 download.gif，放在 Animation 文件夹下
-        gif_path = os.path.join(os.getcwd(), "Animation", "download.gif")
+        gif_path = get_resource_path(os.path.join("Animation", "download.gif"))
 
         if os.path.exists(gif_path):
             self.movie = QMovie(gif_path)
-            # 设置缩放大小，保持动画大小适中 (例如 200x200)
             self.movie.setScaledSize(QSize(200, 200))
             self.animation_label.setMovie(self.movie)
             self.movie.start()
         else:
-            # 降级处理：如果没有找到 GIF，显示静态图标
             self.animation_label.setText("⬇️")
-            self.animation_label.setFont(QFont("Segoe UI Emoji", 80))
-            # 提示用户文件缺失
-            print(f"未找到动画文件: {gif_path}")
+            font = QFont("Segoe UI Emoji", 80)
+            self.animation_label.setFont(font)
+            # print(f"未找到动画文件: {gif_path}") 调试用
 
-        layout.addWidget(self.animation_label, 1)  # 动画占主要空间
+        layout.addWidget(self.animation_label, 1)
 
         # 2. 状态文字
         self.status_label = QLabel("准备下载...")
-        self.status_label.setAlignment(Qt.AlignCenter)
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)  # PySide6 Enum
         self.status_label.setFont(QFont("MiSans", 10))
         layout.addWidget(self.status_label)
 
@@ -149,12 +192,8 @@ class DownloadProgressDialog(QDialog):
                 padding: 6px; 
                 color: #333333;
             }
-            QPushButton:hover { 
-                background-color: #e0e0e0; 
-            }
-            QPushButton:pressed {
-                background-color: #d0d0d0;
-            }
+            QPushButton:hover { background-color: #e0e0e0; }
+            QPushButton:pressed { background-color: #d0d0d0; }
         """)
         self.cancel_btn.clicked.connect(self.on_cancel)
         layout.addWidget(self.cancel_btn)
@@ -169,72 +208,64 @@ class DownloadProgressDialog(QDialog):
 
 
 class SettingWindow(QMainWindow):
-    """
-    设置窗口：用于管理单词库导入、学习进度保存/加载，以及配置学习、复习、测试的单次单词数量。
-    同时显示当前的学习、复习和测试进度。
-    """
-
     def __init__(self, model: VocabModel, parent=None):
         super().__init__(parent)
         self.model = model
         self.setWindowTitle("设置与进度管理")
         self.setFixedSize(1000, 700)
+
+        # 初始化实例属性
+        self.progress_dialog = None
+        self.downloader = None
+        self._preview = None
+
         self.central = QWidget()
         self.setCentralWidget(self.central)
 
-        font = QFont("MiSans", 11, QFont.Bold)
+        # PySide6 Enum: QFont.Bold -> QFont.Weight.Bold
+        font = QFont("MiSans", 11, QFont.Weight.Bold)
         main_layout = QVBoxLayout(self.central)
 
-        # --- 顶部操作区域：导入/导出/加载 ---
+        # --- 顶部操作区域 ---
         top_group = QGroupBox()
-        top_group.setStyleSheet("QGroupBox{border:1px solid #ccc;border-radius:12px;padding:10px;}")
+        top_group.setStyleSheet(GROUP_BOX_STYLE)
         top_layout = QHBoxLayout(top_group)
 
-        # 按钮定义
         self.btn_import = QPushButton("导入单词库 (CSV/JSON)")
         self.btn_download = QPushButton("从网络下载词库")
         self.btn_open = QPushButton("打开当前词库")
-
         self.btn_save = QPushButton("保存进度到文件")
         self.btn_load = QPushButton("从文件加载进度")
 
-        # 统一设置按钮样式
         for b in [self.btn_import, self.btn_download, self.btn_open, self.btn_save, self.btn_load]:
             b.setFont(font)
             b.setFixedHeight(36)
-            b.setStyleSheet(
-                "QPushButton{background-color:#0078d7;color:white;border:none;border-radius:8px;} QPushButton:hover{background-color:#339af0;}")
+            b.setStyleSheet(BTN_STYLE)
             top_layout.addWidget(b)
 
         main_layout.addWidget(top_group)
 
-        # --- 底部布局：左侧进度/设置，右侧单词列表 ---
+        # --- 底部布局 ---
         bottom_layout = QHBoxLayout()
 
-        # --- 左侧区域：进度条 + 数量设置 ---
+        # --- 左侧区域 ---
         left_group = QGroupBox()
         left_group.setStyleSheet("QGroupBox{border:1px solid #ddd;border-radius:12px;padding:12px;}")
         left_layout = QVBoxLayout(left_group)
 
-        # 1. 学习进度条
+        # 进度条
         self.progress = QProgressBar()
         self.progress.setFixedHeight(28)
-        self.progress.setStyleSheet(
-            "QProgressBar{border:1px solid #aaa;border-radius:10px;text-align:center;} QProgressBar::chunk{background-color:#0078d7;border-radius:10px;}")
+        self.progress.setStyleSheet(PROGRESS_BAR_STYLE % "#0078d7")
 
-        # 2. 复习进度条 (橙色)
         self.review_progress = QProgressBar()
         self.review_progress.setFixedHeight(28)
-        self.review_progress.setStyleSheet(
-            "QProgressBar{border:1px solid #aaa;border-radius:10px;text-align:center;} QProgressBar::chunk{background-color:#ffa500;border-radius:10px;}")
+        self.review_progress.setStyleSheet(PROGRESS_BAR_STYLE % "#ffa500")
 
-        # 3. 测试进度条 (绿色)
         self.test_progress = QProgressBar()
         self.test_progress.setFixedHeight(28)
-        self.test_progress.setStyleSheet(
-            "QProgressBar{border:1px solid #aaa;border-radius:10px;text-align:center;} QProgressBar::chunk{background-color:#32cd32;border-radius:10px;}")
+        self.test_progress.setStyleSheet(PROGRESS_BAR_STYLE % "#32cd32")
 
-        # 将进度条添加到布局
         left_layout.addWidget(QLabel("学习进度 (已学 / 全部)："))
         left_layout.addWidget(self.progress)
         left_layout.addWidget(QLabel("复习进度 (已复习 / 已学习)："))
@@ -242,28 +273,23 @@ class SettingWindow(QMainWindow):
         left_layout.addWidget(QLabel("测试进度 (已测试 / 全部)："))
         left_layout.addWidget(self.test_progress)
 
-        # --- 数量设置 SpinBox ---
-        # 学习数量设置
+        # 数量设置 SpinBox
         self.learn_spin = QSpinBox()
         self.learn_spin.setMaximum(999)
         self.learn_spin.setValue(self.model.settings.get("learn_count", 10))
 
-        # 复习数量设置
         self.review_spin = QSpinBox()
         self.review_spin.setMaximum(999)
         self.review_spin.setValue(self.model.settings.get("review_count", 15))
 
-        # 测试数量设置
         self.test_spin = QSpinBox()
         self.test_spin.setMaximum(999)
         self.test_spin.setValue(self.model.settings.get("test_count", 20))
 
-        # 绑定值变化信号到自动保存函数
         self.learn_spin.valueChanged.connect(lambda v: self._auto_save_setting("learn_count", v))
         self.review_spin.valueChanged.connect(lambda v: self._auto_save_setting("review_count", v))
         self.test_spin.valueChanged.connect(lambda v: self._auto_save_setting("test_count", v))
 
-        # 封装 SpinBox 到 QGroupBox
         for title, spin in [("学习模式", self.learn_spin), ("复习模式", self.review_spin),
                             ("测试模式", self.test_spin)]:
             gb = QGroupBox(title)
@@ -273,26 +299,24 @@ class SettingWindow(QMainWindow):
             gbl.addWidget(spin)
             left_layout.addWidget(gb)
 
-        bottom_layout.addWidget(left_group, 2)  # 左侧权重 2
+        bottom_layout.addWidget(left_group, 2)
 
-        # --- 右侧区域：当前单词库列表 ---
+        # --- 右侧区域 ---
         right_group = QGroupBox("当前单词库")
-        right_group.setStyleSheet("QGroupBox{border:1px solid #ccc;border-radius:12px;padding:10px;}")
+        right_group.setStyleSheet(GROUP_BOX_STYLE)
         right_layout = QVBoxLayout(right_group)
 
-        # 用于显示当前词库名称的 QLabel
         self.wordlist_name_label = QLabel()
         name_font = QFont("MiSans", 12)
         name_font.setItalic(True)
         self.wordlist_name_label.setFont(name_font)
-
         self.wordlist_name_label.setStyleSheet("color: #0078d7; padding-bottom: 5px;")
         right_layout.addWidget(self.wordlist_name_label)
 
         self.words_view = QTextEdit()
         self.words_view.setReadOnly(True)
         right_layout.addWidget(self.words_view)
-        bottom_layout.addWidget(right_group, 3)  # 右侧权重 3
+        bottom_layout.addWidget(right_group, 3)
 
         main_layout.addLayout(bottom_layout)
 
@@ -303,17 +327,13 @@ class SettingWindow(QMainWindow):
         self.btn_save.clicked.connect(self.save_progress_to_file)
         self.btn_load.clicked.connect(self.load_progress_from_file)
 
-        # 初始化视图
         self.refresh_view()
 
     def _create_backup(self):
         """
-        在进行覆盖性操作（如导入新词库、加载新进度）前，自动备份当前进度。
-        备份路径: data/backup/
-        文件名格式: Progress_YYYYMMDD_HHMMSS_WordListName.json
+        在进行覆盖性操作前，自动备份当前进度。
         """
-        # 1. 确保 data/backup 目录存在
-        backup_dir = os.path.join("data", "backup")
+        backup_dir = os.path.join(self.model.data_dir, "backup")
         if not os.path.exists(backup_dir):
             try:
                 os.makedirs(backup_dir)
@@ -321,20 +341,17 @@ class SettingWindow(QMainWindow):
                 print(f"创建备份目录失败: {e}")
                 return
 
-        # 2. 生成文件名
-        # 获取当前时间 (精确到秒，防止同一天多次操作覆盖)
         date_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_name = self.model.current_wordlist_name
+        for char in '/\\:*?"<>|':
+            safe_name = safe_name.replace(char, '_')
 
-        # 清理词库名中的非法字符
-        safe_name = self.model.current_wordlist_name.replace("/", "_").replace("\\", "_").replace(":", "_").replace("*",
-                                                                                                                    "_").replace(
-            "?", "_").replace("\"", "_").replace("<", "_").replace(">", "_").replace("|", "_")
-        if not safe_name: safe_name = "Unknown"
+        if not safe_name:
+            safe_name = "Unknown"
 
         filename = f"Progress_{date_str}_{safe_name}.json"
         backup_path = os.path.join(backup_dir, filename)
 
-        # 3. 执行保存
         try:
             self.model.save_progress(backup_path)
             print(f"已自动备份旧进度至: {backup_path}")
@@ -342,17 +359,14 @@ class SettingWindow(QMainWindow):
             print(f"自动备份失败: {e}")
 
     def import_wordlist(self):
-        """导入新的单词库 (支持 CSV 或 JSON)，替换现有数据并保存进度。"""
-        # 打开文件对话框，筛选 CSV 和 JSON 文件
         file_filter = "单词库文件 (*.csv *.json);;CSV Files (*.csv);;JSON Files (*.json);;All Files (*)"
-        path, file_type = QFileDialog.getOpenFileName(self, "选择单词库文件", "", file_filter)
+        path, _ = QFileDialog.getOpenFileName(self, "选择单词库文件", "", file_filter)
 
-        if not path: return
+        if not path:
+            return
 
-        # ★★★ 在导入新数据前，自动备份当前进度 ★★★
         self._create_backup()
 
-        # 1. 根据文件扩展名调用不同的加载方法
         loaded_words = []
         if path.lower().endswith('.json'):
             loaded_words = self.model.load_words_from_json(path)
@@ -362,31 +376,22 @@ class SettingWindow(QMainWindow):
             QMessageBox.warning(self, "导入失败", "不支持的文件类型。请选择 CSV 或 JSON 文件。")
             return
 
-        # 2. 检查是否成功加载
         if not loaded_words:
             QMessageBox.critical(self, "导入失败", f"文件格式错误或文件为空: {os.path.basename(path)}")
             return
 
-        # 3. 立即保存新进度到默认路径
         self.model.save_progress()
-
         QMessageBox.information(self, "导入成功",
                                 f"已自动备份旧进度。\n成功导入 {len(self.model.words)} 个单词。新词库已设置为当前词库。")
         self.refresh_view()
 
     def download_wordlist(self):
-        """显示网络词库列表，供用户选择下载并导入。"""
         BASE_URL = "https://raw.githubusercontent.com/Junpgle/LearnWord/master/%E8%AF%8D%E5%BA%93/"
         available_dics = ["1-初中-顺序.json", "2-高中-顺序.json", "3-CET4-顺序.json", "4-CET6-顺序.json",
                           "5-考研-顺序.json", "6-托福-顺序.json", "7-SAT-顺序.json"]
 
         item, ok = QInputDialog.getItem(
-            self,
-            "下载词库",
-            "选择要下载的词库文件:",
-            available_dics,
-            0,
-            False
+            self, "下载词库", "选择要下载的词库文件:", available_dics, 0, False
         )
 
         if not ok or not item:
@@ -394,55 +399,62 @@ class SettingWindow(QMainWindow):
 
         download_url = BASE_URL + item
 
+        # PySide6 Enum: QMessageBox.StandardButton.Yes / No
         reply = QMessageBox.question(self, '确认下载',
                                      f"确认从网络下载文件: \n{item}\n这将覆盖当前词库 (旧进度将自动备份)。",
-                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                     QMessageBox.StandardButton.No)
 
-        if reply == QMessageBox.No:
+        if reply == QMessageBox.StandardButton.No:
             return
 
-        # --- 使用自定义的 DownloadProgressDialog ---
-
-        # 1. 创建带有 Lottie 动画的进度对话框
         self.progress_dialog = DownloadProgressDialog(f"下载中: {item}", self)
-
-        # 2. 创建并启动下载线程
         self.downloader = DownloadWorker(download_url, item)
-        self.downloader.progress_updated.connect(self.progress_dialog.setValue)  # 连接进度信号
+        self.downloader.progress_updated.connect(self.progress_dialog.setValue)
         self.downloader.finished.connect(self.on_download_finished)
-
-        # 3. 处理取消按钮点击
         self.progress_dialog.canceled.connect(self.downloader.stop)
 
-        # 4. 启动
         self.downloader.start()
         self.progress_dialog.exec()
 
     def on_download_finished(self, success, content, filename):
-        """下载线程结束的回调"""
-        self.progress_dialog.close()  # 关闭进度条
+        self.progress_dialog.close()
 
         if success:
             self._import_downloaded_content(filename, content)
         else:
-            # 如果不是用户手动取消导致的失败 (空内容通常是取消的副作用之一)
             if "取消" not in content and content:
                 QMessageBox.critical(self, "下载失败", f"错误信息: {content}")
 
     def _import_downloaded_content(self, filename, content):
-        """导入下载的 CSV 或 JSON 文件内容。"""
-
-        # ★★★ 在导入下载数据前，自动备份当前进度 ★★★
+        """
+        修复版：先保存到本地文件，再加载。
+        """
         self._create_backup()
 
+        # 1. 确保下载目录存在
+        download_dir = os.path.join(self.model.data_dir, "downloads")
+        if not os.path.exists(download_dir):
+            os.makedirs(download_dir)
+
+        # 2. 保存文件到本地 (关键步骤)
+        save_path = os.path.join(download_dir, filename)
+        try:
+            with open(save_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+        except Exception as e:
+            QMessageBox.critical(self, "保存失败", f"无法写入下载文件: {e}")
+            return
+
+        # 3. 从本地文件加载 (这样路径就是正确的了)
         loaded_words = []
         is_json = filename.lower().endswith('.json')
         is_csv = filename.lower().endswith('.csv')
 
         if is_json:
-            loaded_words = self.model.load_words_from_json_content(content)
+            loaded_words = self.model.load_words_from_json(save_path)
         elif is_csv:
-            loaded_words = self.model.load_words_from_csv_content(content)
+            loaded_words = self.model.load_words_from_csv(save_path)
         else:
             QMessageBox.warning(self, "导入失败", f"不支持的文件扩展名: {filename}。")
             return
@@ -451,15 +463,15 @@ class SettingWindow(QMainWindow):
             QMessageBox.critical(self, "导入失败", f"下载的文件格式错误或内容为空: {filename}")
             return
 
-        self.model.current_wordlist_name = f"[网络下载] {filename}"
+        # 4. 更新设置并保存
+        self.model.current_wordlist_name = f"[下载] {filename}"
         self.model.save_progress()
 
         QMessageBox.information(self, "导入成功",
-                                f"已自动备份旧进度。\n成功导入 {len(self.model.words)} 个单词。")
+                                f"下载并导入成功！\n文件已保存至: {save_path}\n成功导入 {len(self.model.words)} 个单词。")
         self.refresh_view()
 
     def open_current_wordlist(self):
-        """打开并预览当前单词库的内容 (根据上次导入的文件类型)。"""
         path = None
         if os.path.exists(self.model.last_json_path):
             path = self.model.last_json_path
@@ -467,49 +479,42 @@ class SettingWindow(QMainWindow):
             path = self.model.last_words_path
 
         if not path:
-            QMessageBox.warning(self, "打开失败", "未找到上次导入的单词库文件 (last_words.json 或 last_words.csv)。")
+            QMessageBox.warning(self, "打开失败", "未找到上次导入的单词库文件。")
             return
 
         try:
             with open(path, "r", encoding="utf-8") as f:
                 data = f.read()
 
-            dlg = QTextEdit()
-            dlg.setReadOnly(True)
-            dlg.setPlainText(data)
-            dlg.setWindowTitle(f"词库内容预览: {os.path.basename(path)}")
-            dlg.resize(640, 420)
-            dlg.show()
-            self._preview = dlg
+            self._preview = QTextEdit()
+            self._preview.setReadOnly(True)
+            self._preview.setPlainText(data)
+            self._preview.setWindowTitle(f"词库内容预览: {os.path.basename(path)}")
+            self._preview.resize(640, 420)
+            self._preview.show()
         except Exception as e:
             QMessageBox.critical(self, "错误", f"打开文件失败: {str(e)}")
 
     def save_progress_to_file(self):
-        """
-        保存当前的所有设置和单词学习进度到用户指定的文件。
-        文件名默认格式: Progress_YYYYMMDD_词库名.json
-        """
         self.model.settings["learn_count"] = self.learn_spin.value()
         self.model.settings["review_count"] = self.review_spin.value()
         self.model.settings["test_count"] = self.test_spin.value()
         self.model.save_settings()
 
-        # --- 生成默认文件名 ---
         date_str = datetime.datetime.now().strftime("%Y%m%d")
-
-        # 清理词库名中的非法字符
-        safe_name = self.model.current_wordlist_name.replace("/", "_").replace("\\", "_").replace(":", "_").replace("*",
-                                                                                                                    "_").replace(
-            "?", "_").replace("\"", "_").replace("<", "_").replace(">", "_").replace("|", "_")
+        safe_name = self.model.current_wordlist_name
+        for char in '/\\:*?"<>|':
+            safe_name = safe_name.replace(char, '_')
         if not safe_name: safe_name = "Unknown"
 
         default_name = f"Progress_{date_str}_{safe_name}.json"
-        # --------------------
+
+        default_save_path = os.path.join(self.model.data_dir, default_name)
 
         path, _ = QFileDialog.getSaveFileName(
             self,
             "选择保存学习进度的文件",
-            default_name,  # 设置默认文件名
+            default_save_path,  # 使用包含 AppData 路径的完整路径
             "学习进度文件 (*.json);;所有文件 (*)"
         )
 
@@ -520,25 +525,21 @@ class SettingWindow(QMainWindow):
             self.model.save_progress()
 
             QMessageBox.information(self, "保存成功",
-                                    f"设置与学习进度已保存到:\n{path}\n(同时已保存到默认路径 data/progress.json)")
+                                    f"设置与学习进度已保存到:\n{path}")
             self.refresh_view()
         except Exception as e:
             QMessageBox.critical(self, "保存失败", f"保存文件失败: {str(e)}")
 
     def load_progress_from_file(self):
-        """
-        从用户指定的文件中加载单词学习进度。
-        """
         path, _ = QFileDialog.getOpenFileName(
             self,
             "选择学习进度文件",
-            "",
+            self.model.data_dir,  # 设置起始目录
             "学习进度文件 (*.json);;所有文件 (*)"
         )
 
         if not path: return
 
-        # ★★★ 在加载新进度前，自动备份当前进度 ★★★
         self._create_backup()
 
         try:
@@ -555,7 +556,6 @@ class SettingWindow(QMainWindow):
             QMessageBox.critical(self, "加载失败", f"加载文件失败: {str(e)}")
 
     def refresh_view(self):
-        """更新所有进度条、单词列表和当前词库名称的显示。"""
         self.wordlist_name_label.setText(f"当前文件: {self.model.current_wordlist_name}")
 
         learned, total = self.model.get_stats()
@@ -584,6 +584,5 @@ class SettingWindow(QMainWindow):
         self.words_view.setPlainText("\n".join(lines))
 
     def _auto_save_setting(self, key, value):
-        """当 SpinBox 改变时自动保存单个设置到 settings.json 文件。"""
         self.model.settings[key] = value
         self.model.save_settings()
