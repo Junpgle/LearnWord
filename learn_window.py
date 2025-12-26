@@ -76,9 +76,6 @@ class LearnWindow(QMainWindow):
         for i, b in enumerate(self.opt_buttons):
             b.setObjectName("choice_btn")  # 设置对象名
             b.setFixedHeight(80)  # 增加高度以容纳多行文字
-            # **删除 b.setWordWrap(True) 这行代码**
-            # b.setWordWrap(True) # <- 移除这一行!
-
             # 使用 CSS 替代 setWordWrap 来间接控制换行
             b.setStyleSheet(
                 "text-align: center; white-space: normal;"  # 关键：设置 white-space: normal
@@ -154,6 +151,7 @@ class LearnWindow(QMainWindow):
         # 学习队列和当前单词状态
         self.queue = deque()  # 存储待学习单词的队列
         self.current = None  # 当前正在学习的单词对象
+        self.phase2_known_state = True  # 记录阶段2用户是否认识该单词
 
         # 准备队列并开始学习
         self._prepare_queue_and_start()
@@ -273,18 +271,15 @@ class LearnWindow(QMainWindow):
 
             if phase == 1:
                 # 阶段1：无法用Enter提交（因为有4个选项，不知道选哪个）
-                pass  # 可忽略，或弹出提示
+                pass
             elif phase == 2:
                 # 阶段2：判断是否处于“初始选择”状态
                 if self.know_btn.isVisible() and self.unknow_btn.isVisible():
                     # 此时处于“认识/不认识”界面，Enter 触发“认识”
-                    self._phase2_handle(self.current)
+                    self._phase2_handle(self.current, known=True)
                 # 如果已进入“下一个/我记错了”界面，则 Enter 触发"下一个"
-                elif phase == 2:
-                    if self.know_btn.isVisible() and self.unknow_btn.isVisible():
-                        self._phase2_handle(self.current)
-                    elif hasattr(self, 'next_btn') and self.next_btn.isVisible():
-                        self._phase2_next()  # Enter 触发“下一个”
+                elif hasattr(self, 'next_btn') and self.next_btn.isVisible():
+                    self._phase2_next()  # Enter 触发“下一个”
             elif phase == 3:
                 # 阶段3：直接提交
                 self.on_submit()
@@ -350,9 +345,9 @@ class LearnWindow(QMainWindow):
         self.word_label.setText(item.word)
 
         # 准备选项
-        correct = item.pos+"."+item.definition or ""
+        correct = item.pos + "." + item.definition or ""
         # 筛选 3 个干扰项 (确保不与当前单词重复，且有释义)
-        distract = [w.pos+"."+w.definition for w in self.model.words if w.word != item.word and w.definition]
+        distract = [w.pos + "." + w.definition for w in self.model.words if w.word != item.word and w.definition]
         distract = list(dict.fromkeys(distract))  # 去重
         random.shuffle(distract)
 
@@ -386,14 +381,21 @@ class LearnWindow(QMainWindow):
         except:  # 首次运行或未绑定时会抛异常，忽略
             pass
 
-        # 绑定点击事件：点击后进入 _phase2_handle 流程
-        self.know_btn.clicked.connect(lambda checked=False, i=item: self._phase2_handle(i))
-        self.unknow_btn.clicked.connect(lambda checked=False, i=item: self._phase2_handle(i))
+        # 绑定点击事件：区分认识 (True) 和 不认识 (False)
+        self.know_btn.clicked.connect(lambda checked=False, i=item: self._phase2_handle(i, known=True))
+        self.unknow_btn.clicked.connect(lambda checked=False, i=item: self._phase2_handle(i, known=False))
 
         self.word_label.setText(item.word)  # 仅显示单词
 
-    def _phase2_handle(self, item):
-        """处理阶段 2 首次点击（认识/不认识）后的界面切换。"""
+    def _phase2_handle(self, item, known=True):
+        """
+        处理阶段 2 首次点击后的界面切换。
+        :param item: 当前单词对象
+        :param known: 用户是否点击了“认识”
+        """
+        # 记录用户是否认识，供下一步使用
+        self.phase2_known_state = known
+
         # 隐藏原有按钮
         self.know_btn.hide()
         self.unknow_btn.hide()
@@ -402,14 +404,13 @@ class LearnWindow(QMainWindow):
         self.word_label.setText(f"{item.word} \n {item.pos}.{item.definition or '[无释义]'}")
         self.word_label.setWordWrap(True)  # 再次确保换行开启
 
-        # 创建或显示下一步/我记错了按钮 (用于处理结果)
+        # 创建或显示下一步/我记错了按钮
         if not hasattr(self, 'next_btn'):
             # 首次创建按钮并添加到 phase_layout
-            self.next_btn = QPushButton("下一个")  # 相当于“我答对了，进入下一阶段”
+            self.next_btn = QPushButton("下一个")
             self.next_btn.setObjectName("next_btn")  # 设置对象名
-            self.wrong_btn = QPushButton("我记错了")  # 相当于“我答错了，退回阶段 1”
+            self.wrong_btn = QPushButton("我记错了")
             self.wrong_btn.setObjectName("wrong_btn")  # 设置对象名
-            # 移除 setFixedSize，让 QSS padding 控制大小
 
             self.phase2_btn_row = QHBoxLayout()
             self.phase2_btn_row.addStretch()
@@ -421,20 +422,46 @@ class LearnWindow(QMainWindow):
             # 绑定点击事件，处理后续逻辑
             self.next_btn.clicked.connect(self._phase2_next)
             self.wrong_btn.clicked.connect(lambda checked=False, i=item: self._phase2_wrong(i))
-        else:
-            # 非首次，只需显示
-            self.next_btn.show()
+
+        # 显示按钮
+        self.next_btn.show()
+
+        # 根据是否认识控制“我记错了”按钮的显示
+        if known:
+            # 如果点击了“认识”，显示“我记错了”以便反悔
             self.wrong_btn.show()
+        else:
+            # 如果点击了“不认识”，直接显示答案，不需要“我记错了”，用户只需点击“下一个”确认
+            self.wrong_btn.hide()
 
     def _phase2_next(self):
-        """处理阶段 2 的“下一个”按钮点击：进入下一阶段。"""
+        """处理阶段 2 的“下一个”按钮点击。"""
         self.next_btn.hide()
         self.wrong_btn.hide()
+
         if self.current:
-            # 成功进入下一阶段 (Stage + 1，但不超过 3)
-            self.current.stage = min(3, self.current.stage + 1)
-            self.queue.append(self.current)  # 重新加入队列
-            self.model.save_progress()
+            if self.phase2_known_state:
+                # 之前点击了“认识” -> 成功进入下一阶段
+                self.current.stage = min(3, self.current.stage + 1)
+                self.queue.append(self.current)  # 重新加入队列
+                self.model.save_progress()
+            else:
+                # 之前点击了“不认识” -> 失败，退回阶段 1
+                self.current.stage = 1
+                self.current.attempts += 1
+                self.queue.append(self.current)
+                self.model.save_progress()
+
+                # 将 Stage 1 的单词推到队列末尾，避免立即重复（保留原 on_unknow 的逻辑）
+                size = len(self.queue)
+                rotated = 0
+                while rotated < size:
+                    if len(self.queue) == 0: break
+                    if getattr(self.queue[0], "stage", 1) == 1:
+                        break
+                    self.queue.append(self.queue.popleft())
+                    rotated += 1
+
         self._show_next()
 
     def _phase2_wrong(self, item):
@@ -476,45 +503,33 @@ class LearnWindow(QMainWindow):
         if not self.current: return
 
         # 检查答案是否正确
-        if btn.text().strip() == (self.current.pos+"."+self.current.definition or "").strip():
+        if btn.text().strip() == (self.current.pos + "." + self.current.definition or "").strip():
             self.current.stage = min(3, self.current.stage + 1)  # 答对：阶段 +1
             QMessageBox.information(self, "正确", "回答正确")
         else:
             self.current.stage = max(1, self.current.stage - 1)  # 答错：阶段 -1 (最低到 1)
             self.current.attempts += 1
-            QMessageBox.warning(self, "错误", f"正确释义: {self.current.pos+"."+self.current.definition or ""}")
+            QMessageBox.warning(self, "错误", f"正确释义: {self.current.pos + "." + self.current.definition or ""}")
 
         self.queue.append(self.current)  # 重新加入队列
         self.model.save_progress()
         QTimer.singleShot(100, self._show_next)  # 延迟显示下一题
 
     def on_know(self):
-        """处理阶段 2 首次点击“认识”按钮 (在 _enter_phase2 绑定前)。"""
+        """保留方法，供意外调用使用"""
         if not self.current: return
-        # 默认的 on_know/on_unknow 只是处理阶段变化，并重新加入队列
         self.current.stage = min(3, self.current.stage + 1)
         self.queue.append(self.current)
         self.model.save_progress()
         QTimer.singleShot(100, self._show_next)
 
     def on_unknow(self):
-        """处理阶段 2 首次点击“不认识”按钮 (在 _enter_phase2 绑定前)。"""
+        """保留方法，供意外调用使用"""
         if not self.current: return
         self.current.stage = max(1, self.current.stage - 1)
         self.current.attempts += 1
         self.queue.append(self.current)
         self.model.save_progress()
-
-        # 将 Stage 1 的单词推到队列末尾，以便先学习 Stage 2/3 的单词
-        size = len(self.queue)
-        rotated = 0
-        while rotated < size:
-            if len(self.queue) == 0: break
-            if getattr(self.queue[0], "stage", 1) == 1:
-                break
-            self.queue.append(self.queue.popleft())
-            rotated += 1
-
         QTimer.singleShot(100, self._show_next)
 
     def on_submit(self):
