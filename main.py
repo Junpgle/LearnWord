@@ -10,13 +10,13 @@ from typing import Any
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QLabel, QPushButton, QGridLayout, QHBoxLayout, QMessageBox, QDialog,
-    QScrollArea, QFrame, QSizePolicy
+    QScrollArea
 )
 from PySide6.QtCore import Qt, QUrl, QThread, QObject, Signal, Slot, QTimer, QSize, QVariantAnimation, QEasingCurve, \
-    QRect, QPoint
+    QRect
 from PySide6.QtGui import (
     QFont, QDesktopServices, QFontDatabase, QIcon, QMovie,
-    QPainter, QColor, QRadialGradient, QBrush, QPen, QPalette, QPixmap
+    QPainter, QColor, QRadialGradient, QBrush, QPixmap
 )
 
 # 导入你的自定义模块 (确保这些文件在同级目录下)
@@ -113,7 +113,7 @@ class DreamyBackground(QWidget):
             c_end.setAlpha(0)
             gradient.setColorAt(1, c_end)
             painter.setBrush(QBrush(gradient))
-            painter.setPen(Qt.NoPen)
+            painter.setPen(Qt.PenStyle.NoPen)
             painter.drawRect(self.rect())
 
         # 绘制三个光团
@@ -421,8 +421,151 @@ class FramelessDialog(QDialog):
 
 
 # =================================================================
-# AnnouncementDialog (无边框版)
+# 拟真飘落撒花特效 (ConfettiWidget - Fluttering Style)
 # =================================================================
+class ConfettiParticle:
+    """物理粒子对象"""
+
+    def __init__(self, w, h, pixmaps):
+        # 1. 初始位置：从屏幕上方中心区域喷发，范围稍微宽一点
+        self.x = random.randint(w // 5, w * 4 // 5)
+        self.y = random.randint(h // 3, h // 2)  # 起始点放低一点，让喷射更明显
+
+        # 2. 初始速度：模拟“爆炸式”喷射
+        # 水平速度：向四周炸开，范围大一点 (-10 到 10)
+        self.vx = random.uniform(-10, 30)
+        # 垂直速度：猛烈向上喷射 (-15 到 -25)
+        self.vy = random.uniform(-25, -10)
+
+        # 3. 物理属性：每个粒子的“轻重”不一样
+        self.gravity = random.uniform(0.15, 0.3)  # 重力较小，模拟纸片
+        self.max_fall_speed = random.uniform(3, 10)  # 终端速度：限制最大下落速度，防止像石头一样砸下来
+        self.sway_speed = random.uniform(0.05, 0.07)  # 左右摇摆的频率
+        self.sway_offset = random.uniform(0, math.pi * 2)  # 摇摆相位
+
+        # 4. 旋转
+        self.rotation = random.randint(0, 360)
+        self.rotation_speed = random.uniform(-3, 3)
+
+        # 5. 图片
+        self.pixmap = random.choice(pixmaps)
+        # 随机缩放
+        scale = random.uniform(0.3, 1.5)
+        if scale != 1.0:
+            self.pixmap = self.pixmap.scaled(
+                QSize(int(self.pixmap.width() * scale), int(self.pixmap.height() * scale)),
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+        self.half_w = self.pixmap.width() / 2
+        self.half_h = self.pixmap.height() / 2
+
+        # 标记是否已经进入“飘落阶段”
+        self.is_falling = False
+
+
+class ConfettiWidget(QWidget):
+    """全屏撒花覆盖层 (拟真飘落版)"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
+
+        if parent:
+            self.resize(parent.size())
+
+        self.time_step = 0  # 用于计算正弦波
+
+        # 预渲染 Emoji
+        self.cached_pixmaps = self._cache_emojis(['🎉', '🎊', '✨', '🎁', '🎈'], size=48)
+
+        # 生成 80 个粒子
+        self.particles = [ConfettiParticle(self.width(), self.height(), self.cached_pixmaps) for _ in range(20)]
+
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_physics)
+        self.timer.start(16)
+
+    def _cache_emojis(self, emojis, size):
+        pixmaps = []
+        font = QFont("Segoe UI Emoji", size)
+        if not font.exactMatch():
+            font = QFont("Apple Color Emoji", size)
+        font.setBold(True)
+
+        for char in emojis:
+            pix = QPixmap(size * 2, size * 2)
+            pix.fill(Qt.GlobalColor.transparent)
+            painter = QPainter(pix)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+            painter.setFont(font)
+            painter.drawText(pix.rect(), Qt.AlignmentFlag.AlignCenter, char)
+            painter.end()
+            pixmaps.append(pix)
+        return pixmaps
+
+    def update_physics(self):
+        active_particles = False
+        screen_h = self.height()
+        self.time_step += 1
+
+        for p in self.particles:
+            # --- 阶段1：向上喷射 ---
+            if p.vy < 0:
+                # 只有在上升时才受较强的重力减速
+                p.vy += p.gravity * 2
+                p.x += p.vx
+                p.y += p.vy
+                # 空气阻力：水平速度衰减很快
+                p.vx *= 0.95
+
+                # --- 阶段2：向下飘落 ---
+            else:
+                p.is_falling = True
+
+                # 垂直方向：加速下落，但不能超过最大飘落速度 (终端速度)
+                if p.vy < p.max_fall_speed:
+                    p.vy += p.gravity
+
+                # 水平方向：加入正弦波摇摆 (Fluttering)
+                # sway_amount 决定了摇摆的幅度
+                sway_amount = math.sin(self.time_step * p.sway_speed + p.sway_offset) * 2
+
+                p.x += sway_amount
+                p.y += p.vy
+
+            # 旋转永远都在发生
+            p.rotation += p.rotation_speed
+
+            # 边界检查
+            if p.y < screen_h + 100:
+                active_particles = True
+
+        if not active_particles:
+            self.timer.stop()
+            self.deleteLater()
+        else:
+            self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+
+        screen_h = self.height()
+
+        for p in self.particles:
+            if p.y < -100 or p.y > screen_h + 100: continue
+
+            painter.save()
+            painter.translate(p.x, p.y)
+            painter.rotate(p.rotation)
+            painter.drawPixmap(int(-p.half_w), int(-p.half_h), p.pixmap)
+            painter.restore()
+
 class AnnouncementDialog(FramelessDialog):
     def __init__(self, data, current_version, parent=None):
         super().__init__(parent)
@@ -431,6 +574,7 @@ class AnnouncementDialog(FramelessDialog):
 
         self.all_announcements = data.get("announcements", [])
         self.current_ver = current_version
+
         self.current_list = [a for a in self.all_announcements if a.get("version") == self.current_ver]
         self.history_list = [a for a in self.all_announcements if a.get("version") != self.current_ver]
         self.is_showing_history = False
@@ -438,121 +582,178 @@ class AnnouncementDialog(FramelessDialog):
         self.setup_ui()
         self.render_content()
 
+        # ★★★ 新增：如果是显示最新版本，启动撒花特效 ★★★
+        # 只有当 current_list 不为空（即有新版本公告）时才撒花
+        if self.current_list:
+            self.confetti = ConfettiWidget(self)
+            self.confetti.show()
+            self.confetti.raise_()  # 确保显示在最上层
+
     def setup_ui(self):
         # 1. 标题栏
         self.setup_title_bar("系统公告")
 
-        # 2. 顶部信息 (图标+副标题)
-        header_layout = QHBoxLayout()
+        # 2. 顶部 Header
+        top_container = QWidget()
+        top_layout = QHBoxLayout(top_container)
+        top_layout.setContentsMargins(30, 5, 30, 5)
+        top_layout.setSpacing(15)
+
         self.icon_label = QLabel()
-        self.icon_label.setFixedSize(50, 50)
+        self.icon_label.setFixedSize(48, 48)
         self.icon_label.setScaledContents(True)
 
         gif_path = get_resource_path(os.path.join("Animation", "Announcement.gif"))
-        # 兼容调试路径
         if not os.path.exists(gif_path):
-            gif_path = r"D:\Python code\LearnWord\Animation\Announcement.gif"
+            gif_path = os.path.join(os.getcwd(), "Animation", "Announcement.gif")
 
         if os.path.exists(gif_path):
             self.movie = QMovie(gif_path)
+            self.movie.setScaledSize(QSize(48, 48))
             self.icon_label.setMovie(self.movie)
             self.movie.start()
         else:
             self.icon_label.setText("📢")
-            self.icon_label.setStyleSheet("font-size: 30px; color: yellow;")
+            self.icon_label.setStyleSheet("font-size: 36px;")
 
-        info_layout = QVBoxLayout()
-        self.main_title_lbl = QLabel("最新动态")
-        self.main_title_lbl.setFont(QFont("MiSans", 14, QFont.Weight.Bold))
-        self.sub_title_lbl = QLabel(f"Version {self.current_ver}")
-        self.sub_title_lbl.setStyleSheet("color: #888;")
-        info_layout.addWidget(self.main_title_lbl)
-        info_layout.addWidget(self.sub_title_lbl)
+        title_box = QVBoxLayout()
+        title_box.setSpacing(2)
+        title_box.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
-        header_layout.addWidget(self.icon_label)
-        header_layout.addSpacing(15)
-        header_layout.addLayout(info_layout)
-        header_layout.addStretch()
+        self.lbl_main_title = QLabel("最新动态")
+        self.lbl_main_title.setFont(QFont("MiSans", 22, QFont.Weight.Bold))
+        self.lbl_main_title.setStyleSheet("color: white;")
 
-        self.content_layout.addLayout(header_layout)
+        self.lbl_sub_title = QLabel(f"Version {self.current_ver}")
+        self.lbl_sub_title.setStyleSheet("color: #3b82f6; font-weight: bold; font-size: 15px;")
 
-        # 3. 内容区
-        self.content_browser = QLabel()
-        self.content_browser.setWordWrap(True)
-        self.content_browser.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.content_browser.setOpenExternalLinks(True)
-        self.content_browser.setStyleSheet("color: #ccc; font-size: 14px; padding: 5px;")
+        title_box.addWidget(self.lbl_main_title)
+        title_box.addWidget(self.lbl_sub_title)
 
+        top_layout.addWidget(self.icon_label)
+        top_layout.addLayout(title_box)
+        top_layout.addStretch()
+
+        self.content_layout.addWidget(top_container)
+
+        # 3. 滚动文本区
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setWidget(self.content_browser)
-        # 给ScrollArea里的Widget也设为透明，防止白底
-        self.scroll_area.setStyleSheet(
-            "QScrollArea { background: rgba(0,0,0,0.2); border-radius: 6px; } QWidget { background: transparent; }")
+        self.scroll_area.setStyleSheet("""
+            QScrollArea { background: transparent; border: none; }
+            QScrollBar:vertical { width: 6px; background: transparent; }
+            QScrollBar::handle:vertical { background: #444; border-radius: 3px; }
+            QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical { height: 0px; }
+        """)
 
+        self.content_label = QLabel()
+        self.content_label.setWordWrap(True)
+        self.content_label.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.content_label.setOpenExternalLinks(True)
+        self.content_label.setStyleSheet("padding: 5px 30px 10px 30px;")
+
+        self.scroll_area.setWidget(self.content_label)
         self.content_layout.addWidget(self.scroll_area)
 
-        # 4. 按钮区
+        # 4. 底部按钮
         btn_layout = QHBoxLayout()
-        self.toggle_btn = QPushButton("查看历史公告")
-        self.toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.toggle_btn.setFixedSize(120, 32)
-        self.toggle_btn.clicked.connect(self.toggle_view)
+        btn_layout.setContentsMargins(20, 5, 20, 10)
 
-        close_btn = QPushButton("我知道了")
-        close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        close_btn.setFixedSize(90, 32)
-        close_btn.clicked.connect(self.accept)
-
-        # 样式
-        self.toggle_btn.setStyleSheet("""
-            QPushButton { background-color: #0969da; color: white; border: none; border-radius: 6px; font-weight: bold; }
-            QPushButton:hover { background-color: #0757b7; }
-        """)
-        close_btn.setStyleSheet("""
-            QPushButton { background-color: #374151; color: white; border: none; border-radius: 6px; font-weight: bold; }
-            QPushButton:hover { background-color: #4b5563; }
+        self.btn_history = QPushButton("查看历史公告")
+        self.btn_history.setFixedSize(120, 36)
+        self.btn_history.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_history.clicked.connect(self.toggle_history)
+        self.btn_history.setStyleSheet("""
+            QPushButton { background: transparent; color: #888; border: none; font-size: 14px; text-align: left; font-weight: bold;}
+            QPushButton:hover { color: #aaa; text-decoration: underline; }
         """)
 
+        self.btn_ok = QPushButton("我知道了")
+        self.btn_ok.setFixedSize(120, 40)
+        self.btn_ok.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_ok.clicked.connect(self.accept)
+        self.btn_ok.setStyleSheet("""
+            QPushButton { background-color: #2563eb; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 15px; }
+            QPushButton:hover { background-color: #1d4ed8; }
+        """)
+
+        btn_layout.addWidget(self.btn_history)
         btn_layout.addStretch()
-        btn_layout.addWidget(self.toggle_btn)
-        btn_layout.addSpacing(10)
-        btn_layout.addWidget(close_btn)
+        btn_layout.addWidget(self.btn_ok)
 
         self.content_layout.addLayout(btn_layout)
 
     def render_content(self):
         target_list = self.history_list if self.is_showing_history else self.current_list
+        html_blocks = []
+
         if not target_list:
-            html = "<div style='text-align:center; margin-top:30px; color:#666;'>无相关公告内容</div>"
+            html_blocks.append("""
+            <div style='margin-top: 60px; text-align: center; color: #666;'>
+                <span style='font-size: 48px;'>✨</span><br><br>
+                <span style='font-size: 16px;'>暂无更多内容</span>
+            </div>
+            """)
         else:
-            html = ""
-            for item in target_list:
-                ver = item.get("version", "")
-                title = item.get("title", "无标题")
-                content = item.get("content", "").replace("\n", "<br>")
-                ver_tag = f"<span style='color: #3498db; font-weight:bold; font-size:12px;'>[{ver}]</span> " if self.is_showing_history else ""
+            for i, item in enumerate(target_list):
+                if self.is_showing_history:
+                    ver_title = f"<h3 style='color: #60a5fa; margin-bottom: 8px; font-size: 18px;'>{item.get('version')}</h3>"
+                    html_blocks.append(ver_title)
 
-                html += f"""
-                <div style='margin-bottom: 20px;'>
-                    <div style='font-size: 15px; font-weight: bold; color: #fff; margin-bottom: 6px;'>{ver_tag}{title}</div>
-                    <div style='font-size: 13px; color: #ccc; line-height: 1.5;'>{content}</div>
-                    <hr style='border: 0; border-bottom: 1px solid #333; margin: 10px 0;'>
-                </div>"""
+                content = item.get("content", "")
+                processed_rows = ""
+                lines = [line.strip() for line in content.split('\n') if line.strip()]
 
-        self.content_browser.setText(html)
+                for line in lines:
+                    import re
+                    match = re.match(r'^(\d+[\.\、\s]|\-)\s*(.*)', line)
+
+                    if match:
+                        bullet = match.group(1).strip()
+                        text = match.group(2).strip()
+                        processed_rows += f"""
+                        <tr>
+                            <td width='28' valign='top' style='color: #3b82f6; font-weight: bold; font-size: 15px; padding-top: 2px;'>{bullet}</td>
+                            <td style='color: #e5e7eb; font-size: 15px; line-height: 1.5; padding-bottom: 8px;'>{text}</td>
+                        </tr>
+                        """
+                    else:
+                        if "欢迎" in line or "🎉" in line:
+                            processed_rows += f"""
+                            <tr><td colspan='2' style='color: #fbbf24; font-weight: bold; font-size: 17px; padding-bottom: 12px;'>{line}</td></tr>
+                            """
+                        elif "再会" in line or "燃尽" in line:
+                            processed_rows += f"""
+                            <tr><td colspan='2' style='color: #888; font-size: 13px; font-style: italic; padding-top: 10px;'>{line}</td></tr>
+                            """
+                        else:
+                            processed_rows += f"""
+                            <tr><td colspan='2' style='color: #d1d5db; font-size: 15px; line-height: 1.5; padding-bottom: 8px;'>{line}</td></tr>
+                            """
+
+                html_blocks.append(
+                    f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='margin-bottom: 15px;'>{processed_rows}</table>")
+
+                if i < len(target_list) - 1:
+                    html_blocks.append("<hr style='border: 1px solid #444; margin: 10px 0 20px 0;'>")
+
+        self.content_label.setText("".join(html_blocks))
+
         if self.is_showing_history:
-            self.main_title_lbl.setText("历史公告")
-            self.toggle_btn.setText("返回当前版本")
+            self.lbl_main_title.setText("历史公告")
+            self.lbl_sub_title.setVisible(False)
+            self.btn_history.setText("返回最新动态")
         else:
-            self.main_title_lbl.setText("最新动态")
-            self.toggle_btn.setText("查看历史公告")
+            self.lbl_main_title.setText("最新动态")
+            self.lbl_sub_title.setVisible(True)
+            self.lbl_sub_title.setText(f"Version {self.current_ver}")
+            self.btn_history.setText("查看历史公告")
+
         self.scroll_area.verticalScrollBar().setValue(0)
 
-    def toggle_view(self):
+    def toggle_history(self):
         self.is_showing_history = not self.is_showing_history
         self.render_content()
-
 
 # =================================================================
 # UpdateDialog (无边框更新提示窗口) - 新增
@@ -664,47 +865,146 @@ class AboutDialog(FramelessDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         # 修复：增加高度，防止遮挡
-        self.setFixedSize(500, 360)
+        self.setFixedSize(600, 360)
         self.set_dark_theme()
 
         self.setup_ui()
 
     def setup_ui(self):
+        # 引入阴影特效需要的模块 (如果没有在文件头引入，请确保引入)
+        from PySide6.QtWidgets import QGraphicsDropShadowEffect
+
         self.setup_title_bar("关于")
 
-        layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
+        # --- 主容器：水平布局 ---
+        h_layout = QHBoxLayout()
+        h_layout.setContentsMargins(40, 20, 40, 20)  # 增加边距，让呼吸感更强
+        h_layout.setSpacing(30)  # 图标和文字的间距
 
+        # ==========================
+        # 1. 左侧：图标区域 (增加圆角容器和阴影)
+        # ==========================
+        icon_container = QWidget()
+        icon_container.setFixedSize(120, 120)
+        # 设置图标容器样式：圆角 + 边框 + 微弱背景
+        icon_container.setStyleSheet("""
+            QWidget {
+                background-color: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 24px;
+            }
+        """)
+
+        # 图标 Label
+        icon_label = QLabel(icon_container)
+        icon_label.setGeometry(10, 10, 100, 100)  # 在容器内部居中
+        icon_label.setStyleSheet("border: none; background: transparent;")
+        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # ★★★ 核心修复：高清图标加载 ★★★
+        # 建议：将 icon.ico 换成一张 256x256 的 icon.png 效果最好
+        # 如果必须用 ico，请确保 ico 里面包含大尺寸图层
+        icon_path = get_resource_path("Animation/icon.png")
+        if os.path.exists(icon_path):
+            pixmap = QPixmap(icon_path)
+            if not pixmap.isNull():
+                # 使用 SmoothTransformation 进行平滑缩放，抗锯齿
+                scaled_pixmap = pixmap.scaled(
+                    100, 100,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation
+                )
+                icon_label.setPixmap(scaled_pixmap)
+            else:
+                icon_label.setText("LOGO")
+
+        # 添加阴影效果，增加立体感
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(20)
+        shadow.setXOffset(0)
+        shadow.setYOffset(4)
+        shadow.setColor(QColor(0, 0, 0, 80))
+        icon_container.setGraphicsEffect(shadow)
+
+        h_layout.addWidget(icon_container, 0, Qt.AlignmentFlag.AlignTop)
+
+        # ==========================
+        # 2. 右侧：文字信息 (优化排版)
+        # ==========================
+        text_layout = QVBoxLayout()
+        text_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        text_layout.setSpacing(8)
+
+        # 2.1 标题
         title_label = QLabel("LearnWord")
-        title_label.setFont(QFont("MiSans", 24, QFont.Weight.Bold))
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("color: white; margin-top: 10px;")
+        # 稍微加大字号，使用纯白
+        title_label.setFont(QFont("MiSans", 32, QFont.Weight.Bold))
+        title_label.setStyleSheet("color: #ffffff; letter-spacing: 1px;")
 
-        version_label = QLabel(f"版本: {CURRENT_VERSION}\n构建日期: {CURRENT_VERSION_DATE}")
-        version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        version_label.setStyleSheet("color: #888; font-size: 13px; margin-top: 5px;")
+        # 2.2 版本号 (做成胶囊标签样式)
+        version_container = QWidget()
+        version_layout = QHBoxLayout(version_container)
+        version_layout.setContentsMargins(0, 0, 0, 0)
+        version_layout.setSpacing(10)
 
+        # 版本文字
+        ver_lbl = QLabel(f"{CURRENT_VERSION}")
+        ver_lbl.setStyleSheet("""
+            background-color: #2563eb; 
+            color: white; 
+            padding: 2px 8px; 
+            border-radius: 4px; 
+            font-size: 12px; 
+            font-weight: bold;
+        """)
+        # 日期文字
+        date_lbl = QLabel(f"Build {CURRENT_VERSION_DATE}")
+        date_lbl.setStyleSheet("color: #666; font-size: 12px;")
+
+        version_layout.addWidget(ver_lbl)
+        version_layout.addWidget(date_lbl)
+        version_layout.addStretch()
+
+        # 2.3 描述文字 (增加行高，调淡颜色)
         desc_label = QLabel("一款轻量级英语词汇学习工具\n支持学习、复习、测试与进度管理")
-        desc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        # 修复：移除CSS margin，改用布局spacing，防止文字被裁剪
-        desc_label.setStyleSheet("color: #aaa; font-size: 14px; line-height: 1.5;")
+        desc_label.setFont(QFont("MiSans", 14))
+        desc_label.setStyleSheet("""
+            color: #cccccc; 
+            line-height: 24px; 
+            margin-top: 10px;
+        """)
 
-        layout.addWidget(title_label)
-        layout.addWidget(version_label)
-        layout.addSpacing(20)  # 替代 CSS margin
-        layout.addWidget(desc_label)
-        layout.addSpacing(10)
+        text_layout.addWidget(title_label)
+        text_layout.addWidget(version_container)
+        text_layout.addWidget(desc_label)
 
-        self.content_layout.addLayout(layout)
+        h_layout.addLayout(text_layout)
+
+        # 将主要内容加入
+        self.content_layout.addSpacing(10)
+        self.content_layout.addLayout(h_layout)
         self.content_layout.addStretch()
 
-        # 底部按钮
+        # ==========================
+        # 3. 底部按钮 (保持原有逻辑，微调样式)
+        # ==========================
         btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(10)
+        btn_layout.setSpacing(15)
 
         style_link = """
-            QPushButton { background-color: #333; color: white; border: none; border-radius: 6px; padding: 8px 12px; }
-            QPushButton:hover { background-color: #444; }
+            QPushButton { 
+                background-color: rgba(255,255,255,0.08); 
+                color: #ddd; 
+                border: 1px solid rgba(255,255,255,0.1); 
+                border-radius: 6px; 
+                padding: 6px 16px; 
+                font-size: 13px;
+            }
+            QPushButton:hover { 
+                background-color: rgba(255,255,255,0.15); 
+                color: white; 
+                border: 1px solid rgba(255,255,255,0.3);
+            }
         """
 
         web_btn = QPushButton("访问展示网页")
@@ -720,9 +1020,10 @@ class AboutDialog(FramelessDialog):
         btn_layout.addStretch()
         btn_layout.addWidget(web_btn)
         btn_layout.addWidget(git_btn)
-        btn_layout.addStretch()
+        btn_layout.addStretch()  # 让按钮居中可能好看点，或者去掉这个Stretch让按钮靠右
 
         self.content_layout.addLayout(btn_layout)
+        self.content_layout.addSpacing(10)
 
 
 # =================================================================
@@ -871,6 +1172,10 @@ class MainWindow(QMainWindow):
             #sys_btn_close { background-color: rgba(255, 255, 255, 0.15); color: white; border-radius: 20px; font-size: 24px; padding-bottom: 2px; }
             #sys_btn_close:hover { background-color: #e81123; color: white; }
         """)
+
+        self.ann_thread = None
+        self.update_thread = None
+        self.is_ann_loading = False
 
         self._start_wallpaper_load()
         self._start_sentence_load()
@@ -1059,13 +1364,53 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def _on_announcement_clicked(self):
+        # 1. 只要点了按钮，必须立刻标记为“手动模式”
+        # 这样等会线程结束时，才会强制弹出窗口
         self.is_manual_announcement_check = True
+
+        # 2. 立刻把按钮设为“获取中...”，给用户反馈
         self.btn_announcement.setEnabled(False)
         self.btn_announcement.setText("获取中...")
+
+        # 3. 此时再判断：如果已经在加载了（比如自动检查还在跑），就直接蹭它的车
+        if self.is_ann_loading:
+            # 直接返回，坐等正在跑的那个线程结束
+            # 因为第1步已经把标记设为 True 了，所以它结束时会弹窗的
+            return
+
+        # 4. 如果当前没在加载，才启动新线程
         self._start_announcement_load()
 
     @Slot()
     def _start_announcement_load(self):
+        # 1. 标记为正在加载
+        self.is_ann_loading = True
+
+        # 2. 清理旧线程 (这是报错的地方，我们需要加异常捕获)
+        if self.ann_thread is not None:
+            try:
+                # 尝试断开信号，防止旧线程意外触发回调
+                try:
+                    self.ann_worker.signal_result.disconnect()
+                except Exception:
+                    pass
+
+                # ★★★ 核心修复：加 try...except 捕获 RuntimeError ★★★
+                # 如果 C++ 对象已经被删除了，访问 .quit() 会崩溃
+                # 我们捕获这个错误，假装无事发生
+                if self.ann_thread.isRunning():
+                    self.ann_thread.quit()
+                self.ann_thread.deleteLater()
+
+            except RuntimeError:
+                # 捕获 "Internal C++ object already deleted"
+                # 说明它已经被自动清理了，这很好，我们不用管它了
+                pass
+
+            # 无论如何，把 Python 变量置空
+            self.ann_thread = None
+
+        # 3. 启动新线程 (保持不变)
         self.ann_thread = QThread()
         self.ann_worker = AnnouncementLoader()
         self.ann_worker.moveToThread(self.ann_thread)
@@ -1078,9 +1423,15 @@ class MainWindow(QMainWindow):
 
     @Slot(bool, object)
     def _handle_announcement_result(self, success: bool, data_or_error: Any):
+        # ★★★ 核心：任务结束，释放标志位 ★★★
+        self.is_ann_loading = False
+
+        # 恢复按钮状态
         self.btn_announcement.setEnabled(True)
         self.btn_announcement.setText("公告")
 
+        # ... (后续处理逻辑保持不变) ...
+        # (例如：判断 is_manual_announcement_check 来弹窗的代码)
         if not success:
             if self.is_manual_announcement_check:
                 QMessageBox.warning(self, "获取失败", f"无法获取公告: {data_or_error}")
