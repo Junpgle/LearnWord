@@ -1,7 +1,7 @@
 {
   "fixed_wallpaper": {
-    "active": false,
-    "url": "https://raw.githubusercontent.com/Junpgle/LearnWord/master/background/special.jpg",
-    "name": "special.jpg"
+    "active": true,
+    "url": "https://raw.githubusercontent.com/Junpgle/LearnWord/refs/heads/master/background/firework.jpg",
+    "name": "firework.jpg"
   }
 }
