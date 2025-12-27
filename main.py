@@ -27,8 +27,8 @@ from test_window import TestWindow
 from setting_window import SettingWindow
 
 # 设定当前程序版本号
-CURRENT_VERSION = "v1.2.0"
-CURRENT_VERSION_DATE = "20251227-2"
+CURRENT_VERSION = "v1.2.1"
+CURRENT_VERSION_DATE = "20251227-3"
 
 
 # ★★★ 资源路径获取函数 ★★★
@@ -170,7 +170,7 @@ class DreamyBackground(QWidget):
 
 
 # =================================================================
-# 壁纸加载器 (WallpaperLoader)
+# 壁纸加载器 (WallpaperLoader) - 修改增加了显式指定逻辑
 # =================================================================
 class WallpaperLoader(QObject):
     finished = Signal(str)
@@ -188,32 +188,62 @@ class WallpaperLoader(QObject):
         download_url = None
         filename = None
 
+        # --- 1. 优先检查是否有显式指定 (wallpaper_manifest.json) ---
         try:
-            api_url = "https://api.github.com/repos/Junpgle/LearnWord/contents/background"
-            headers = {"User-Agent": "LearnWord-Client/1.0", "Accept": "application/vnd.github.v3+json"}
-            resp = requests.get(api_url, headers=headers, timeout=5)
+            # 假设您会在同一位置放置 wallpaper_manifest.json
+            manifest_url = "https://raw.githubusercontent.com/Junpgle/LearnWord/master/wallpaper_manifest.json"
+            headers = {"User-Agent": "LearnWord-Client/1.0"}
 
+            resp = requests.get(manifest_url, headers=headers, timeout=5)
             if resp.status_code == 200:
-                files = resp.json()
-                images = [f for f in files if
-                          isinstance(f, dict) and f.get('type') == 'file' and f.get('name', '').lower().endswith(
-                              ('.jpg', '.jpeg', '.png'))]
+                data = resp.json()
+                fixed = data.get("fixed_wallpaper", {})
 
-                if images:
-                    try:
-                        with open(cache_list_file, 'w', encoding='utf-8') as f:
-                            json.dump(images, f, ensure_ascii=False)
-                    except Exception as e:
-                        print(f"Failed to write cache: {e}")
+                # 如果显式壁纸处于激活状态
+                if fixed.get("active") is True:
+                    download_url = fixed.get("url")
+                    filename = fixed.get("name")
 
-                    target = random.choice(images)
-                    download_url = target.get('download_url')
-                    filename = target.get('name')
-            else:
-                print(f"API Error: {resp.status_code}. Using fallback...")
+                    # 容错：如果没有提供文件名，从URL中解析
+                    if not filename and download_url:
+                        filename = download_url.split('/')[-1]
+                        if not filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+                            filename = "fixed_wallpaper.jpg"
+
+                    # print(f"Explicit wallpaper detected: {filename}")
         except Exception as e:
-            print(f"Network error fetching list: {e}. Using fallback...")
+            # 显式获取失败不影响后续流程，仅打印日志
+            print(f"Explicit wallpaper check error: {e}")
 
+        # --- 2. 如果没有显式指定，则走之前的随机逻辑 ---
+        if not download_url:
+            try:
+                api_url = "https://api.github.com/repos/Junpgle/LearnWord/contents/background"
+                headers = {"User-Agent": "LearnWord-Client/1.0", "Accept": "application/vnd.github.v3+json"}
+                resp = requests.get(api_url, headers=headers, timeout=5)
+
+                if resp.status_code == 200:
+                    files = resp.json()
+                    images = [f for f in files if
+                              isinstance(f, dict) and f.get('type') == 'file' and f.get('name', '').lower().endswith(
+                                  ('.jpg', '.jpeg', '.png'))]
+
+                    if images:
+                        try:
+                            with open(cache_list_file, 'w', encoding='utf-8') as f:
+                                json.dump(images, f, ensure_ascii=False)
+                        except Exception as e:
+                            print(f"Failed to write cache: {e}")
+
+                        target = random.choice(images)
+                        download_url = target.get('download_url')
+                        filename = target.get('name')
+                else:
+                    print(f"API Error: {resp.status_code}. Using fallback...")
+            except Exception as e:
+                print(f"Network error fetching list: {e}. Using fallback...")
+
+        # --- 3. 如果 API 和显式指定都失败，尝试读取缓存 ---
         if not download_url and os.path.exists(cache_list_file):
             try:
                 with open(cache_list_file, 'r', encoding='utf-8') as f:
@@ -225,14 +255,18 @@ class WallpaperLoader(QObject):
             except Exception as e:
                 print(f"Cache read error: {e}")
 
+        # --- 4. 最后的盲猜回退 ---
         if not download_url:
             idx = random.randint(1, 5)
             filename = f"{idx}.jpg"
             download_url = f"https://raw.githubusercontent.com/Junpgle/LearnWord/master/background/{filename}"
 
+        # --- 5. 下载并完成 ---
         if download_url and filename:
             save_path = os.path.join(save_dir, filename)
             try:
+                # 只有当文件不存在时才下载 (对于 fixed wallpaper，如果你修改了图片但名字没变，
+                # 客户端可能需要手动删除缓存或我们在逻辑里增加强制覆盖。这里暂保持不重复下载)
                 if not os.path.exists(save_path):
                     dl_headers = {"User-Agent": "LearnWord-Client/1.0"}
                     img_resp = requests.get(download_url, headers=dl_headers, timeout=15)
