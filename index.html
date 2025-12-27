@@ -9,13 +9,15 @@
     <!-- 引入 AOS 动画库 -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <!-- 引入 Typed.js 库用于打字效果 -->
+    <script src="https://unpkg.com/typed.js@2.0.16/dist/typed.umd.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
         :root {
             --primary: #0078d7;
             --primary-hover: #339af0;
-            --bg-dark: #050811; /* 深化背景色增强高级感 */
+            --bg-dark: #050811;
         }
 
         body {
@@ -25,7 +27,13 @@
             background-color: var(--bg-dark);
         }
 
-        /* 自定义漂浮动画 */
+        /* 打字机光标样式 */
+        .typed-cursor {
+            color: var(--primary);
+            font-size: 0.9em;
+            margin-left: 5px;
+        }
+
         @keyframes float {
             0% { transform: translateY(0px) rotate(1deg); }
             50% { transform: translateY(-15px) rotate(0deg); }
@@ -39,20 +47,17 @@
             background: radial-gradient(circle at center, #1e293b 0%, #050811 70%);
         }
 
-        /* 玻璃拟态效果 */
         .glass-card {
             background: rgba(255, 255, 255, 0.02);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        /* 网格背景 */
         .grid-pattern {
             background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 0);
             background-size: 50px 50px;
         }
 
-        /* 软件按钮样式 */
         .software-btn-blue { background-color: var(--primary); }
         .software-btn-blue:hover { background-color: var(--primary-hover); transform: scale(1.02); }
         .software-btn-grey { background-color: #374151; }
@@ -64,7 +69,6 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        /* 按钮光泽效果 */
         .btn-shine {
             position: relative;
             overflow: hidden;
@@ -84,7 +88,6 @@
             left: 100%;
         }
 
-        /* 进度条模拟样式 */
         .progress-mock {
             height: 6px;
             background: rgba(255,255,255,0.05);
@@ -92,74 +95,127 @@
             overflow: hidden;
         }
         .progress-inner { height: 100%; border-radius: 3px; }
+
+        /* 统一内容宽度约束 */
+        .content-container {
+            max-width: 72rem;
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+
+        /* 移动端菜单显示动画 */
+        #mobile-menu {
+            transition: all 0.3s ease-in-out;
+            transform: translateY(-20px);
+            opacity: 0;
+            pointer-events: none;
+        }
+        #mobile-menu.active {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
     </style>
 </head>
 <body class="text-slate-200">
 
     <!-- Header -->
     <header class="fixed w-full z-50 nav-blur">
-        <nav class="max-w-6xl mx-auto px-8 py-5 flex justify-between items-center">
+        <nav class="content-container py-4 lg:py-5 flex justify-between items-center">
             <div class="flex items-center space-x-3 group cursor-pointer">
                 <div class="bg-blue-600 p-2 rounded-xl group-hover:rotate-12 transition-transform shadow-lg shadow-blue-500/20">
-                    <i class="fas fa-book-open text-xl text-white"></i>
+                    <i class="fas fa-book-open text-lg lg:text-xl text-white"></i>
                 </div>
-                <span class="text-2xl font-bold tracking-tighter text-white">LearnWord</span>
+                <span class="text-xl lg:text-2xl font-bold tracking-tighter text-white">LearnWord</span>
             </div>
+
+            <!-- Desktop Links -->
             <div class="hidden md:flex space-x-10 text-sm font-medium">
                 <a href="#methodology" class="text-slate-400 hover:text-blue-400 transition-colors">核心逻辑</a>
                 <a href="#detailed-features" class="text-slate-400 hover:text-blue-400 transition-colors">模块详解</a>
                 <a href="#preview" class="text-slate-400 hover:text-blue-400 transition-colors">界面展示</a>
             </div>
-            <a href="https://github.com/Junpgle/LearnWord/releases" id="nav-download-btn" class="download-link btn-shine bg-blue-600 hover:bg-blue-500 text-white px-7 py-2.5 rounded-full text-sm font-bold transition-all shadow-lg shadow-blue-600/30">
-                立即获取
-            </a>
+
+            <div class="flex items-center space-x-4">
+                <a href="https://github.com/Junpgle/LearnWord/releases" id="nav-download-btn" class="download-link btn-shine hidden sm:block bg-blue-600 hover:bg-blue-500 text-white px-5 lg:px-7 py-2 lg:py-2.5 rounded-full text-xs lg:text-sm font-bold transition-all shadow-lg shadow-blue-600/30">
+                    Windows 下载
+                </a>
+                <!-- Mobile Menu Toggle -->
+                <button id="menu-toggle" class="md:hidden text-white p-2 focus:outline-none">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
         </nav>
+
+        <!-- Mobile Menu Overlay -->
+        <div id="mobile-menu" class="absolute top-full left-0 w-full bg-slate-900 border-b border-white/5 py-6 flex flex-col items-center space-y-6 md:hidden">
+            <a href="#methodology" class="text-slate-400 hover:text-white mobile-link">核心逻辑</a>
+            <a href="#detailed-features" class="text-slate-400 hover:text-white mobile-link">模块详解</a>
+            <a href="#preview" class="text-slate-400 hover:text-white mobile-link">界面展示</a>
+            <a href="https://github.com/Junpgle/LearnWord/releases" class="download-link bg-blue-600 text-white px-8 py-2.5 rounded-full text-sm font-bold">Windows 下载</a>
+        </div>
     </header>
 
     <!-- Hero Section -->
-    <section class="hero-gradient pt-56 pb-40 relative grid-pattern">
-        <!-- 使用 max-w-6xl 限制宽度 -->
-        <div class="max-w-6xl mx-auto px-10 flex flex-col lg:flex-row items-center relative z-10">
-            <div class="lg:w-1/2 mb-20 lg:mb-0" data-aos="fade-right">
-                <div id="version-badge" class="inline-block px-4 py-1.5 mb-8 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold tracking-widest uppercase">
+    <section class="hero-gradient pt-32 lg:pt-56 pb-20 lg:pb-40 relative grid-pattern">
+        <div class="content-container flex flex-col lg:flex-row items-center relative z-10">
+            <div class="lg:w-1/2 mb-16 lg:mb-0 text-center lg:text-left" data-aos="fade-right">
+                <div id="version-badge" class="inline-block px-4 py-1.5 mb-6 lg:mb-8 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] lg:text-xs font-bold tracking-widest uppercase">
                     Loading version...
                 </div>
-                <h1 class="text-5xl lg:text-7xl font-extrabold leading-[1.1] mb-10 text-white tracking-tight">
-                    掌握单词<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">从未如此高效</span>
+                <h1 class="text-4xl sm:text-5xl lg:text-7xl font-extrabold leading-[1.15] mb-8 lg:text-white tracking-tight">
+                    掌握单词<br><span id="typed-text" class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500"></span>
                 </h1>
-                <p class="text-slate-400 text-xl mb-12 max-w-md leading-relaxed">
+                <p class="text-slate-400 text-base lg:text-xl mb-10 lg:mb-12 max-w-md mx-auto lg:mx-0 leading-relaxed">
                     基于科学的三阶段记忆法，将繁琐的背词过程转化为阶段式的成就挑战。轻量、纯净、开源。
                 </p>
-                <div class="flex flex-wrap gap-5">
-                    <a href="https://github.com/Junpgle/LearnWord/releases" id="hero-download-btn" class="download-link btn-shine bg-white text-slate-900 px-10 py-4 rounded-2xl font-bold hover:bg-slate-100 transition shadow-2xl flex items-center group">
-                        <i class="fab fa-windows mr-3 text-xl group-hover:scale-110 transition-transform"></i>Windows 下载
+                <div class="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 lg:gap-5">
+                    <a href="https://github.com/Junpgle/LearnWord/releases" id="hero-download-btn" class="download-link btn-shine bg-white text-slate-900 px-8 lg:px-10 py-3.5 lg:py-4 rounded-2xl font-bold hover:bg-slate-100 transition shadow-2xl flex items-center justify-center group">
+                        <i class="fab fa-windows mr-3 text-lg lg:text-xl group-hover:scale-110 transition-transform"></i>Windows 下载
                     </a>
-                    <a href="https://github.com/Junpgle/LearnWord/releases" target="_blank" class="glass-card px-10 py-4 rounded-2xl font-bold hover:bg-white/5 transition flex items-center text-white border-white/10">
+                    <a href="https://github.com/Junpgle/LearnWord/releases" target="_blank" class="glass-card px-8 lg:px-10 py-3.5 lg:py-4 rounded-2xl font-bold hover:bg-white/5 transition flex items-center justify-center text-white border-white/10">
                         更新日志
                     </a>
                 </div>
             </div>
 
             <div class="lg:w-1/2 relative flex justify-center lg:justify-end" data-aos="zoom-in" data-aos-delay="200">
-                <div class="absolute -inset-10 bg-blue-500/10 blur-[120px] rounded-full"></div>
-                <!-- 模拟学习界面，缩小了尺寸增加留白感 -->
-                <div class="relative w-full max-w-md glass-card rounded-3xl p-6 animate-float shadow-2xl border border-white/10">
-                    <div class="flex space-x-2 mb-6">
-                        <div class="w-2.5 h-2.5 bg-rose-500/60 rounded-full"></div>
-                        <div class="w-2.5 h-2.5 bg-amber-500/60 rounded-full"></div>
-                        <div class="w-2.5 h-2.5 bg-emerald-500/60 rounded-full"></div>
+                <div class="absolute -inset-10 bg-blue-500/10 blur-[120px] rounded-full hidden lg:block"></div>
+                <!-- 模拟学习界面 (Mockup) -->
+                <div class="relative w-full max-w-[320px] sm:max-w-md glass-card rounded-3xl p-4 sm:p-6 animate-float shadow-2xl border border-white/10 scale-90 sm:scale-100">
+                    <div class="flex space-x-2 mb-6" id="mock-indicators">
+                        <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border border-slate-700 transition-colors duration-500"></span>
+                        <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border border-slate-700 transition-colors duration-500"></span>
+                        <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border border-slate-700 transition-colors duration-500"></span>
                     </div>
-                    <div class="h-80 bg-slate-950/40 rounded-2xl flex flex-col items-center justify-center p-8 text-center border border-white/5">
-                        <div class="mb-5 flex space-x-1.5">
-                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                            <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                        </div>
-                        <span class="text-blue-400 text-[10px] font-black tracking-[0.2em] uppercase mb-4">Phase 3: Output</span>
-                        <h2 class="text-3xl font-black mb-4 text-white tracking-widest">A_an_o_ment</h2>
-                        <p class="text-slate-500 text-sm italic mb-10">n. 公告，宣告；发表；判决</p>
-                        <div class="w-full max-w-[200px] h-10 bg-slate-900/80 rounded-lg border border-white/5 flex items-center px-4">
-                            <div class="w-0.5 h-5 bg-blue-500 animate-pulse"></div>
+
+                    <div id="mock-content" class="h-64 sm:h-80 bg-slate-950/40 rounded-2xl flex flex-col items-center justify-center p-6 sm:p-8 text-center border border-white/5 relative overflow-hidden">
+                        <span id="mock-phase-label" class="text-blue-400 text-[9px] sm:text-[10px] font-black tracking-[0.2em] uppercase mb-4">Phase 1: Recognition</span>
+
+                        <div class="flex flex-col items-center justify-center w-full transition-all duration-500" id="mock-stage-body">
+                            <h2 id="mock-main-word" class="text-2xl sm:text-3xl font-black mb-6 text-white tracking-widest min-h-[40px]">Announcement</h2>
+
+                            <div id="mock-ui-p1" class="grid grid-cols-2 gap-2 sm:gap-3 w-full mt-2 opacity-0 hidden transition-opacity duration-300">
+                                <div class="bg-slate-800/30 border border-white/5 h-9 sm:h-10 rounded-xl flex items-center justify-center text-[9px] sm:text-[10px] text-slate-500 text-center px-1 overflow-hidden"></div>
+                                <div class="bg-slate-800/30 border border-white/5 h-9 sm:h-10 rounded-xl flex items-center justify-center text-[9px] sm:text-[10px] text-slate-500 text-center px-1 overflow-hidden"></div>
+                                <div class="bg-slate-800/30 border border-white/5 h-9 sm:h-10 rounded-xl flex items-center justify-center text-[9px] sm:text-[10px] text-slate-500 text-center px-1 overflow-hidden"></div>
+                                <div class="bg-slate-800/30 border border-white/5 h-9 sm:h-10 rounded-xl flex items-center justify-center text-[9px] sm:text-[10px] text-slate-500 text-center px-1 overflow-hidden"></div>
+                            </div>
+
+                            <div id="mock-ui-p2" class="flex gap-3 w-full justify-center mt-4 opacity-0 hidden transition-opacity duration-300">
+                                <div class="px-5 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] sm:text-xs font-bold" id="mock-btn-know">认识</div>
+                                <div class="px-5 py-1.5 bg-slate-700 text-slate-300 rounded-lg text-[10px] sm:text-xs">不认识</div>
+                            </div>
+
+                            <div id="mock-ui-p3" class="w-full flex flex-col items-center opacity-0 hidden transition-opacity duration-300">
+                                <p id="mock-def" class="text-slate-500 text-[10px] sm:text-sm italic mb-6 sm:mb-8 h-8 overflow-hidden leading-snug">n. 公告，宣告；发表；判决</p>
+                                <div class="w-full max-w-[180px] sm:max-w-[220px] h-10 sm:h-11 bg-slate-900/80 rounded-xl border border-white/10 flex items-center px-4 shadow-inner relative">
+                                    <span id="mock-input-text" class="text-white font-mono text-sm sm:text-lg tracking-wide"></span>
+                                    <div id="mock-cursor" class="w-0.5 h-4 sm:h-5 bg-blue-500 animate-pulse ml-0.5"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -168,79 +224,84 @@
     </section>
 
     <!-- Methodology Section -->
-    <section id="methodology" class="py-40 relative overflow-hidden">
-        <div class="max-w-5xl mx-auto px-10 text-center">
-            <h2 class="text-4xl font-bold mb-6 text-white" data-aos="fade-up">科学阶梯记忆逻辑</h2>
-            <p class="text-slate-500 mb-24 max-w-xl mx-auto leading-relaxed" data-aos="fade-up" data-aos-delay="100">我们不主张死记硬背。LearnWord 通过三个递进的认知维度，确保单词进入你的长时记忆。</p>
+    <section id="methodology" class="py-24 lg:py-40 relative overflow-hidden">
+        <div class="content-container text-center">
+            <h2 class="text-3xl lg:text-4xl font-bold mb-6 text-white" data-aos="fade-up">科学阶梯记忆逻辑</h2>
+            <p class="text-slate-500 mb-16 lg:mb-24 max-w-xl mx-auto leading-relaxed text-sm lg:text-base" data-aos="fade-up" data-aos-delay="100">核心采用“三阶段学习法”，针对单词在大脑中从“眼熟”到“反射”的演变过程设计。</p>
 
-            <div class="grid md:grid-cols-3 gap-8">
-                <div class="p-10 glass-card rounded-[2.5rem] text-left group hover:bg-white/5 transition-all" data-aos="fade-up" data-aos-delay="200">
-                    <div class="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-10 group-hover:scale-110 transition-transform">
-                        <i class="fas fa-eye text-xl text-blue-500"></i>
+            <div class="grid md:grid-cols-3 gap-6 lg:gap-8">
+                <div class="p-8 lg:p-10 glass-card rounded-[2rem] lg:rounded-[2.5rem] text-left group hover:bg-white/5 transition-all" data-aos="fade-up" data-aos-delay="200">
+                    <div class="w-12 h-12 lg:w-14 lg:h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-8 lg:mb-10 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-eye text-lg lg:text-xl text-blue-500"></i>
                     </div>
-                    <h3 class="text-lg font-bold mb-4 text-white tracking-tight">1. 认知触发</h3>
-                    <p class="text-slate-400 leading-relaxed text-sm">通过四选一释义选择，激活大脑对单词形状与含义的初步关联。</p>
+                    <h3 class="text-base lg:text-lg font-bold mb-4 text-white tracking-tight">1. 认知激活 (Phase 1)</h3>
+                    <p class="text-slate-400 leading-relaxed text-xs lg:text-sm">通过 2x2 网格呈现释义，在干扰项中快速定位正确含义，降低初识单词的挫败感。</p>
                 </div>
 
-                <div class="p-10 glass-card rounded-[2.5rem] text-left group hover:bg-white/5 transition-all" data-aos="fade-up" data-aos-delay="300">
-                    <div class="w-14 h-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-10 group-hover:scale-110 transition-transform">
-                        <i class="fas fa-brain text-xl text-indigo-500"></i>
+                <div class="p-8 lg:p-10 glass-card rounded-[2rem] lg:rounded-[2.5rem] text-left group hover:bg-white/5 transition-all" data-aos="fade-up" data-aos-delay="300">
+                    <div class="w-12 h-12 lg:w-14 lg:h-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-8 lg:mb-10 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-brain text-lg lg:text-xl text-indigo-500"></i>
                     </div>
-                    <h3 class="text-lg font-bold mb-4 text-white tracking-tight">2. 记忆自检</h3>
-                    <p class="text-slate-400 leading-relaxed text-sm">仅凭拼写判断是否“认识”。通过自我诚实度检查，巩固薄弱环节。</p>
+                    <h3 class="text-base lg:text-lg font-bold mb-4 text-white tracking-tight">2. 记忆自测 (Phase 2)</h3>
+                    <p class="text-slate-400 leading-relaxed text-xs lg:text-sm">强制闭卷自测。仅凭单词外观回忆释义。记错将直接退回阶段 1 重修，确保记忆真实性。</p>
                 </div>
 
-                <div class="p-10 glass-card rounded-[2.5rem] text-left group hover:bg-white/5 transition-all" data-aos="fade-up" data-aos-delay="400">
-                    <div class="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-10 group-hover:scale-110 transition-transform">
-                        <i class="fas fa-keyboard text-xl text-emerald-500"></i>
+                <div class="p-8 lg:p-10 glass-card rounded-[2rem] lg:rounded-[2.5rem] text-left group hover:bg-white/5 transition-all" data-aos="fade-up" data-aos-delay="400">
+                    <div class="w-12 h-12 lg:w-14 lg:h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-8 lg:mb-10 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-keyboard text-lg lg:text-xl text-emerald-500"></i>
                     </div>
-                    <h3 class="text-lg font-bold mb-4 text-white tracking-tight">3. 输出掌握</h3>
-                    <p class="text-slate-400 leading-relaxed text-sm">最终拼写环节。只有完美的拼写输出才能完成学习周期，达成掌握。</p>
+                    <h3 class="text-base lg:text-lg font-bold mb-4 text-white tracking-tight">3. 拼写精通 (Phase 3)</h3>
+                    <p class="text-slate-400 leading-relaxed text-xs lg:text-sm">系统随机隐藏关键字母。只有完成正确拼写输出，才判定该单词为“已学会”。</p>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- Detailed Features Section -->
-    <section id="detailed-features" class="py-40 bg-slate-900/10">
-        <div class="max-w-5xl mx-auto px-10">
-            <div class="text-center mb-32">
-                <h2 class="text-4xl font-bold text-white mb-6" data-aos="fade-up">深度功能拆解</h2>
-                <p class="text-slate-500" data-aos="fade-up" data-aos-delay="100">为您量身定制的三个核心学习模块</p>
+    <section id="detailed-features" class="py-24 lg:py-40 bg-slate-900/10">
+        <div class="content-container">
+            <div class="text-center mb-20 lg:mb-32">
+                <h2 class="text-3xl lg:text-4xl font-bold text-white mb-6" data-aos="fade-up">深度功能解析</h2>
+                <p class="text-slate-500 text-sm lg:text-base" data-aos="fade-up" data-aos-delay="100">为您量身定制的四个核心交互模块</p>
             </div>
 
-            <div class="space-y-48">
+            <div class="space-y-32 lg:space-y-48">
                 <!-- 模块1: 学习界面 -->
-                <div class="flex flex-col lg:flex-row items-center gap-20">
-                    <div class="lg:w-1/2" data-aos="fade-right">
-                        <h3 class="text-2xl font-bold text-white mb-8 flex items-center">
+                <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+                    <div class="lg:w-1/2 text-center lg:text-left" data-aos="fade-right">
+                        <h3 class="text-xl lg:text-2xl font-bold text-white mb-6 lg:mb-8 flex items-center justify-center lg:justify-start">
                             <span class="w-10 h-10 bg-blue-500/20 text-blue-500 rounded-lg flex items-center justify-center mr-4 text-sm"><i class="fas fa-graduation-cap"></i></span>
-                            单词学习模式
+                            沉浸式学习界面
                         </h3>
-                        <p class="text-slate-400 mb-8 leading-relaxed">
-                            核心的学习中心。左上角配备三段式圆形指示灯，实时反馈您在该单词所处的认知阶段。通过 2x2 网格按钮布局，在第一阶段快速建立视觉联系。
+                        <p class="text-slate-400 mb-8 leading-relaxed text-sm lg:text-base">
+                            左上角配备三颗“认知指示灯”，代表单词的三个掌握阶段。通过 QGridLayout 实现的 2x2 释义布局，让您在大面积的可选区域内快速建立语感。
                         </p>
-                        <ul class="space-y-4 text-slate-400 text-sm">
-                            <li class="flex items-center"><i class="fas fa-check text-blue-500/50 mr-3"></i> 阶段指示器同步学习状态</li>
-                            <li class="flex items-center"><i class="fas fa-check text-blue-500/50 mr-3"></i> 动态干扰项自动抽取</li>
-                            <li class="flex items-center"><i class="fas fa-check text-blue-500/50 mr-3"></i> 错误回溯自动降级机制</li>
-                        </ul>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-white/5 p-4 rounded-xl border border-white/5 text-left">
+                                <span class="text-blue-500 text-[10px] lg:text-xs font-bold block mb-1">指示灯</span>
+                                <p class="text-[9px] lg:text-[10px] text-slate-500 leading-tight">蓝灯代表阶段，透明代表未完成</p>
+                            </div>
+                            <div class="bg-white/5 p-4 rounded-xl border border-white/5 text-left">
+                                <span class="text-blue-500 text-[10px] lg:text-xs font-bold block mb-1">防错机制</span>
+                                <p class="text-[9px] lg:text-[10px] text-slate-500 leading-tight">错误点击将展示正确释义并退回进度</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="lg:w-1/2" data-aos="fade-left">
+                    <div class="lg:w-1/2 w-full" data-aos="fade-left">
                         <div class="glass-card p-4 rounded-3xl border border-white/5">
-                            <div class="bg-slate-950/60 rounded-2xl p-8 h-64 flex flex-col shadow-inner">
+                            <div class="bg-slate-950/60 rounded-2xl p-6 sm:p-8 h-56 sm:h-64 flex flex-col shadow-inner">
                                 <div class="flex space-x-2 mb-6">
                                     <span class="w-3 h-3 rounded-full bg-blue-600"></span>
-                                    <span class="w-3 h-3 rounded-full border border-slate-700"></span>
+                                    <span class="w-3 h-3 rounded-full bg-blue-600"></span>
                                     <span class="w-3 h-3 rounded-full border border-slate-700"></span>
                                 </div>
                                 <div class="flex-grow flex flex-col items-center justify-center">
-                                    <h4 class="text-2xl font-bold text-white mb-8">Accomplish</h4>
-                                    <div class="grid grid-cols-2 gap-3 w-full max-w-sm">
-                                        <div class="bg-blue-600/90 h-10 rounded-xl flex items-center justify-center text-[10px] font-bold">完成，实现</div>
-                                        <div class="bg-slate-800/50 h-10 rounded-xl flex items-center justify-center text-[10px]">放弃，停止</div>
-                                        <div class="bg-slate-800/50 h-10 rounded-xl flex items-center justify-center text-[10px]">描述，描绘</div>
-                                        <div class="bg-slate-800/50 h-10 rounded-xl flex items-center justify-center text-[10px]">考虑，思考</div>
+                                    <h4 class="text-xl sm:text-2xl font-bold text-white mb-6 sm:mb-8">Vocabulary</h4>
+                                    <div class="grid grid-cols-2 gap-2 sm:gap-3 w-full max-w-sm">
+                                        <div class="bg-blue-600/90 h-9 sm:h-10 rounded-xl flex items-center justify-center text-[9px] sm:text-[10px] font-bold">n. 词汇量</div>
+                                        <div class="bg-slate-800/50 h-9 sm:h-10 rounded-xl flex items-center justify-center text-[9px] sm:text-[10px]">v. 改变</div>
+                                        <div class="bg-slate-800/50 h-9 sm:h-10 rounded-xl flex items-center justify-center text-[9px] sm:text-[10px]">adj. 复杂的</div>
+                                        <div class="bg-slate-800/50 h-9 sm:h-10 rounded-xl flex items-center justify-center text-[9px] sm:text-[10px]">n. 结果</div>
                                     </div>
                                 </div>
                             </div>
@@ -249,29 +310,28 @@
                 </div>
 
                 <!-- 模块2: 测试模式 -->
-                <div class="flex flex-col lg:flex-row-reverse items-center gap-20">
-                    <div class="lg:w-1/2" data-aos="fade-left">
-                        <h3 class="text-2xl font-bold text-white mb-8 flex items-center">
+                <div class="flex flex-col lg:flex-row-reverse items-center gap-12 lg:gap-20">
+                    <div class="lg:w-1/2 text-center lg:text-left" data-aos="fade-left">
+                        <h3 class="text-xl lg:text-2xl font-bold text-white mb-6 lg:mb-8 flex items-center justify-center lg:justify-start">
                             <span class="w-10 h-10 bg-emerald-500/20 text-emerald-500 rounded-lg flex items-center justify-center mr-4 text-sm"><i class="fas fa-vial"></i></span>
-                            单词测试系统
+                            高压测试系统
                         </h3>
-                        <p class="text-slate-400 mb-8 leading-relaxed">
-                            检验成果的最终考场。底部集成了实时计分板，精确显示“正确数 / 总题数”以及实时的百分比准确率。
+                        <p class="text-slate-400 mb-8 leading-relaxed text-sm lg:text-base">
+                            模拟考场真实体验。独有的“计分板”实时计算正确率，精确至 0.00%。配备“下一题”与“提交”双触发逻辑，防止误点。
                         </p>
-                        <ul class="space-y-4 text-slate-400 text-sm">
-                            <li class="flex items-center"><i class="fas fa-check text-emerald-500/50 mr-3"></i> 随机隐藏字母填空提示</li>
-                            <li class="flex items-center"><i class="fas fa-check text-emerald-500/50 mr-3"></i> 0.00% 级别精度计分系统</li>
-                            <li class="flex items-center"><i class="fas fa-check text-emerald-500/50 mr-3"></i> 通过单词自动更新状态标记</li>
+                        <ul class="space-y-4 text-slate-400 text-xs lg:text-sm text-left inline-block lg:block">
+                            <li class="flex items-center"><i class="fas fa-check text-emerald-500/50 mr-3"></i> <b>实时计分</b>：正确 / 总数 (百分比)</li>
+                            <li class="flex items-center"><i class="fas fa-check text-emerald-500/50 mr-3"></i> <b>填空提示</b>：基于 wordWrap 优化的长释义显示</li>
                         </ul>
                     </div>
-                    <div class="lg:w-1/2" data-aos="fade-right">
+                    <div class="lg:w-1/2 w-full" data-aos="fade-right">
                         <div class="glass-card p-4 rounded-3xl border border-white/5">
-                            <div class="bg-slate-950/60 rounded-2xl p-8 h-64 flex flex-col text-center shadow-inner">
+                            <div class="bg-slate-950/60 rounded-2xl p-6 lg:p-8 h-56 sm:h-64 flex flex-col text-center shadow-inner">
                                 <div class="flex-grow flex flex-col items-center justify-center">
-                                    <h4 class="text-2xl font-bold text-blue-400 mb-3 tracking-[0.2em]">A _ _ l y _ e</h4>
-                                    <p class="text-slate-500 text-xs mb-8">v. 分析，解析</p>
-                                    <div class="w-full max-w-[180px] h-10 bg-slate-900 border border-slate-800 rounded-xl mb-8"></div>
-                                    <div class="text-emerald-500/80 text-sm font-bold tracking-tight">Score: 12 / 15 (80.00%)</div>
+                                    <h4 class="text-xl sm:text-2xl font-bold text-blue-400 mb-3 tracking-[0.2em]">S _ e _ i _ i c</h4>
+                                    <p class="text-slate-500 text-[10px] mb-6 sm:mb-8 leading-tight">adj. 具体的，明确的</p>
+                                    <div class="w-full max-w-[150px] sm:max-w-[180px] h-9 sm:h-10 bg-slate-900 border border-slate-800 rounded-xl mb-6 sm:mb-8 flex items-center justify-center"><span class="animate-pulse text-white">|</span></div>
+                                    <div class="text-emerald-500/80 text-[11px] sm:text-sm font-bold tracking-tight">Score: 8 / 10 (80.00%)</div>
                                 </div>
                             </div>
                         </div>
@@ -279,39 +339,38 @@
                 </div>
 
                 <!-- 模块3: 设置与进度 -->
-                <div class="flex flex-col lg:flex-row items-center gap-20">
-                    <div class="lg:w-1/2" data-aos="fade-right">
-                        <h3 class="text-2xl font-bold text-white mb-8 flex items-center">
+                <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+                    <div class="lg:w-1/2 text-center lg:text-left" data-aos="fade-right">
+                        <h3 class="text-xl lg:text-2xl font-bold text-white mb-6 lg:mb-8 flex items-center justify-center lg:justify-start">
                             <span class="w-10 h-10 bg-amber-500/20 text-amber-500 rounded-lg flex items-center justify-center mr-4 text-sm"><i class="fas fa-cog"></i></span>
-                            设置与进度管理
+                            设置与数据管理
                         </h3>
-                        <p class="text-slate-400 mb-8 leading-relaxed">
-                            全能的数据指挥中心。不仅支持本地 CSV/JSON 导入，更集成了带有动画的后台下载引擎。三个维度的彩色进度条让学习状态一目了然。
+                        <p class="text-slate-400 mb-8 leading-relaxed text-sm lg:text-base">
+                            支持 AppData 分离式存储，完美解决权限问题。集成的“下载中心”拥有动态 GIF 加载动画，支持从 GitHub 仓库自动更新最新版本词库。
                         </p>
-                        <ul class="space-y-4 text-slate-400 text-sm">
-                            <li class="flex items-center"><i class="fas fa-check text-amber-500/50 mr-3"></i> 多维进度条（蓝/橙/绿）</li>
-                            <li class="flex items-center"><i class="fas fa-check text-amber-500/50 mr-3"></i> GitHub 直链全自动下载更新</li>
-                            <li class="flex items-center"><i class="fas fa-check text-amber-500/50 mr-3"></i> AppData 架构完美隔离系统资源</li>
-                        </ul>
+                        <div class="flex flex-col gap-3 max-w-xs mx-auto lg:mx-0">
+                            <div class="flex items-center text-slate-400 text-xs"><i class="fas fa-check text-amber-500/50 mr-3"></i> 彩色统计：蓝(学)、橙(复)、绿(测)</div>
+                            <div class="flex items-center text-slate-400 text-xs"><i class="fas fa-check text-amber-500/50 mr-3"></i> AppData 架构完美隔离系统资源</div>
+                        </div>
                     </div>
-                    <div class="lg:w-1/2" data-aos="fade-left">
-                        <div class="glass-card p-10 rounded-3xl border border-white/5 shadow-2xl">
-                            <div class="space-y-8">
-                                <div class="space-y-3">
-                                    <div class="flex justify-between text-[10px] text-slate-500 font-bold uppercase tracking-wider"><span>Learning Progress</span><span>85%</span></div>
+                    <div class="lg:w-1/2 w-full" data-aos="fade-left">
+                        <div class="glass-card p-6 sm:p-10 rounded-3xl border border-white/5 shadow-2xl">
+                            <div class="space-y-6 sm:space-y-8">
+                                <div class="space-y-2 sm:space-y-3">
+                                    <div class="flex justify-between text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider"><span>Learning Progress</span><span>85%</span></div>
                                     <div class="progress-mock"><div class="progress-inner bg-blue-600 w-[85%]"></div></div>
                                 </div>
-                                <div class="space-y-3">
-                                    <div class="flex justify-between text-[10px] text-slate-500 font-bold uppercase tracking-wider"><span>Review Rate</span><span>42%</span></div>
+                                <div class="space-y-2 sm:space-y-3">
+                                    <div class="flex justify-between text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider"><span>Review Rate</span><span>42%</span></div>
                                     <div class="progress-mock"><div class="progress-inner bg-amber-600 w-[42%]"></div></div>
                                 </div>
-                                <div class="space-y-3">
-                                    <div class="flex justify-between text-[10px] text-slate-500 font-bold uppercase tracking-wider"><span>Test Accuracy</span><span>10%</span></div>
+                                <div class="space-y-2 sm:space-y-3">
+                                    <div class="flex justify-between text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider"><span>Test Accuracy</span><span>10%</span></div>
                                     <div class="progress-mock"><div class="progress-inner bg-emerald-600 w-[10%]"></div></div>
                                 </div>
-                                <div class="grid grid-cols-2 gap-4 mt-10">
-                                    <div class="bg-slate-800/50 p-3 rounded-xl text-center text-[10px] text-slate-400">导入本地词库</div>
-                                    <div class="bg-blue-600/80 p-3 rounded-xl text-center text-[10px] font-bold">下载最新词库</div>
+                                <div class="flex gap-2 sm:gap-3 mt-8 lg:mt-10">
+                                    <div class="flex-1 bg-slate-800/50 p-2 sm:p-3 rounded-xl text-center text-[9px] sm:text-[10px] text-slate-400">导入 CSV/JSON</div>
+                                    <div class="flex-1 bg-blue-600/80 p-2 sm:p-3 rounded-xl text-center text-[9px] sm:text-[10px] font-bold">云端下载词库</div>
                                 </div>
                             </div>
                         </div>
@@ -322,30 +381,30 @@
     </section>
 
     <!-- UI Preview Section -->
-    <section id="preview" class="py-48 bg-slate-950 relative overflow-hidden">
-        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-blue-500/5 blur-[150px] rounded-full"></div>
-        <div class="max-w-4xl mx-auto px-10 text-center relative z-10">
-            <h2 class="text-4xl font-bold mb-24 text-white" data-aos="fade-up">极简界面，沉浸学习</h2>
+    <section id="preview" class="py-24 lg:py-48 bg-slate-950 relative overflow-hidden">
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-blue-500/5 blur-[150px] rounded-full hidden lg:block"></div>
+        <div class="content-container text-center relative z-10">
+            <h2 class="text-3xl lg:text-4xl font-bold mb-16 lg:mb-24 text-white" data-aos="fade-up">极简界面，沉浸学习</h2>
 
-            <div class="shadow-[0_0_120px_rgba(0,120,215,0.12)] rounded-[3rem] overflow-hidden border border-white/10" data-aos="zoom-in-up">
-                <div class="bg-slate-900/80 px-8 py-4 flex justify-between items-center text-[10px] text-slate-500 border-b border-white/5">
+            <div class="shadow-[0_0_80px_rgba(0,120,215,0.1)] lg:shadow-[0_0_120px_rgba(0,120,215,0.12)] rounded-[2rem] lg:rounded-[3rem] overflow-hidden border border-white/10 mx-auto" data-aos="zoom-in-up">
+                <div class="bg-slate-900/80 px-4 lg:px-8 py-3 lg:py-4 flex justify-between items-center text-[8px] lg:text-[10px] text-slate-500 border-b border-white/5">
                     <div class="flex items-center"><i class="fas fa-book-open mr-2 text-blue-500"></i>LearnWord</div>
-                    <div class="flex space-x-6"><span>—</span><span>▢</span><span>✕</span></div>
+                    <div class="flex space-x-4 lg:space-x-6"><span>—</span><span>▢</span><span>✕</span></div>
                 </div>
-                <div class="bg-black p-12 lg:p-24 text-left">
-                    <div class="flex flex-col md:flex-row justify-between items-start mb-24">
-                        <h2 class="text-6xl font-black text-white tracking-tighter">LearnWord</h2>
-                        <div class="flex space-x-3 mt-8 md:mt-0">
-                            <div class="bg-amber-600/90 hover:bg-amber-500 text-white px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer">关于</div>
-                            <div class="bg-rose-600/90 hover:bg-rose-500 text-white px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer">检查更新</div>
+                <div class="bg-black p-8 lg:p-24 text-left">
+                    <div class="flex flex-col md:flex-row justify-between items-start mb-16 lg:mb-24">
+                        <h2 class="text-5xl lg:text-6xl font-black text-white tracking-tighter mb-6 lg:mb-0">LearnWord</h2>
+                        <div class="flex space-x-3">
+                            <div class="bg-amber-600/90 hover:bg-amber-500 text-white px-4 lg:px-5 py-1.5 lg:py-2 rounded-xl text-[10px] lg:text-xs font-bold transition-all cursor-pointer">关于</div>
+                            <div class="bg-rose-600/90 hover:bg-rose-500 text-white px-4 lg:px-5 py-1.5 lg:py-2 rounded-xl text-[10px] lg:text-xs font-bold transition-all cursor-pointer whitespace-nowrap">检查更新</div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-8 lg:gap-12 max-w-2xl mx-auto">
-                        <div class="software-btn-blue h-36 rounded-[2.5rem] flex items-center justify-center text-2xl font-black shadow-2xl cursor-pointer transition-all">Learn</div>
-                        <div class="software-btn-blue h-36 rounded-[2.5rem] flex items-center justify-center text-2xl font-black shadow-2xl cursor-pointer transition-all">Review</div>
-                        <div class="software-btn-blue h-36 rounded-[2.5rem] flex items-center justify-center text-2xl font-black shadow-2xl cursor-pointer transition-all text-white/90">Test</div>
-                        <div class="software-btn-grey h-36 rounded-[2.5rem] flex items-center justify-center text-2xl font-black shadow-2xl cursor-pointer transition-all text-white/90 text-xs">设置与进度</div>
+                    <div class="grid grid-cols-2 gap-4 lg:gap-12 max-w-2xl mx-auto">
+                        <div class="software-btn-blue h-24 sm:h-36 rounded-[1.5rem] lg:rounded-[2.5rem] flex items-center justify-center text-lg lg:text-2xl font-black shadow-2xl cursor-pointer transition-all text-white">Learn</div>
+                        <div class="software-btn-blue h-24 sm:h-36 rounded-[1.5rem] lg:rounded-[2.5rem] flex items-center justify-center text-lg lg:text-2xl font-black shadow-2xl cursor-pointer transition-all text-white">Review</div>
+                        <div class="software-btn-blue h-24 sm:h-36 rounded-[1.5rem] lg:rounded-[2.5rem] flex items-center justify-center text-lg lg:text-2xl font-black shadow-2xl cursor-pointer transition-all text-white/90">Test</div>
+                        <div class="software-btn-grey h-24 sm:h-36 rounded-[1.5rem] lg:rounded-[2.5rem] flex items-center justify-center text-sm lg:text-base font-black shadow-2xl cursor-pointer transition-all text-white/90 text-center px-2">设置与进度</div>
                     </div>
                 </div>
             </div>
@@ -353,14 +412,14 @@
     </section>
 
     <!-- Footer -->
-    <footer class="py-24 border-t border-white/5 relative z-10 bg-slate-950">
-        <div class="max-w-6xl mx-auto px-10 text-center">
-            <div class="flex justify-center space-x-12 mb-14">
-                <a href="https://github.com/Junpgle/LearnWord" class="text-slate-600 hover:text-white transition-colors"><i class="fab fa-github text-2xl"></i></a>
-                <a href="https://github.com/Junpgle/LearnWord/releases" class="text-slate-600 hover:text-white transition-colors text-xs font-bold tracking-widest uppercase">Releases</a>
-                <a href="#" class="text-slate-600 hover:text-white transition-colors text-xs font-bold tracking-widest uppercase">Docs</a>
+    <footer class="py-16 lg:py-24 border-t border-white/5 relative z-10 bg-slate-950">
+        <div class="content-container text-center">
+            <div class="flex justify-center space-x-8 lg:space-x-12 mb-10 lg:mb-14">
+                <a href="https://github.com/Junpgle/LearnWord" class="text-slate-600 hover:text-white transition-colors"><i class="fab fa-github text-xl lg:text-2xl"></i></a>
+                <a href="https://github.com/Junpgle/LearnWord/releases" class="text-slate-600 hover:text-white transition-colors text-[10px] lg:text-xs font-bold tracking-widest uppercase">Releases</a>
+                <a href="#" class="text-slate-600 hover:text-white transition-colors text-[10px] lg:text-xs font-bold tracking-widest uppercase">Docs</a>
             </div>
-            <p class="text-slate-700 text-xs tracking-wide">© 2025 LearnWord Project. Designed by Junpgle.</p>
+            <p class="text-slate-700 text-[10px] lg:text-xs tracking-wide">© 2025 LearnWord Project. Designed by Junpgle.</p>
         </div>
     </footer>
 
@@ -369,23 +428,177 @@
         AOS.init({
             duration: 1000,
             once: true,
-            offset: 50,
+            offset: 30,
             easing: 'ease-out-expo'
         });
 
+        // 移动端菜单逻辑
+        const menuToggle = document.getElementById('menu-toggle');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileLinks = document.querySelectorAll('.mobile-link');
+
+        menuToggle.addEventListener('click', () => {
+            mobileMenu.classList.toggle('active');
+            const icon = menuToggle.querySelector('i');
+            icon.classList.toggle('fa-bars');
+            icon.classList.toggle('fa-times');
+        });
+
+        mobileLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.remove('active');
+                menuToggle.querySelector('i').classList.add('fa-bars');
+                menuToggle.querySelector('i').classList.remove('fa-times');
+            });
+        });
+
+        // 获取操作系统
+        function getOS() {
+            const platform = window.navigator.platform;
+            const windowsPlatforms = ['Win32', 'Win64', 'Windows', 'WinCE'];
+            if (windowsPlatforms.indexOf(platform) !== -1) return 'Windows';
+            return 'Other';
+        }
+
+        // 初始化打字机效果 (主标题)
+        const typed = new Typed('#typed-text', {
+            strings: ['从未如此高效', '竟然如此简单', '只需三个阶段', '支持离线使用'],
+            typeSpeed: 80,
+            backSpeed: 50,
+            backDelay: 2000,
+            loop: true,
+            showCursor: true,
+            cursorChar: '|',
+        });
+
+        // --- 增强版模拟逻辑：轮播三个阶段 ---
+        const mockWords = [
+            { word: 'Announcement', cloze: 'A_an_o_ment', def: 'n. 公告，宣告；发表；判决' },
+            { word: 'Accomplish', cloze: 'A_c_o_pl_sh', def: 'v. 完成，实现；达到' },
+            { word: 'Vocabulary', cloze: 'V_c_b_u_ary', def: 'n. 词汇，词汇量' },
+            { word: 'Specific', cloze: 'S_e_i_i_c', def: 'adj. 特定的，具体的' }
+        ];
+
+        let wordIdx = 0;
+
+        async function runMockSimulation() {
+            const item = mockWords[wordIdx];
+            const indicators = document.querySelectorAll('#mock-indicators span');
+            const phaseLabel = document.getElementById('mock-phase-label');
+            const mainWord = document.getElementById('mock-main-word');
+
+            const p1 = document.getElementById('mock-ui-p1');
+            const p2 = document.getElementById('mock-ui-p2');
+            const p3 = document.getElementById('mock-ui-p3');
+            const inputText = document.getElementById('mock-input-text');
+            const mockDef = document.getElementById('mock-def');
+
+            const setIndicators = (count) => {
+                indicators.forEach((s, i) => {
+                    s.style.backgroundColor = i < count ? 'var(--primary)' : 'transparent';
+                    s.style.borderColor = i < count ? 'var(--primary)' : '#334155';
+                });
+            };
+
+            const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+            const showUI = (el) => {
+                [p1, p2, p3].forEach(u => {
+                    u.classList.add('hidden');
+                    u.classList.remove('opacity-100');
+                });
+                el.classList.remove('hidden');
+                setTimeout(() => el.classList.add('opacity-100'), 50);
+            };
+
+            // --- 阶段 1: Recognition ---
+            setIndicators(1);
+            phaseLabel.innerText = "Phase 1: Recognition";
+            mainWord.innerText = item.word;
+
+            const p1Options = document.querySelectorAll('#mock-ui-p1 > div');
+            const correctIdx = Math.floor(Math.random() * 4);
+            const correctDef = item.def.split('；')[0].split('，')[0];
+            const distractors = ["v. 隐藏，遮蔽", "adj. 偶然的", "n. 基础，根基", "v. 拒绝，谢绝"];
+
+            p1Options.forEach((opt, i) => {
+                opt.style.backgroundColor = '';
+                opt.classList.remove('text-blue-300', 'bg-blue-600/20', 'border-blue-500/30');
+                opt.classList.add('text-slate-500', 'bg-slate-800/30', 'border-white/5');
+
+                if (i === correctIdx) {
+                    opt.innerText = correctDef;
+                } else {
+                    opt.innerText = distractors[i % distractors.length];
+                }
+            });
+
+            showUI(p1);
+            await sleep(1800);
+
+            p1Options[correctIdx].classList.remove('text-slate-500', 'bg-slate-800/30', 'border-white/5');
+            p1Options[correctIdx].classList.add('text-blue-300', 'bg-blue-600/20', 'border-blue-500/30');
+            p1Options[correctIdx].style.backgroundColor = 'rgba(0,120,215,0.6)';
+
+            await sleep(1000);
+
+            // --- 阶段 2: Self-Test ---
+            setIndicators(2);
+            phaseLabel.innerText = "Phase 2: Self-Test";
+            showUI(p2);
+            await sleep(1500);
+            document.getElementById('mock-btn-know').style.transform = 'scale(0.95)';
+            await sleep(150);
+            document.getElementById('mock-btn-know').style.transform = '';
+            await sleep(800);
+
+            // --- 阶段 3: Output ---
+            setIndicators(3);
+            phaseLabel.innerText = "Phase 3: Output";
+            mainWord.innerText = item.cloze;
+            mockDef.innerText = item.def;
+            showUI(p3);
+            inputText.innerText = '';
+            await sleep(800);
+
+            for (let char of item.word) {
+                inputText.innerText += char;
+                await sleep(180);
+            }
+
+            await sleep(3000);
+
+            wordIdx = (wordIdx + 1) % mockWords.length;
+            runMockSimulation();
+        }
+
         async function updatePageFromManifest() {
             const manifestUrl = 'https://raw.githubusercontent.com/Junpgle/LearnWord/refs/heads/master/update_manifest.json';
+            const isWindows = getOS() === 'Windows';
+
             try {
                 const response = await fetch(manifestUrl);
                 if (!response.ok) throw new Error('Network response failed');
                 const data = await response.json();
 
-                if (data.download_url) {
-                    const downloadLinks = document.querySelectorAll('.download-link');
-                    downloadLinks.forEach(link => {
-                        link.href = data.download_url;
-                    });
-                }
+                const downloadLinks = document.querySelectorAll('.download-link');
+                downloadLinks.forEach(link => {
+                    if (isWindows) {
+                        if (data.download_url) link.href = data.download_url;
+                        // 保持原文字，如果需要动态改文字可以在这里补充
+                    } else {
+                        link.href = "javascript:void(0)";
+                        link.classList.remove('btn-shine');
+                        link.style.opacity = "0.6";
+                        link.style.cursor = "not-allowed";
+                        // 根据按钮所在位置设置“敬请期待”
+                        if (link.id === 'nav-download-btn' || link.classList.contains('sm:block')) {
+                            link.innerText = "敬请期待";
+                        } else {
+                            link.innerHTML = '<i class="fas fa-hourglass-half mr-3 text-lg"></i>敬请期待';
+                        }
+                    }
+                });
 
                 if (data.latest_version) {
                     const versionBadge = document.getElementById('version-badge');
@@ -396,11 +609,23 @@
             } catch (error) {
                 console.error('Error fetching manifest:', error);
                 const versionBadge = document.getElementById('version-badge');
-                if (versionBadge) versionBadge.innerText = 'V1.1.0 STABLE NOW AVAILABLE';
+                if (versionBadge) versionBadge.innerText = 'LATEST STABLE NOW AVAILABLE';
+
+                // 即使 fetch 失败也根据 OS 调整显示
+                if (!isWindows) {
+                    const downloadLinks = document.querySelectorAll('.download-link');
+                    downloadLinks.forEach(link => {
+                        link.href = "javascript:void(0)";
+                        link.innerText = "敬请期待";
+                    });
+                }
             }
         }
 
-        document.addEventListener('DOMContentLoaded', updatePageFromManifest);
+        document.addEventListener('DOMContentLoaded', () => {
+            updatePageFromManifest();
+            runMockSimulation();
+        });
     </script>
 
 </body>
