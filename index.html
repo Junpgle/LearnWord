@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -32,14 +32,18 @@
             --input-bg: rgba(255, 255, 255, 0.05);
         }
 
-        /* 白天模式变量 - 解决看不清的问题 */
+        /* 设置全局平滑滚动边距，防止固定导航栏遮挡标题 */
+        html {
+            scroll-padding-top: 80px;
+        }
+
         .light-theme {
             --bg-body: #f8fafc;
             --text-title: #0f172a;
-            --text-nav: #334155;   /* 导航文字加深 */
-            --text-main: #1e293b;  /* 主内容文字加深，确保可读性 */
-            --text-muted: #475569;
-            --glass-bg: rgba(255, 255, 255, 0.8);
+            --text-nav: #1e293b;
+            --text-main: #0f172a;   /* 增强日间模式主文字对比度 */
+            --text-muted: #334155;  /* 增强日间模式副文字对比度 */
+            --glass-bg: rgba(255, 255, 255, 0.85);
             --glass-border: rgba(0, 120, 215, 0.15);
             --grid-color: rgba(0, 120, 215, 0.08);
             --nav-bg: rgba(248, 250, 252, 0.95);
@@ -49,7 +53,6 @@
 
         body {
             font-family: 'Inter', 'MiSans', -apple-system, sans-serif;
-            scroll-behavior: smooth;
             overflow-x: hidden;
             background-color: var(--bg-body);
             color: var(--text-main);
@@ -160,7 +163,6 @@
         .markdown-body p { margin-bottom: 0.75rem; }
         .markdown-body code { background: rgba(128,128,128,0.1); padding: 0.2rem 0.4rem; border-radius: 4px; font-family: monospace; }
 
-        /* 模式切换引导气泡 */
         #theme-guide {
             animation: bounceLeft 2s infinite;
         }
@@ -180,19 +182,19 @@
     <!-- Header -->
     <header class="fixed w-full z-50 nav-blur">
         <nav class="content-container py-4 lg:py-5 flex justify-between items-center">
-            <div class="flex items-center space-x-3 group cursor-pointer">
+            <div class="flex items-center space-x-3 group cursor-pointer" id="logo-btn">
                 <div class="bg-blue-600 p-2 rounded-xl group-hover:rotate-12 transition-transform shadow-lg shadow-blue-500/20 text-white">
                     <i class="fas fa-book-open text-lg lg:text-xl"></i>
                 </div>
                 <span class="text-xl lg:text-2xl font-bold tracking-tighter transition-colors" style="color: var(--text-title)">LearnWord</span>
             </div>
 
-            <!-- Desktop Links - 修复白天看不清的问题 -->
+            <!-- Desktop Links -->
             <div class="hidden md:flex space-x-10 text-sm font-medium">
-                <a href="#methodology" class="hover:text-blue-400 transition-colors" style="color: var(--text-nav)">核心逻辑</a>
-                <a href="#detailed-features" class="hover:text-blue-400 transition-colors" style="color: var(--text-nav)">模块详解</a>
-                <a href="#changelog" class="hover:text-blue-400 transition-colors" style="color: var(--text-nav)">版本记录</a>
-                <a href="#preview" class="hover:text-blue-400 transition-colors" style="color: var(--text-nav)">界面展示</a>
+                <a href="#methodology" class="nav-link hover:text-blue-400 transition-colors" style="color: var(--text-nav)">核心逻辑</a>
+                <a href="#detailed-features" class="nav-link hover:text-blue-400 transition-colors" style="color: var(--text-nav)">模块详解</a>
+                <a href="#update-mechanism" class="nav-link hover:text-blue-400 transition-colors" style="color: var(--text-nav)">更新机制</a>
+                <a href="#changelog" class="nav-link hover:text-blue-400 transition-colors" style="color: var(--text-nav)">版本记录</a>
             </div>
 
             <div class="flex items-center space-x-3 lg:space-x-5">
@@ -214,12 +216,12 @@
             </div>
         </nav>
 
-        <!-- Mobile Menu Overlay -->
+        <!-- Mobile Menu -->
         <div id="mobile-menu" class="absolute top-full left-0 w-full border-b border-white/5 py-6 flex flex-col items-center space-y-6 md:hidden">
             <a href="#methodology" class="mobile-link" style="color: var(--text-nav)">核心逻辑</a>
             <a href="#detailed-features" class="mobile-link" style="color: var(--text-nav)">模块详解</a>
+            <a href="#update-mechanism" class="mobile-link" style="color: var(--text-nav)">更新机制</a>
             <a href="#changelog" class="mobile-link" style="color: var(--text-nav)">版本记录</a>
-            <a href="#preview" class="mobile-link" style="color: var(--text-nav)">界面展示</a>
             <a href="https://github.com/Junpgle/LearnWord/releases" class="download-link bg-blue-600 text-white px-8 py-2.5 rounded-full text-sm font-bold">Windows 下载</a>
         </div>
     </header>
@@ -237,13 +239,23 @@
                 <p class="text-base lg:text-xl mb-10 lg:mb-12 max-w-md mx-auto lg:mx-0 leading-relaxed" style="color: var(--text-main)">
                     基于科学的三阶段记忆法，将繁琐的背词过程转化为阶段式的成就挑战。轻量、纯净、开源。
                 </p>
-                <div class="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 lg:gap-5">
-                    <a href="https://github.com/Junpgle/LearnWord/releases" id="hero-download-btn" class="download-link btn-shine bg-blue-600 sm:bg-blue-600 text-white px-8 lg:px-10 py-3.5 lg:py-4 rounded-2xl font-bold hover:bg-blue-700 transition shadow-2xl flex items-center justify-center group">
+
+                <!-- 优化后的按钮排版 -->
+                <div class="flex flex-col sm:flex-row flex-wrap items-center lg:items-stretch justify-center lg:justify-start gap-4 lg:gap-5">
+                    <!-- 主下载按钮 -->
+                    <a href="https://github.com/Junpgle/LearnWord/releases" id="hero-download-btn" class="download-link btn-shine w-full sm:w-auto bg-blue-600 text-white px-8 lg:px-10 py-4 rounded-2xl font-bold hover:bg-blue-700 transition shadow-2xl shadow-blue-600/20 flex items-center justify-center group">
                         <i class="fab fa-windows mr-3 text-lg lg:text-xl group-hover:scale-110 transition-transform"></i>Windows 下载
                     </a>
-                    <a href="https://github.com/Junpgle/LearnWord/releases" target="_blank" class="glass-card px-8 lg:px-10 py-3.5 lg:py-4 rounded-2xl font-bold hover:opacity-80 transition flex items-center justify-center border-white/10" style="color: var(--text-title)">
-                        更新日志
-                    </a>
+
+                    <!-- 次要按钮分组 -->
+                    <div class="flex items-center gap-3 w-full sm:w-auto">
+                        <a href="#methodology" class="nav-link glass-card flex-1 sm:flex-none px-6 lg:px-8 py-4 rounded-2xl font-bold hover:opacity-80 transition flex items-center justify-center border-white/10" style="color: var(--text-title)">
+                            查看特性
+                        </a>
+                        <a href="https://github.com/Junpgle/LearnWord" target="_blank" class="glass-card flex-1 sm:flex-none px-6 lg:px-8 py-4 rounded-2xl font-bold hover:opacity-80 transition flex items-center justify-center border-white/10" style="color: var(--text-title)">
+                            <i class="fab fa-github mr-2 text-lg"></i>GitHub
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -373,7 +385,7 @@
                     </div>
                 </div>
 
-                <!-- 模块2 - 修复白天模式看不清功能点的问题 -->
+                <!-- 模块2 -->
                 <div class="flex flex-col lg:flex-row-reverse items-center gap-12 lg:gap-20">
                     <div class="lg:w-1/2 text-center lg:text-left" data-aos="fade-left">
                         <h3 class="text-xl lg:text-2xl font-bold mb-6 lg:mb-8 flex items-center justify-center lg:justify-start">
@@ -383,7 +395,6 @@
                         <p class="mb-8 leading-relaxed text-sm lg:text-base" style="color: var(--text-main)">
                             模拟考场真实体验。独有的“计分板”实时计算正确率，精确至 0.00%。配备“下一题”与“提交”双触发逻辑，防止误点。
                         </p>
-                        <!-- 这里的 text-slate-400 已经移除，改为跟随 var(--text-main) -->
                         <ul class="space-y-4 text-xs lg:text-sm text-left inline-block lg:block" style="color: var(--text-main)">
                             <li class="flex items-center"><i class="fas fa-check text-emerald-500 mr-3"></i> <b>实时计分</b>：正确 / 总数 (百分比)</li>
                             <li class="flex items-center"><i class="fas fa-check text-emerald-500 mr-3"></i> <b>填空提示</b>：基于 wordWrap 优化的提示展示</li>
@@ -445,8 +456,67 @@
         </div>
     </section>
 
+    <!-- NEW: Automatic Update Mechanism Section -->
+    <section id="update-mechanism" class="py-24 lg:py-40 relative">
+        <div class="content-container">
+            <div class="text-center mb-16 lg:mb-24">
+                <h2 class="text-3xl lg:text-4xl font-bold mb-6" data-aos="fade-up">始终保持最新状态</h2>
+                <p class="text-sm lg:text-base max-w-2xl mx-auto" data-aos="fade-up" data-aos-delay="100" style="color: var(--text-main)">
+                    LearnWord 内置智能更新引擎，基于云端 Manifest 校验，无需手动重新下载安装包，即可享受最新特性。
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8 relative">
+                <!-- Step 1 -->
+                <div class="glass-card p-8 rounded-3xl relative z-10" data-aos="fade-up" data-aos-delay="200">
+                    <div class="w-14 h-14 bg-blue-600/20 text-blue-500 rounded-2xl flex items-center justify-center mb-6 text-xl">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <h3 class="text-lg font-bold mb-3">1. 启动即检测</h3>
+                    <p class="text-xs leading-relaxed" style="color: var(--text-muted)">
+                        每次启动时，程序会自动请求 GitHub 上的 <code class="bg-blue-500/10 px-1 rounded">update_manifest.json</code> 配置文件。
+                    </p>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="glass-card p-8 rounded-3xl relative z-10" data-aos="fade-up" data-aos-delay="300">
+                    <div class="w-14 h-14 bg-indigo-600/20 text-indigo-500 rounded-2xl flex items-center justify-center mb-6 text-xl">
+                        <i class="fas fa-cloud-download-alt"></i>
+                    </div>
+                    <h3 class="text-lg font-bold mb-3">2. 智能差分对比</h3>
+                    <p class="text-xs leading-relaxed" style="color: var(--text-muted)">
+                        对比本地版本号。若有新版本，将展示更新公告，并从安全 CDN 节点获取最新构建。
+                    </p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="glass-card p-8 rounded-3xl relative z-10" data-aos="fade-up" data-aos-delay="400">
+                    <div class="w-14 h-14 bg-emerald-600/20 text-emerald-500 rounded-2xl flex items-center justify-center mb-6 text-xl">
+                        <i class="fas fa-magic"></i>
+                    </div>
+                    <h3 class="text-lg font-bold mb-3">3. 一键无缝覆盖</h3>
+                    <p class="text-xs leading-relaxed" style="color: var(--text-muted)">
+                        自动替换核心可执行文件并保留所有学习数据。整个过程无需繁琐的“下一步”安装流程。
+                    </p>
+                </div>
+
+                <!-- 装饰背景线条 (Desktop only) -->
+                <div class="hidden md:block absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent -translate-y-1/2 z-0"></div>
+            </div>
+
+            <!-- 数据安全提示 - 优化了日间模式配色 -->
+            <div class="mt-12 p-6 glass-card rounded-2xl border-emerald-500/10 flex items-start gap-4 max-w-3xl mx-auto shadow-sm shadow-emerald-500/5" data-aos="fade-up">
+                <i class="fas fa-shield-alt text-emerald-500 mt-1 flex-shrink-0"></i>
+                <div class="text-xs leading-relaxed" style="color: var(--text-main)">
+                    <b class="text-emerald-500 block mb-1 font-bold">学习数据安全：</b>
+                    更新仅针对软件核心组件。您的所有学习进度、收藏词库均存储在独立的数据目录（AppData）中，更新过程中绝不会被篡改或丢失。
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- GitHub Changelog Section -->
-    <section id="changelog" class="py-24 lg:py-40 relative">
+    <section id="changelog" class="py-24 lg:py-40 relative bg-slate-900/5 dark:bg-slate-900/10">
         <div class="content-container">
             <div class="text-center mb-16 lg:mb-24">
                 <h2 class="text-3xl lg:text-4xl font-bold mb-6" data-aos="fade-up">最新版本特性</h2>
@@ -523,15 +593,14 @@
     <footer class="py-16 lg:py-24 border-t border-slate-200 dark:border-white/5 relative z-10 bg-slate-50 dark:bg-transparent">
         <div class="content-container text-center">
             <div class="flex justify-center space-x-8 lg:space-x-12 mb-10 lg:mb-14">
-                <a href="https://github.com/Junpgle/LearnWord" class="hover:text-blue-500 transition-colors" style="color: var(--text-muted)"><i class="fab fa-github text-xl lg:text-2xl"></i></a>
-                <a href="https://github.com/Junpgle/LearnWord/releases" class="hover:text-blue-500 transition-colors text-[10px] lg:text-xs font-bold tracking-widest uppercase" style="color: var(--text-muted)">Releases</a>
+                <a href="https://github.com/Junpgle/LearnWord" target="_blank" class="hover:text-blue-500 transition-colors" style="color: var(--text-muted)"><i class="fab fa-github text-xl lg:text-2xl"></i></a>
+                <a href="https://github.com/Junpgle/LearnWord/releases" target="_blank" class="hover:text-blue-500 transition-colors text-[10px] lg:text-xs font-bold tracking-widest uppercase" style="color: var(--text-muted)">Releases</a>
                 <a href="#" class="hover:text-blue-500 transition-colors text-[10px] lg:text-xs font-bold tracking-widest uppercase" style="color: var(--text-muted)">Docs</a>
             </div>
             <p class="text-[10px] lg:text-xs tracking-wide" style="color: var(--text-muted)">© 2025 LearnWord Project. Designed by Junpgle.</p>
         </div>
     </footer>
 
-    <!-- 脚本逻辑 -->
     <script>
         AOS.init({
             duration: 1000,
@@ -540,15 +609,43 @@
             easing: 'ease-out-expo'
         });
 
+        // 通用平滑滚动拦截器
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                const href = this.getAttribute('href');
+                if (href === '#') return;
+
+                e.preventDefault();
+                const targetId = href.substring(1);
+                const targetElement = document.getElementById(targetId);
+
+                if (targetElement) {
+                    // 使用原生 smooth 行为，配合 CSS 的 scroll-padding-top 实现丝滑跳转
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80, // 手动偏移补偿（双重保险）
+                        behavior: 'smooth'
+                    });
+
+                    // 如果是移动端菜单，点击后关闭
+                    if (this.classList.contains('mobile-link')) {
+                        document.getElementById('mobile-menu').classList.remove('active');
+                    }
+                }
+            });
+        });
+
+        // Logo 返回顶部
+        document.getElementById('logo-btn').addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
         const menuToggle = document.getElementById('menu-toggle');
         const mobileMenu = document.getElementById('mobile-menu');
-        const mobileLinks = document.querySelectorAll('.mobile-link');
         menuToggle.addEventListener('click', () => {
             mobileMenu.classList.toggle('active');
             menuToggle.querySelector('i').classList.toggle('fa-bars');
             menuToggle.querySelector('i').classList.toggle('fa-times');
         });
-        mobileLinks.forEach(link => link.addEventListener('click', () => mobileMenu.classList.remove('active')));
 
         // 主题切换
         const themeToggle = document.getElementById('theme-toggle');
@@ -678,7 +775,7 @@
                 });
 
                 if (response.status === 403) {
-                    throw new Error('API 访问受限（速率限制），请稍后再试或直接访问 Releases 页面。');
+                    throw new Error('API 访问受限（速率限制），请稍后再试。');
                 }
                 if (!response.ok) throw new Error('API Response Error');
 
@@ -721,12 +818,12 @@
                     if (isWindows) { if (data.download_url) link.href = data.download_url; }
                     else {
                         link.href = "javascript:void(0)"; link.classList.remove('btn-shine'); link.style.opacity = "0.6"; link.style.cursor = "not-allowed";
-                        link.innerText = "敬请期待 (目前仅支持Windows)";
+                        link.innerText = "目前仅支持Windows";
                     }
                 });
                 if (data.latest_version) document.getElementById('version-badge').innerText = `${data.latest_version} STABLE NOW AVAILABLE`;
             } catch (e) {
-                if (!isWindows) document.querySelectorAll('.download-link').forEach(l => l.innerText = "敬请期待");
+                if (!isWindows) document.querySelectorAll('.download-link').forEach(l => l.innerText = "暂无下载");
             }
         }
 
