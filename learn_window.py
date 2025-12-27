@@ -1,4 +1,5 @@
 import random, os, csv
+import datetime
 from collections import deque
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QLineEdit, \
     QMessageBox, QFrame, QGridLayout  # 导入 QGridLayout
@@ -229,35 +230,77 @@ class LearnWindow(QMainWindow):
         """)
 
     def _prepare_queue_and_start(self):
-        """准备学习队列，根据学习阶段和设置的数量限制来筛选单词。"""
-        # 筛选所有未学完的单词
-        all_unlearned = [w for w in self.model.words if not w.learned]
+        """
+        准备学习队列。
+        逻辑：优先读取“今日计划”中的单词。
+        只有当“今日计划”为空，或者“今日计划”里的单词都学完了，才从总库中抽取新词。
+        """
+        today_str = datetime.date.today().isoformat()  # 获取类似 "2023-10-27" 的字符串
 
-        # 获取设置中定义的本次学习单词数量限制
-        count = self.model.settings.get("learn_count", 10)
+        # 1. 获取设置中的状态
+        last_date = self.model.settings.get("daily_date", "")
+        # 获取上次保存的单词列表（存储的是单词的字符串本身，作为唯一ID）
+        saved_batch_words = self.model.settings.get("daily_batch", [])
 
-        pool = [w for w in self.model.words]
-        if not pool:
-            QMessageBox.information(self, "提示", "词库为空")
-            return
+        learn_count = self.model.settings.get("learn_count", 10)
 
-        # 根据 stage 阶段降序排序，确保高阶段单词优先被选中
-        pool.sort(key=lambda x: x.stage, reverse=True)
+        # 2. 如果日期变了，说明是新的一天，强制废弃旧的缓存（视为空列表处理）
+        if last_date != today_str:
+            saved_batch_words = []
+            # 更新日期
+            self.model.settings["daily_date"] = today_str
 
-        # 从未学完的单词中随机选择本次要学的数量的单词
-        selected = random.sample(all_unlearned, min(count, len(all_unlearned)))
+        # 3. 尝试从 saved_batch_words 中恢复单词对象
+        # 这一步是为了过滤掉已经删除的词，或者找到对应的对象
+        # 同时我们要检查这些词是不是已经学完了
+        current_batch_objects = []
+        if saved_batch_words:
+            # 在总词库中找到这些词的对象
+            for w_str in saved_batch_words:
+                # 假设 w.word 是唯一的
+                found = next((w for w in self.model.words if w.word == w_str), None)
+                if found and not found.learned:
+                    current_batch_objects.append(found)
 
-        # 按阶段分组 (stages = {1: [w1, w2], 2: [w3], ...})
+        # 4. 决策：使用旧的一批，还是抽取新的一批？
+        # 如果当前批次还有未学的词，就继续学这些
+        if current_batch_objects:
+            target_words = current_batch_objects
+        else:
+            # 如果没有缓存，或者缓存里的都学完了 -> 抽取新词
+            all_unlearned = [w for w in self.model.words if not w.learned]
+
+            if not all_unlearned:
+                QMessageBox.information(self, "提示", "恭喜！词库已全部学完。")
+                self.close()
+                return
+
+            # 根据 stage 阶段降序排序 (优先复习高阶段的)
+            all_unlearned.sort(key=lambda x: x.stage, reverse=True)
+
+            # 随机抽取
+            target_words = random.sample(all_unlearned, min(learn_count, len(all_unlearned)))
+
+            # **关键点：保存这一批词到设置中**
+            # 我们保存单词的文本(word)作为ID
+            new_batch_ids = [w.word for w in target_words]
+            self.model.settings["daily_batch"] = new_batch_ids
+            self.model.settings["daily_date"] = today_str
+            self.model.save_settings()  # 必须保存到文件，否则重启APP失效
+
+        # 5. 构建学习队列（保持你原有的按阶段排序打乱逻辑）
+        # 按阶段分组
         stages = {}
-        for w in selected:
+        for w in target_words:
             stages.setdefault(w.stage, []).append(w)
 
-        # 重新构建队列：按阶段升序（从低阶段开始）加入队列，并在阶段内随机打乱
         self.queue = deque()
-        for st in sorted(stages.keys(), reverse=False):  # 注意：这里应是升序 (reverse=False) 确保从 Stage 1 开始学
+        # 升序加入队列 (Stage 1 -> Stage 2 -> Stage 3)
+        for st in sorted(stages.keys(), reverse=False):
             grp = stages[st]
-            random.shuffle(grp)
-            for w in grp: self.queue.append(w)
+            random.shuffle(grp)  # 同一阶段内打乱
+            for w in grp:
+                self.queue.append(w)
 
         self._show_next()
 

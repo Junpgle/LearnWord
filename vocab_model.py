@@ -74,12 +74,10 @@ class WordItem:
 
 class VocabModel:
     """词汇数据模型"""
-
     def __init__(self):
         self.words: List[WordItem] = []
         self.current_wordlist_name = "未加载"
 
-        # ★★★ 使用 get_user_data_dir() 确定数据保存位置 ★★★
         self.data_dir = get_user_data_dir()
 
         self.last_words_path = os.path.join(self.data_dir, "last_words.csv")
@@ -87,10 +85,17 @@ class VocabModel:
         self.progress_path = os.path.join(self.data_dir, "progress.json")
         self.settings_path = os.path.join(self.data_dir, "settings.json")
 
-        # 默认设置
-        self.settings = {"learn_count": 10, "review_count": 15, "test_count": 20}
+        # --- 修改处：增加 daily_date 和 daily_batch 的默认值 ---
+        self.settings = {
+            "learn_count": 10,
+            "review_count": 15,
+            "test_count": 20,
+            "daily_date": "",  # 记录日期
+            "daily_batch": []  # 记录今日单词ID列表
+        }
 
-        self.load_settings()
+        # 注意：这里不要直接调用 load_settings，统一放在 load_all_data 中处理
+        # self.load_settings() <--- 建议删掉这行，由 load_all_data 统一管理
 
     # =============== 设置相关 ===============
     def save_settings(self):
@@ -264,39 +269,49 @@ class VocabModel:
         1. 尝试加载用户进度 (progress.json)
         2. 尝试加载上次导入的词库 (last_words)
         3. 尝试加载内置默认词库 (资源文件)
+        4. 最后加载独立设置 (settings.json)，确保每日计划是最新的
         """
-        self.load_settings()
+        # self.load_settings()  <--- 删除这行 (原来在这里)
         self.current_wordlist_name = "未加载"
+
+        data_loaded = False
 
         # 1. 尝试加载进度 (位于用户数据目录)
         if self.load_progress():
             print("已加载用户进度")
-            return True
+            data_loaded = True
 
-        # 2. 尝试加载上次导入的文件 (位于用户数据目录)
-        if os.path.exists(self.last_json_path):
-            self.load_words_from_json(self.last_json_path)
-            self.current_wordlist_name = "上次导入 (JSON)"
-            return True
-        elif os.path.exists(self.last_words_path):
-            self.load_words_from_csv(self.last_words_path)
-            self.current_wordlist_name = "上次导入 (CSV)"
-            return True
+        # 2. 如果没进度，尝试加载上次导入的文件
+        if not data_loaded:
+            if os.path.exists(self.last_json_path):
+                self.load_words_from_json(self.last_json_path)
+                self.current_wordlist_name = "上次导入 (JSON)"
+                data_loaded = True
+            elif os.path.exists(self.last_words_path):
+                self.load_words_from_csv(self.last_words_path)
+                self.current_wordlist_name = "上次导入 (CSV)"
+                data_loaded = True
 
-        # 3. 尝试加载内置默认词库 (位于资源目录 _MEIPASS)
-        # 注意：这里使用 get_resource_path 来获取打包进去的文件
-        # 文件名必须与 PyInstaller 命令中的源文件名一致
-        default_csv = get_resource_path("六级-乱序.csv")
+        # 3. 还没数据，尝试加载内置默认词库
+        if not data_loaded:
+            default_csv = get_resource_path("六级-乱序.csv")
+            if os.path.exists(default_csv):
+                print(f"加载内置默认词库: {default_csv}")
+                self.load_words_from_csv(default_csv)
+                self.current_wordlist_name = "默认词库 (六级)"
+                self.save_progress()
+                data_loaded = True
 
-        if os.path.exists(default_csv):
-            print(f"加载内置默认词库: {default_csv}")
-            self.load_words_from_csv(default_csv)
-            self.current_wordlist_name = "默认词库 (六级)"
-            self.save_progress()  # 初始化后立即保存一份到用户目录
-            return True
+        # --- 修改处：最后加载 settings.json ---
+        # 无论前面加载了什么数据，settings.json 里保存的 "daily_batch" 应该是最新的
+        # 这样可以防止 load_progress 中的旧 settings 覆盖掉今天的计划
+        self.load_settings()
 
-        print("未找到任何数据，请手动导入。")
-        return False
+        if not data_loaded:
+            print("未找到任何数据，请手动导入。")
+            return False
+
+        return True
 
     def get_stats(self):
         learned = sum(1 for w in self.words if w.learned)
