@@ -5,7 +5,7 @@ import datetime
 import sys
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                QPushButton, QProgressBar, QSpinBox, QTextEdit, QGroupBox,
-                               QFileDialog, QMessageBox, QInputDialog, QDialog)
+                               QFileDialog, QMessageBox, QInputDialog, QDialog, QFrame)
 from PySide6.QtCore import Qt, QThread, Signal, QSize
 from PySide6.QtGui import QFont, QMovie
 
@@ -206,6 +206,95 @@ class DownloadProgressDialog(QDialog):
         self.canceled.emit()
         self.close()
 
+class BackupManagerDialog(QDialog):
+    def __init__(self, model: VocabModel, parent=None):
+        super().__init__(parent)
+        self.model = model
+        self.all_backups = self.model.get_backup_list()
+        self.page_size = 5
+        self.current_page = 0
+
+        self.setWindowTitle("历史进度管理")
+        self.setFixedSize(600, 500)
+        self.layout = QVBoxLayout(self)
+
+        self.list_layout = QVBoxLayout()
+        self.layout.addLayout(self.list_layout)
+
+        # 分页控制
+        nav_layout = QHBoxLayout()
+        self.btn_prev = QPushButton("上一页")
+        self.btn_next = QPushButton("下一页")
+        self.page_label = QLabel()
+        nav_layout.addWidget(self.btn_prev)
+        nav_layout.addWidget(self.page_label)
+        nav_layout.addWidget(self.btn_next)
+        self.layout.addLayout(nav_layout)
+
+        self.btn_prev.clicked.connect(self.prev_page)
+        self.btn_next.clicked.connect(self.next_page)
+        self.refresh_page()
+
+    def refresh_page(self):
+        # 清空当前显示 [cite: 40]
+        while self.list_layout.count():
+            item = self.list_layout.takeAt(0)
+            if item.widget(): item.widget().deleteLater()
+
+        start = self.current_page * self.page_size
+        end = start + self.page_size
+        current_list = self.all_backups[start:end]
+
+        for b in current_list:
+            frame = QFrame()
+            frame.setFrameStyle(QFrame.StyledPanel)
+            f_lay = QHBoxLayout(frame)
+
+            from datetime import datetime
+            time_str = datetime.fromtimestamp(b['time']).strftime('%Y-%m-%d %H:%M')
+            info = f"<b>词库:</b> {b['wordlist']}<br><b>进度:</b> {b['progress']}<br><small>{time_str}</small>"
+
+            lbl = QLabel(info)
+            lbl.setWordWrap(True)  # 允许长词库名换行 [cite: 5, 140]
+
+            btn_load = QPushButton("加载")
+            btn_del = QPushButton("删除")
+            btn_del.setStyleSheet("background-color: #dc3545; color: white;")  # 警告色 [cite: 23, 151]
+
+            btn_load.clicked.connect(lambda chk=False, p=b['path']: self.load_backup(p))
+            btn_del.clicked.connect(lambda chk=False, p=b['path']: self.delete_backup(p))
+
+            f_lay.addWidget(lbl, 1)
+            f_lay.addWidget(btn_load)
+            f_lay.addWidget(btn_del)
+            self.list_layout.addWidget(frame)
+
+        self.page_label.setText(f"第 {self.current_page + 1} / {max(1, (len(self.all_backups) - 1) // 5 + 1)} 页")
+        self.btn_prev.setEnabled(self.current_page > 0)
+        self.btn_next.setEnabled(end < len(self.all_backups))
+
+    def load_backup(self, path):
+        if QMessageBox.question(self, "确认",
+                                "确定加载此进度？当前进度将被覆盖（并备份）。") == QMessageBox.StandardButton.Yes:
+            self.parent()._create_backup()  # 加载前再次备份 [cite: 204]
+            self.model.load_progress(path)
+            self.model.save_progress()  # 同步到主进度文件 [cite: 222]
+            self.accept()
+
+    def delete_backup(self, path):
+        if QMessageBox.question(self, "删除", "确定永久删除此备份？") == QMessageBox.StandardButton.Yes:
+            os.remove(path)
+            self.all_backups = self.model.get_backup_list()
+            self.refresh_page()
+
+    def prev_page(self):
+        self.current_page -= 1
+        self.refresh_page()
+
+    def next_page(self):
+        self.current_page += 1
+        self.refresh_page()
+
 
 class SettingWindow(QMainWindow):
     def __init__(self, model: VocabModel, parent=None):
@@ -231,13 +320,14 @@ class SettingWindow(QMainWindow):
         top_group.setStyleSheet(GROUP_BOX_STYLE)
         top_layout = QHBoxLayout(top_group)
 
-        self.btn_import = QPushButton("导入单词库 (CSV/JSON)")
+        self.btn_import = QPushButton("导入单词库")
         self.btn_download = QPushButton("从网络下载词库")
         self.btn_open = QPushButton("打开当前词库")
         self.btn_save = QPushButton("保存进度到文件")
         self.btn_load = QPushButton("从文件加载进度")
+        self.btn_manage_backup = QPushButton("管理历史备份")
 
-        for b in [self.btn_import, self.btn_download, self.btn_open, self.btn_save, self.btn_load]:
+        for b in [self.btn_import, self.btn_download, self.btn_open, self.btn_save, self.btn_load, self.btn_manage_backup]:
             b.setFont(font)
             b.setFixedHeight(36)
             b.setStyleSheet(BTN_STYLE)
@@ -326,6 +416,7 @@ class SettingWindow(QMainWindow):
         self.btn_open.clicked.connect(self.open_current_wordlist)
         self.btn_save.clicked.connect(self.save_progress_to_file)
         self.btn_load.clicked.connect(self.load_progress_from_file)
+        self.btn_manage_backup.clicked.connect(self.open_backup_manager)
 
         self.refresh_view()
 
@@ -554,6 +645,11 @@ class SettingWindow(QMainWindow):
             QMessageBox.critical(self, "加载失败", f"文件内容格式错误，无法解析为 JSON: {path}")
         except Exception as e:
             QMessageBox.critical(self, "加载失败", f"加载文件失败: {str(e)}")
+
+    def open_backup_manager(self):
+        dlg = BackupManagerDialog(self.model, self)
+        if dlg.exec() == QDialog.Accepted:
+            self.refresh_view()  # 刷新主界面的进度条
 
     def refresh_view(self):
         self.wordlist_name_label.setText(f"当前文件: {self.model.current_wordlist_name}")

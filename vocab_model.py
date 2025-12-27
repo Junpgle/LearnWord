@@ -301,3 +301,31 @@ class VocabModel:
     def get_stats(self):
         learned = sum(1 for w in self.words if w.learned)
         return learned, len(self.words)
+
+    def get_backup_list(self) -> list:
+        backup_dir = os.path.join(self.data_dir, "backup")
+        if not os.path.exists(backup_dir):
+            return []
+
+        backups = []
+        for filename in os.listdir(backup_dir):
+            if filename.endswith(".json"):
+                path = os.path.join(backup_dir, filename)
+                try:
+                    # 获取文件创建时间 [cite: 204]
+                    ctime = os.path.getctime(path)
+                    with open(path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        words = data.get("words", [])
+                        learned = sum(1 for w in words if w.get("learned", False))
+                        backups.append({
+                            "filename": filename,
+                            "path": path,
+                            "time": ctime,
+                            "wordlist": data.get("current_wordlist_name", "未知"),
+                            "progress": f"{learned}/{len(words)}"
+                        })
+                except Exception:
+                    continue
+        # 按时间降序排列 [cite: 33]
+        return sorted(backups, key=lambda x: x['time'], reverse=True)
