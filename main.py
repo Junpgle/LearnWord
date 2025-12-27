@@ -30,7 +30,7 @@ from test_window import TestWindow
 from vocab_model import VocabModel
 
 # 设定当前程序版本号
-CURRENT_VERSION = "v1.2.3"
+CURRENT_VERSION = "v1.2.4"
 CURRENT_VERSION_DATE = "20251228"
 
 
@@ -303,7 +303,7 @@ class WallpaperLoader(QObject):
             # 但为了保险起见，这里也可以设为 True，或者保持 False
             should_overwrite = False
 
-            # ★★★ 核心下载逻辑修改 ★★★
+            # ★★ 核心下载逻辑修改 ★★★
         if download_url and filename:
             save_path = os.path.join(save_dir, filename)
             try:
