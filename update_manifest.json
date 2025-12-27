@@ -12,7 +12,7 @@
   ],
   "download_url": "https://github.com/Junpgle/LearnWord/releases/download/v1.2.0/LearnWord.v1.2.0-Setup.exe",
   "patches": {
-    "v1.1.1": "https://github.com/Junpgle/LearnWord/releases/download/v1.2.0/update_patch_v1.1.1to_v1.2.0.zip",
+    "v1.1.0": "https://github.com/Junpgle/LearnWord/releases/download/v1.2.0/update_patch_v1.1.0to_v1.2.0.zip",
     "v1.1.2": "https://github.com/Junpgle/LearnWord/releases/download/v1.2.0/update_patch_v1.1.2to_v1.2.0.zip"
   }
 }
