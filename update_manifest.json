@@ -1,18 +1,17 @@
 {
-  "latest_version": "v1.2.0",
+  "latest_version": "v1.2.1",
   "release_date": "2025-12-27",
   "update_notes": [
-    "已支持增量更新!",
-    "新增网页展示、手动获取公告",
-    "近期更新内容:",
-    "刚考完离散数学就来更新啦🎉🎉🎉",
-    "重构了用户文件保存位置，默认保存到/AppData,防止权限不足导致无法保存文件。",
-    "从网络下载词库新增加载动画~",
+    "1. 设置界面支持管理历史进度文件\n ",
+    "2. 首页公告优化了呈现效果",
+    "3. 首页新增壁纸轮播, ",
+    "4. 首页新增一日一句",
     "优化了使用体验~"
   ],
-  "download_url": "https://github.com/Junpgle/LearnWord/releases/download/v1.2.0/LearnWord.v1.2.0-Setup.exe",
+  "download_url": "https://github.com/Junpgle/LearnWord/releases/download/v1.2.1/LearnWord.v1.2.1-Setup.exe",
   "patches": {
-    "v1.1.0": "https://github.com/Junpgle/LearnWord/releases/download/v1.2.0/update_patch_v1.1.0to_v1.2.0.zip",
-    "v1.1.2": "https://github.com/Junpgle/LearnWord/releases/download/v1.2.0/update_patch_v1.1.2to_v1.2.0.zip"
+    "v1.1.0": "https://github.com/Junpgle/LearnWord/releases/download/v1.2.1/update_patch_v1.1.0to_v1.2.1.zip",
+    "v1.1.2": "https://github.com/Junpgle/LearnWord/releases/download/v1.2.1/update_patch_v1.1.2to_v1.2.1.zip",
+    "v1.2.0": "https://github.com/Junpgle/LearnWord/releases/download/v1.2.1/update_patch_v1.2.0to_v1.2.1.zip"
   }
 }
