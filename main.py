@@ -26,12 +26,11 @@ from learn_window import LearnWindow
 from review_window import ReviewWindow
 from setting_window import SettingWindow
 from test_window import TestWindow
-# 导入你的自定义模块 (确保这些文件在同级目录下)
 from vocab_model import VocabModel
 
 # 设定当前程序版本号
 CURRENT_VERSION = "v1.2.4"
-CURRENT_VERSION_DATE = "20251228"
+CURRENT_VERSION_DATE = "20251231"
 
 
 # ★★★ 资源路径获取函数 ★★★
