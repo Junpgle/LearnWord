@@ -1,6 +1,6 @@
 {
   "fixed_wallpaper": {
-    "active": false,
+    "active": true,
     "url": "https://raw.githubusercontent.com/Junpgle/LearnWord/refs/heads/master/background/firework.jpg",
     "name": "firework.jpg"
   }
