@@ -2,14 +2,14 @@ import sys
 import os
 import json
 import requests
-import ctypes  # ★★★ 新增：用于修复 Windows 任务栏图标显示
-from typing import Any  # ★★★ 新增：用于类型标注，解决 object 无 get 方法的警告
+import ctypes
+from typing import Any
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QLabel, QPushButton, QGridLayout, QHBoxLayout, QMessageBox, QDialog
 )
 from PySide6.QtCore import Qt, QUrl, QThread, QObject, Signal, Slot
-from PySide6.QtGui import QFont, QDesktopServices, QFontDatabase, QIcon  # ★★★ 新增：QIcon
+from PySide6.QtGui import QFont, QDesktopServices, QFontDatabase, QIcon
 
 from vocab_model import VocabModel
 from learn_window import LearnWindow
@@ -18,8 +18,8 @@ from test_window import TestWindow
 from setting_window import SettingWindow
 
 # 设定当前程序版本号
-CURRENT_VERSION = "v1.1.0"
-CURRENT_VERSION_DATE = "20251226-2"
+CURRENT_VERSION = "v1.1.2"
+CURRENT_VERSION_DATE = "20251227"
 
 
 # ★★★ 资源路径获取函数 (用于加载字体和图标) ★★★
@@ -33,7 +33,7 @@ def get_resource_path(relative_path):
 
 
 # =================================================================
-# UpdateChecker 和 AnnouncementLoader 保持不变
+# UpdateChecker 和 AnnouncementLoader
 # =================================================================
 class UpdateChecker(QObject):
     signal_result = Signal(bool, object)
@@ -70,7 +70,7 @@ class AboutDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("关于 LearnWord")
-        self.setFixedSize(400, 300)
+        self.setFixedSize(600, 300)  # 加宽窗口以容纳并排按钮
         self.setWindowModality(Qt.WindowModality.WindowModal)
 
         layout = QVBoxLayout(self)
@@ -93,16 +93,31 @@ class AboutDialog(QDialog):
         desc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         desc_label.setStyleSheet("color: #aaaaaa; font-size: 13px; margin: 15px 0;")
 
-        github_button = QPushButton("访问项目主页 (GitHub)")
+        # 按钮区域 - 改为横向布局
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(10)
+
+        # 官方网页按钮
+        website_button = QPushButton("访问展示网页")
+        website_button.setObjectName("website_btn")
+        website_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        website_button.clicked.connect(self._open_website)
+
+        # GitHub 按钮
+        github_button = QPushButton("项目主页 (GitHub)")
         github_button.setObjectName("github_btn")
+        github_button.setCursor(Qt.CursorShape.PointingHandCursor)
         github_button.clicked.connect(self._open_github)
 
+        # 关闭按钮
         close_button = QPushButton("关闭")
         close_button.setObjectName("close_button")
+        close_button.setCursor(Qt.CursorShape.PointingHandCursor)
         close_button.clicked.connect(self.accept)
 
-        btn_layout = QHBoxLayout()
+        # 将按钮添加到布局
         btn_layout.addStretch()
+        btn_layout.addWidget(website_button)
         btn_layout.addWidget(github_button)
         btn_layout.addWidget(close_button)
         btn_layout.addStretch()
@@ -111,21 +126,29 @@ class AboutDialog(QDialog):
         layout.addWidget(version_label)
         layout.addWidget(author_label)
         layout.addWidget(desc_label)
+        layout.addSpacing(20)
         layout.addLayout(btn_layout)
+        layout.addSpacing(10)
 
         self.setStyleSheet("""
             QDialog { background-color: #000000; border: 1px solid #333333; }
             QLabel { color: white; }
-            QPushButton { padding: 8px 16px; border-radius: 6px; font-weight: bold; }
-            #github_btn { background-color: #0969da; color: white; }
-            #github_btn:hover { background-color: #0757b7; }
-            #close_button{ background-color: #0757b7; color: white; }
-            #close_button:hover { background-color: #D3D3D3; }
+            QPushButton { padding: 8px 12px; border-radius: 6px; font-weight: bold; }
+            #github_btn { background-color: #24292f; color: white; border: 1px solid #444; }
+            #github_btn:hover { background-color: #333; }
+            #website_btn { background-color: #0969da; color: white; }
+            #website_btn:hover { background-color: #0757b7; }
+            #close_button{ background-color: #374151; color: white; }
+            #close_button:hover { background-color: #4b5563; }
         """)
 
     @staticmethod
     def _open_github():
         QDesktopServices.openUrl(QUrl("https://github.com/Junpgle/LearnWord"))
+
+    @staticmethod
+    def _open_website():
+        QDesktopServices.openUrl(QUrl("https://junpgle.github.io/LearnWord/"))
 
 
 # =================================================================
@@ -144,8 +167,9 @@ class MainWindow(QMainWindow):
         self.central = QWidget()
         self.setCentralWidget(self.central)
 
-        # 标志位：判断是否是用户手动点击的更新检查
+        # 标志位：判断是否是用户手动点击
         self.is_manual_check = False
+        self.is_manual_announcement_check = False  # 新增：判断是否手动点击公告
 
         self.layout = QVBoxLayout(self.central)
         self.layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
@@ -161,14 +185,24 @@ class MainWindow(QMainWindow):
         top_bar_layout.addWidget(self.title)
         top_bar_layout.addStretch()
 
+        # 新增：公告按钮
+        self.btn_announcement = QPushButton("公告")
+        self.btn_announcement.setObjectName("ann_btn")
+        self.btn_announcement.setFixedSize(80, 40)
+        self.btn_announcement.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_announcement.clicked.connect(self._on_announcement_clicked)
+        top_bar_layout.addWidget(self.btn_announcement)
+
         self.btn_about = QPushButton("关于")
         self.btn_about.setObjectName("about_btn")
+        self.btn_about.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_about.clicked.connect(self._about)
-        self.btn_about.setFixedSize(100, 40)
+        self.btn_about.setFixedSize(80, 40)
         top_bar_layout.addWidget(self.btn_about)
 
         self.btn_update = QPushButton("检查更新")
         self.btn_update.setObjectName("update_check_btn")
+        self.btn_update.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_update.clicked.connect(self._start_update_check)
         self.btn_update.setFixedSize(100, 40)
         top_bar_layout.addWidget(self.btn_update)
@@ -191,6 +225,7 @@ class MainWindow(QMainWindow):
         for b in [self.btn_learn, self.btn_review, self.btn_test, self.btn_setting]:
             b.setFixedSize(200, 100)
             b.setFont(QFont("MiSans", 16, QFont.Weight.Bold))
+            b.setCursor(Qt.CursorShape.PointingHandCursor)
             b.setObjectName(f"mode_btn_{b.text().lower()}")
 
         grid.addWidget(self.btn_learn, 0, 0)
@@ -234,12 +269,15 @@ class MainWindow(QMainWindow):
             #update_check_btn { padding: 5px 10px; font-size: 14px; font-weight: 500; background-color: #e74c3c; color: white; border-radius: 10px; box-shadow: none; }
             #update_check_btn:hover { background-color: #c0392b; }
             #about_btn { padding: 5px 10px; font-size: 14px; font-weight: 500; background-color: #FFA500; color: white; border-radius: 10px; box-shadow: none; }
-            #about_btn:hover { background-color: #c0392b; }
+            #about_btn:hover { background-color: #e69500; }
+            #ann_btn { padding: 5px 10px; font-size: 14px; font-weight: 500; background-color: #2ecc71; color: white; border-radius: 10px; box-shadow: none; }
+            #ann_btn:hover { background-color: #27ae60; }
         """)
 
         # 启动后台任务 (自动检查)
+        self.is_manual_announcement_check = False  # 自动检查时不标记
         self._start_announcement_load()
-        # 自动检查时，不认为是手动点击
+
         self.is_manual_check = False
         self._start_update_check()
 
@@ -318,9 +356,6 @@ class MainWindow(QMainWindow):
         # 判断调用者是否为按钮 (如果不是按钮调用的，比如是 __init__ 里的自动检查，sender() 为 None 或其他)
         if self.sender() == self.btn_update:
             self.is_manual_check = True
-        # 注意：这里不需要 else: is_manual_check = False
-        # 因为 __init__ 里已经显式调用了一次并手动设为了 False
-        # 如果是其他地方调用（未来扩展），默认不会改变状态
 
         self.btn_update.setEnabled(False)
         self.btn_update.setText("检查中...")
@@ -340,11 +375,10 @@ class MainWindow(QMainWindow):
         self.btn_update.setEnabled(True)
         self.btn_update.setText("检查更新")
 
-        # 使用类变量判断是否是手动检查
         is_manual = getattr(self, 'is_manual_check', False)
 
         if not success:
-            if is_manual:  # 只在手动点击时报错
+            if is_manual:
                 QMessageBox.warning(self, "检查更新失败", str(data_or_error))
             return
 
@@ -371,13 +405,20 @@ class MainWindow(QMainWindow):
                 msg.addButton(QPushButton("取消"), QMessageBox.ButtonRole.RejectRole)
                 msg.exec()
             else:
-                if is_manual:  # 只在手动点击时提示最新
+                if is_manual:
                     QMessageBox.information(self, "检查更新", "当前已是最新版本。")
         except ValueError:
             pass
 
-        # 重置状态，防止自动检查的后续操作误判
         self.is_manual_check = False
+
+    @Slot()
+    def _on_announcement_clicked(self):
+        """处理公告按钮点击"""
+        self.is_manual_announcement_check = True
+        self.btn_announcement.setEnabled(False)
+        self.btn_announcement.setText("获取中...")
+        self._start_announcement_load()
 
     @Slot()
     def _start_announcement_load(self):
@@ -391,12 +432,45 @@ class MainWindow(QMainWindow):
         self.ann_worker.signal_result.connect(self.ann_worker.deleteLater)
         self.ann_thread.start()
 
-    # 使用 Any 替换 object，解决 'object' 没有 'get' 方法的 IDE 警告
     @Slot(bool, object)
     def _handle_announcement_result(self, success: bool, data_or_error: Any):
-        if not success: return
+        # 恢复按钮状态
+        self.btn_announcement.setEnabled(True)
+        self.btn_announcement.setText("公告")
+
+        if not success:
+            if self.is_manual_announcement_check:
+                QMessageBox.warning(self, "获取失败", f"无法获取公告: {data_or_error}")
+                self.is_manual_announcement_check = False
+            return
 
         announcements = data_or_error.get("announcements", [])
+
+        # --- 如果是手动点击，展示所有公告 ---
+        if self.is_manual_announcement_check:
+            if not announcements:
+                QMessageBox.information(self, "公告", "暂无任何公告。")
+            else:
+                # 拼接所有公告
+                content_list = []
+                for ann in announcements:
+                    ver = ann.get("version", "未知版本")
+                    title = ann.get("title", "公告")
+                    body = ann.get("content", "")
+                    content_list.append(f"<b>[{ver}] {title}</b><br>{body}<br>")
+
+                full_content = "<br>".join(content_list)
+
+                msg = QMessageBox(self)
+                msg.setWindowTitle("公告列表")
+                msg.setTextFormat(Qt.TextFormat.RichText)
+                msg.setText(full_content)
+                msg.exec()
+
+            self.is_manual_announcement_check = False
+            return
+
+        # --- 自动检查逻辑 (保持原样) ---
         read_ann_ids = self._load_announcement_state()
 
         for ann in announcements:
@@ -412,6 +486,7 @@ class MainWindow(QMainWindow):
                     read_ann_ids.add(ann_id)
                     self._save_announcement_state(read_ann_ids)
 
+
 if __name__ == "__main__":
     # 这里的 ID 必须是唯一的字符串，用于告知 Windows 将此进程与图标关联
     try:
@@ -424,7 +499,7 @@ if __name__ == "__main__":
     # 重点：确保这里加载的是打包进去的图标
     app_icon_path = get_resource_path("icon.ico")
     if os.path.exists(app_icon_path):
-        app.setWindowIcon(QIcon(app_icon_path)) # 设置全局图标
+        app.setWindowIcon(QIcon(app_icon_path))  # 设置全局图标
 
     # ★★★ 2. 加载字体 ★★★
     font_path = get_resource_path("MiSans.ttf")

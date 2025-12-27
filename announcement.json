@@ -1,6 +1,12 @@
 {
   "announcements": [
     {
+      "version": "v1.1.2",
+      "title": "🎉 欢迎使用LearnWord v1.1.2！",
+      "content": "该版本新增网页展示、手动获取公告~\n欢迎体验",
+      "show_mode": "once"
+    },
+    {
       "version": "v1.1.0",
       "title": "🎉 欢迎使用LearnWord v1.1.0！",
       "content": "从这个版本起,将提供使用Inno制作的安装程序\n支持将程序安装到指定位置\n重构了用户文件保存位置，默认保存到/AppData,防止权限不足导致无法保存文件\n新增从网络下载词库动画~",
