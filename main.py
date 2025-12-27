@@ -27,8 +27,8 @@ from test_window import TestWindow
 from setting_window import SettingWindow
 
 # 设定当前程序版本号
-CURRENT_VERSION = "v1.2.2"
-CURRENT_VERSION_DATE = "20251227-4"
+CURRENT_VERSION = "v1.2.3"
+CURRENT_VERSION_DATE = "20251228"
 
 
 # ★★★ 资源路径获取函数 ★★★
