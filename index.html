@@ -32,7 +32,7 @@
             --input-bg: rgba(255, 255, 255, 0.05);
         }
 
-        /* 设置全局平滑滚动边距，防止固定导航栏遮挡标题 */
+        /* 设置全局平滑滚动边距 */
         html {
             scroll-padding-top: 80px;
         }
@@ -41,8 +41,8 @@
             --bg-body: #f8fafc;
             --text-title: #0f172a;
             --text-nav: #1e293b;
-            --text-main: #0f172a;   /* 增强日间模式主文字对比度 */
-            --text-muted: #334155;  /* 增强日间模式副文字对比度 */
+            --text-main: #0f172a;
+            --text-muted: #334155;
             --glass-bg: rgba(255, 255, 255, 0.85);
             --glass-border: rgba(0, 120, 215, 0.15);
             --grid-color: rgba(0, 120, 215, 0.08);
@@ -99,9 +99,6 @@
 
         .software-btn-blue { background-color: var(--primary); color: white !important; }
         .software-btn-blue:hover { background-color: var(--primary-hover); transform: scale(1.02); }
-
-        .software-btn-grey { background-color: #374151; color: white !important; }
-        .light-theme .software-btn-grey { background-color: #64748b; }
 
         .nav-blur {
             background: var(--nav-bg);
@@ -175,6 +172,21 @@
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; }
+
+        /* 神经网络背景画布样式 */
+        #neural-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            /* 虚化强度调低，确保单词可见 */
+            filter: blur(0.5px);
+            opacity: 0.8;
+            transform: translateZ(0);
+        }
     </style>
 </head>
 <body class="text-slate-200">
@@ -227,7 +239,10 @@
     </header>
 
     <!-- Hero Section -->
-    <section class="hero-gradient pt-32 lg:pt-56 pb-20 lg:pb-40 relative grid-pattern">
+    <section class="hero-gradient pt-32 lg:pt-56 pb-20 lg:pb-40 relative grid-pattern overflow-hidden">
+        <!-- 神经网络背景画布 -->
+        <canvas id="neural-bg"></canvas>
+
         <div class="content-container flex flex-col lg:flex-row items-center relative z-10">
             <div class="lg:w-1/2 mb-16 lg:mb-0 text-center lg:text-left" data-aos="fade-right">
                 <div id="version-badge" class="inline-block px-4 py-1.5 mb-6 lg:mb-8 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 text-[10px] lg:text-xs font-bold tracking-widest uppercase">
@@ -240,14 +255,12 @@
                     基于科学的三阶段记忆法，将繁琐的背词过程转化为阶段式的成就挑战。轻量、纯净、开源。
                 </p>
 
-                <!-- 优化后的按钮排版 -->
+                <!-- 按钮排版 -->
                 <div class="flex flex-col sm:flex-row flex-wrap items-center lg:items-stretch justify-center lg:justify-start gap-4 lg:gap-5">
-                    <!-- 主下载按钮 -->
                     <a href="https://github.com/Junpgle/LearnWord/releases" id="hero-download-btn" class="download-link btn-shine w-full sm:w-auto bg-blue-600 text-white px-8 lg:px-10 py-4 rounded-2xl font-bold hover:bg-blue-700 transition shadow-2xl shadow-blue-600/20 flex items-center justify-center group">
                         <i class="fab fa-windows mr-3 text-lg lg:text-xl group-hover:scale-110 transition-transform"></i>Windows 下载
                     </a>
 
-                    <!-- 次要按钮分组 -->
                     <div class="flex items-center gap-3 w-full sm:w-auto">
                         <a href="#methodology" class="nav-link glass-card flex-1 sm:flex-none px-6 lg:px-8 py-4 rounded-2xl font-bold hover:opacity-80 transition flex items-center justify-center border-white/10" style="color: var(--text-title)">
                             查看特性
@@ -261,7 +274,7 @@
 
             <div class="lg:w-1/2 relative flex justify-center lg:justify-end" data-aos="zoom-in" data-aos-delay="200">
                 <div class="absolute -inset-10 bg-blue-500/10 blur-[120px] rounded-full hidden lg:block"></div>
-                <!-- 模拟学习界面 (Mockup) -->
+                <!-- 模拟学习界面 -->
                 <div class="relative w-full max-w-[320px] sm:max-w-md glass-card rounded-3xl p-4 sm:p-6 animate-float shadow-2xl scale-90 sm:scale-100 border-white/20">
                     <div class="flex space-x-2 mb-6" id="mock-indicators">
                         <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border border-slate-700 transition-colors duration-500"></span>
@@ -456,7 +469,7 @@
         </div>
     </section>
 
-    <!-- NEW: Automatic Update Mechanism Section -->
+    <!-- OTA 更新 -->
     <section id="update-mechanism" class="py-24 lg:py-40 relative">
         <div class="content-container">
             <div class="text-center mb-16 lg:mb-24">
@@ -469,38 +482,26 @@
             <div class="grid md:grid-cols-3 gap-8 relative">
                 <!-- Step 1 -->
                 <div class="glass-card p-8 rounded-3xl relative z-10" data-aos="fade-up" data-aos-delay="200">
-                    <div class="w-14 h-14 bg-blue-600/20 text-blue-500 rounded-2xl flex items-center justify-center mb-6 text-xl">
-                        <i class="fas fa-search"></i>
-                    </div>
+                    <div class="w-14 h-14 bg-blue-600/20 text-blue-500 rounded-2xl flex items-center justify-center mb-6 text-xl"><i class="fas fa-search"></i></div>
                     <h3 class="text-lg font-bold mb-3">1. 启动即检测</h3>
-                    <p class="text-xs leading-relaxed" style="color: var(--text-muted)">
-                        每次启动时，程序会自动请求 GitHub 上的 <code class="bg-blue-500/10 px-1 rounded">update_manifest.json</code> 配置文件。
-                    </p>
+                    <p class="text-xs leading-relaxed" style="color: var(--text-muted)">每次启动时，程序会自动请求 GitHub 上的 <code>update_manifest.json</code> 配置文件。</p>
                 </div>
 
                 <!-- Step 2 -->
                 <div class="glass-card p-8 rounded-3xl relative z-10" data-aos="fade-up" data-aos-delay="300">
-                    <div class="w-14 h-14 bg-indigo-600/20 text-indigo-500 rounded-2xl flex items-center justify-center mb-6 text-xl">
-                        <i class="fas fa-cloud-download-alt"></i>
-                    </div>
+                    <div class="w-14 h-14 bg-indigo-600/20 text-indigo-500 rounded-2xl flex items-center justify-center mb-6 text-xl"><i class="fas fa-cloud-download-alt"></i></div>
                     <h3 class="text-lg font-bold mb-3">2. 智能差分对比</h3>
-                    <p class="text-xs leading-relaxed" style="color: var(--text-muted)">
-                        对比本地版本号。若有新版本，将展示更新公告，并从安全 CDN 节点获取最新构建。
-                    </p>
+                    <p class="text-xs leading-relaxed" style="color: var(--text-muted)">对比本地版本号。若有新版本，将展示更新公告，并从安全 CDN 节点获取最新构建。</p>
                 </div>
 
                 <!-- Step 3 -->
                 <div class="glass-card p-8 rounded-3xl relative z-10" data-aos="fade-up" data-aos-delay="400">
-                    <div class="w-14 h-14 bg-emerald-600/20 text-emerald-500 rounded-2xl flex items-center justify-center mb-6 text-xl">
-                        <i class="fas fa-magic"></i>
-                    </div>
+                    <div class="w-14 h-14 bg-emerald-600/20 text-emerald-500 rounded-2xl flex items-center justify-center mb-6 text-xl"><i class="fas fa-magic"></i></div>
                     <h3 class="text-lg font-bold mb-3">3. 一键无缝覆盖</h3>
-                    <p class="text-xs leading-relaxed" style="color: var(--text-muted)">
-                        自动替换核心可执行文件并保留所有学习数据。整个过程无需繁琐的“下一步”安装流程。
-                    </p>
+                    <p class="text-xs leading-relaxed" style="color: var(--text-muted)">自动替换核心可执行文件并保留所有学习数据。整个过程无需繁琐的“下一步”安装流程。</p>
                 </div>
 
-                <!-- 装饰背景线条 (Desktop only) -->
+                <!-- 装饰背景线条 -->
                 <div class="hidden md:block absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent -translate-y-1/2 z-0"></div>
             </div>
 
@@ -515,7 +516,7 @@
         </div>
     </section>
 
-    <!-- GitHub Changelog Section -->
+    <!-- 版本记录 -->
     <section id="changelog" class="py-24 lg:py-40 relative bg-slate-900/5 dark:bg-slate-900/10">
         <div class="content-container">
             <div class="text-center mb-16 lg:mb-24">
@@ -524,66 +525,24 @@
             </div>
 
             <div class="max-w-4xl mx-auto glass-card rounded-[2rem] p-8 lg:p-12 shadow-2xl relative overflow-hidden" data-aos="fade-up">
-                <div class="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none">
-                    <i class="fab fa-github text-9xl" style="color: var(--text-title)"></i>
-                </div>
-
+                <div class="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none"><i class="fab fa-github text-9xl" style="color: var(--text-title)"></i></div>
                 <div id="changelog-loading" class="py-20 text-center">
                     <div class="inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
                     <p class="text-sm" style="color: var(--text-muted)">正在获取更新日志...</p>
                 </div>
-
                 <div id="changelog-content" class="opacity-0 transition-opacity duration-700 hidden">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-10 pb-6 border-b border-slate-200 dark:border-white/5">
                         <div class="mb-4 sm:mb-0 text-left">
                             <span id="release-tag" class="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-bold mr-3 shadow-md">v1.1.0</span>
                             <span id="release-date" class="text-sm tracking-tight" style="color: var(--text-muted)">Released on 2025-12-27</span>
                         </div>
-                        <a id="release-url" href="#" target="_blank" class="text-blue-500 hover:text-blue-600 text-sm font-semibold flex items-center transition-colors">
-                            在 GitHub 上查看 <i class="fas fa-external-link-alt ml-2 text-xs"></i>
-                        </a>
+                        <a id="release-url" href="#" target="_blank" class="text-blue-500 hover:text-blue-600 text-sm font-semibold flex items-center transition-colors">在 GitHub 上查看 <i class="fas fa-external-link-alt ml-2 text-xs"></i></a>
                     </div>
-                    <div id="release-body" class="markdown-body leading-relaxed text-sm sm:text-base text-left overflow-y-auto max-h-[400px] pr-4 custom-scrollbar">
-                        <!-- 内容 -->
-                    </div>
+                    <div id="release-body" class="markdown-body leading-relaxed text-sm sm:text-base text-left overflow-y-auto max-h-[400px] pr-4 custom-scrollbar"></div>
                 </div>
-
                 <div id="changelog-error" class="py-20 text-center hidden">
                     <p class="text-rose-500 mb-6" id="changelog-error-msg">无法获取更新日志</p>
-                    <a href="https://github.com/Junpgle/LearnWord/releases" target="_blank" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:bg-blue-500 transition-colors inline-block">
-                        手动查看 GitHub Releases
-                    </a>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- UI Preview Section -->
-    <section id="preview" class="py-24 lg:py-48 bg-slate-950 relative overflow-hidden">
-        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-blue-500/5 blur-[150px] rounded-full hidden lg:block"></div>
-        <div class="content-container text-center relative z-10">
-            <h2 class="text-3xl lg:text-4xl font-bold mb-16 lg:mb-24 text-white" data-aos="fade-up">极简界面，沉浸学习</h2>
-
-            <div class="shadow-[0_0_80px_rgba(0,120,215,0.12)] rounded-[2rem] lg:rounded-[3rem] overflow-hidden border border-white/10 mx-auto" data-aos="zoom-in-up">
-                <div class="bg-slate-900 px-4 lg:px-8 py-3 lg:py-4 flex justify-between items-center text-[8px] lg:text-[10px] text-slate-400 border-b border-white/5">
-                    <div class="flex items-center"><i class="fas fa-book-open mr-2 text-blue-500"></i>LearnWord</div>
-                    <div class="flex space-x-4 lg:space-x-6 text-slate-500"><span>—</span><span>▢</span><span>✕</span></div>
-                </div>
-                <div class="bg-black p-8 lg:p-24 text-left">
-                    <div class="flex flex-col md:flex-row justify-between items-start mb-16 lg:mb-24">
-                        <h2 class="text-5xl lg:text-6xl font-black text-white tracking-tighter mb-6 lg:mb-0">LearnWord</h2>
-                        <div class="flex space-x-3">
-                            <div class="bg-amber-600/90 hover:bg-amber-500 text-white px-4 lg:px-5 py-1.5 lg:py-2 rounded-xl text-[10px] lg:text-xs font-bold transition-all cursor-pointer">关于</div>
-                            <div class="bg-rose-600/90 hover:bg-rose-500 text-white px-4 lg:px-5 py-1.5 lg:py-2 rounded-xl text-[10px] lg:text-xs font-bold transition-all cursor-pointer whitespace-nowrap">检查更新</div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4 lg:gap-12 max-w-2xl mx-auto">
-                        <div class="software-btn-blue h-24 sm:h-36 rounded-[1.5rem] lg:rounded-[2.5rem] flex items-center justify-center text-lg lg:text-2xl font-black shadow-2xl cursor-pointer transition-all">Learn</div>
-                        <div class="software-btn-blue h-24 sm:h-36 rounded-[1.5rem] lg:rounded-[2.5rem] flex items-center justify-center text-lg lg:text-2xl font-black shadow-2xl cursor-pointer transition-all">Review</div>
-                        <div class="software-btn-blue h-24 sm:h-36 rounded-[1.5rem] lg:rounded-[2.5rem] flex items-center justify-center text-lg lg:text-2xl font-black shadow-2xl cursor-pointer transition-all opacity-90">Test</div>
-                        <div class="software-btn-grey h-24 sm:h-36 rounded-[1.5rem] lg:rounded-[2.5rem] flex items-center justify-center text-sm lg:text-base font-black shadow-2xl cursor-pointer transition-all opacity-90 text-center px-2 text-white">设置</div>
-                    </div>
+                    <a href="https://github.com/Junpgle/LearnWord/releases" target="_blank" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:bg-blue-500 transition-colors inline-block">手动查看 GitHub Releases</a>
                 </div>
             </div>
         </div>
@@ -602,108 +561,204 @@
     </footer>
 
     <script>
-        AOS.init({
-            duration: 1000,
-            once: true,
-            offset: 30,
-            easing: 'ease-out-expo'
-        });
+        AOS.init({ duration: 1000, once: true, offset: 30, easing: 'ease-out-expo' });
 
-        // 通用平滑滚动拦截器
+        // 神经网络背景引擎 - 优化防重叠版
+        const canvas = document.getElementById('neural-bg');
+        const ctx = canvas.getContext('2d', { alpha: true });
+        let particles = [];
+        const words = ['Cognition', 'Neural', 'Language', 'Memorize', 'Efficiency', 'Pattern', 'Knowledge', 'Brain', 'Mastery', 'Logic', 'Sync', 'Data', 'Structure', 'Lexicon', 'Fluent', 'Syntax'];
+
+        class Particle {
+            constructor() {
+                // 1. 初始化基础属性
+                this.word = words[Math.floor(Math.random() * words.length)];
+                this.size = Math.random() * 10 + 35;
+                this.padding = 20;
+                this.alpha = Math.random() * 0.15 + 0.02;
+
+                // 2. 预计算尺寸（优化性能）
+                ctx.font = `700 ${this.size}px Inter, sans-serif`;
+                this.textWidth = ctx.measureText(this.word).width;
+                this.boxW = this.textWidth + this.padding * 2.5;
+                this.boxH = this.size + this.padding * 1.5;
+
+                // 3. 寻找无碰撞位置
+                this.findSafePosition();
+
+                // 4. 初始化运动属性
+                this.angle = Math.random() * Math.PI * 2;
+                this.speed = Math.random() * 0.003 + 0.002;
+                this.range = Math.random() * 6 + 2;
+            }
+
+            findSafePosition() {
+                let attempts = 0;
+                let found = false;
+                // 安全边距：运动范围(~8px) + 视觉间隔(~10px)
+                const margin = 20;
+
+                while (attempts < 100 && !found) {
+                    // 随机尝试位置（避开屏幕边缘）
+                    const edgePadding = 50;
+                    this.baseX = edgePadding + Math.random() * (canvas.width - edgePadding * 2);
+                    this.baseY = edgePadding + Math.random() * (canvas.height - edgePadding * 2);
+
+                    // 碰撞检测（AABB 包围盒检测）
+                    let overlap = false;
+                    for (let p of particles) {
+                        const dx = Math.abs(this.baseX - p.baseX);
+                        const dy = Math.abs(this.baseY - p.baseY);
+
+                        // 计算两矩形中心点的最小不重叠距离
+                        const minDx = (this.boxW + p.boxW) / 2 + margin;
+                        const minDy = (this.boxH + p.boxH) / 2 + margin;
+
+                        if (dx < minDx && dy < minDy) {
+                            overlap = true;
+                            break;
+                        }
+                    }
+
+                    if (!overlap) {
+                        found = true;
+                    }
+                    attempts++;
+                }
+
+                // 如果找不到位置（屏幕太挤），就用最后一次随机的位置（允许重叠以防止死循环）
+                this.x = this.baseX;
+                this.y = this.baseY;
+            }
+
+            update() {
+                this.angle += this.speed;
+                this.x = this.baseX + Math.cos(this.angle) * this.range;
+                this.y = this.baseY + Math.sin(this.angle * 0.8) * this.range;
+            }
+
+            draw() {
+                const isLight = document.body.classList.contains('light-theme');
+                // 空间渐隐逻辑：中心虚，边缘实
+                const dxFromCenter = Math.abs(this.x - canvas.width / 2) / (canvas.width / 2);
+                const spatialAlpha = Math.max(0.2, Math.pow(dxFromCenter, 0.5));
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                // 绘制胶囊
+                ctx.beginPath();
+                ctx.roundRect(-this.boxW/2, -this.boxH/2, this.boxW, this.boxH, this.boxH/2);
+                ctx.fillStyle = isLight ? `rgba(255, 255, 255, ${this.alpha * 0.6 * spatialAlpha})` : `rgba(255, 255, 255, 0.05 * spatialAlpha)`;
+                ctx.fill();
+                ctx.strokeStyle = isLight ? `rgba(0, 120, 215, ${this.alpha * 1.2 * spatialAlpha})` : `rgba(255, 255, 255, ${this.alpha * 0.5 * spatialAlpha})`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // 绘制文字
+                ctx.font = `700 ${this.size}px Inter, sans-serif`;
+                ctx.fillStyle = isLight ? `rgba(0, 120, 215, ${this.alpha * 2.5 * spatialAlpha})` : `rgba(148, 163, 184, ${this.alpha * 2.5 * spatialAlpha})`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(this.word, 0, 3);
+                ctx.restore();
+            }
+        }
+
+        function initNeuralBg() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            particles = [];
+            // 调整密度：避免过于拥挤导致找不到位置 (120000 -> 130000)
+            const count = Math.floor((canvas.width * canvas.height) / 130000);
+
+            // 逐个生成并检测碰撞
+            for (let i = 0; i < Math.max(count, 8); i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function animateNeuralBg() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const isLight = document.body.classList.contains('light-theme');
+            ctx.lineCap = 'round';
+            ctx.lineWidth = 6;
+
+            for (let i = 0; i < particles.length; i++) {
+                let connections = 0;
+                for (let j = i + 1; j < particles.length && connections < 2; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const distSq = dx * dx + dy * dy;
+
+                    const maxDist = 350;
+                    if (distSq < maxDist * maxDist) {
+                        const dist = Math.sqrt(distSq);
+                        const alpha = (1 - dist / maxDist) * 0.2 * Math.min(particles[i].alpha, particles[j].alpha);
+
+                        // 连线中心淡化
+                        const centerWeight = (Math.abs(particles[i].x + particles[j].x - canvas.width) / canvas.width);
+
+                        ctx.beginPath();
+                        ctx.strokeStyle = isLight ? `rgba(0, 120, 215, ${alpha * 2 * centerWeight})` : `rgba(255, 255, 255, ${alpha * 1.5 * centerWeight})`;
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                        connections++;
+                    }
+                }
+            }
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animateNeuralBg);
+        }
+
+        window.addEventListener('resize', initNeuralBg);
+
+        // UI 交互
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 const href = this.getAttribute('href');
                 if (href === '#') return;
-
                 e.preventDefault();
-                const targetId = href.substring(1);
-                const targetElement = document.getElementById(targetId);
-
-                if (targetElement) {
-                    // 使用原生 smooth 行为，配合 CSS 的 scroll-padding-top 实现丝滑跳转
-                    window.scrollTo({
-                        top: targetElement.offsetTop - 80, // 手动偏移补偿（双重保险）
-                        behavior: 'smooth'
-                    });
-
-                    // 如果是移动端菜单，点击后关闭
-                    if (this.classList.contains('mobile-link')) {
-                        document.getElementById('mobile-menu').classList.remove('active');
-                    }
+                const target = document.getElementById(href.substring(1));
+                if (target) {
+                    window.scrollTo({ top: target.offsetTop - 80, behavior: 'smooth' });
+                    document.getElementById('mobile-menu').classList.remove('active');
                 }
             });
         });
 
-        // Logo 返回顶部
-        document.getElementById('logo-btn').addEventListener('click', () => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
+        document.getElementById('logo-btn').addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+        document.getElementById('menu-toggle').addEventListener('click', () => document.getElementById('mobile-menu').classList.toggle('active'));
 
-        const menuToggle = document.getElementById('menu-toggle');
-        const mobileMenu = document.getElementById('mobile-menu');
-        menuToggle.addEventListener('click', () => {
-            mobileMenu.classList.toggle('active');
-            menuToggle.querySelector('i').classList.toggle('fa-bars');
-            menuToggle.querySelector('i').classList.toggle('fa-times');
-        });
-
-        // 主题切换
         const themeToggle = document.getElementById('theme-toggle');
-        const themeIcon = themeToggle.querySelector('i');
-        const themeGuide = document.getElementById('theme-guide');
-
         function setTheme(isLight) {
+            const icon = themeToggle.querySelector('i');
             if (isLight) {
                 document.body.classList.add('light-theme');
-                themeIcon.classList.replace('fa-moon', 'fa-sun');
+                icon.classList.replace('fa-moon', 'fa-sun');
                 localStorage.setItem('theme', 'light');
             } else {
                 document.body.classList.remove('light-theme');
-                themeIcon.classList.replace('fa-sun', 'fa-moon');
+                icon.classList.replace('fa-sun', 'fa-moon');
                 localStorage.setItem('theme', 'dark');
             }
         }
+        themeToggle.addEventListener('click', () => setTheme(!document.body.classList.contains('light-theme')));
 
-        function initTheme() {
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme) {
-                setTheme(savedTheme === 'light');
-            } else {
-                const hour = new Date().getHours();
-                const isNight = hour >= 18 || hour < 6;
-                setTheme(!isNight);
-            }
-            if (!localStorage.getItem('theme_guided')) {
-                themeGuide.classList.remove('hidden');
-                setTimeout(() => { themeGuide.classList.add('hidden'); localStorage.setItem('theme_guided', 'true'); }, 8000);
-            }
-        }
-
-        themeToggle.addEventListener('click', () => {
-            const isLight = document.body.classList.contains('light-theme');
-            setTheme(!isLight);
-            themeGuide.classList.add('hidden');
-            localStorage.setItem('theme_guided', 'true');
-        });
-
-        const typed = new Typed('#typed-text', {
+        new Typed('#typed-text', {
             strings: ['从未如此高效', '竟然如此简单', '只需三个阶段', '支持离线使用'],
-            typeSpeed: 80,
-            backSpeed: 50,
-            backDelay: 2000,
-            loop: true,
-            showCursor: true,
-            cursorChar: '|',
+            typeSpeed: 80, backSpeed: 50, backDelay: 2000, loop: true
         });
 
-        // 模拟轮播
         const mockWords = [
             { word: 'Announcement', cloze: 'A_an_o_ment', def: 'n. 公告，宣告；发表；判决' },
             { word: 'Accomplish', cloze: 'A_c_o_pl_sh', def: 'v. 完成，实现；达到' },
-            { word: 'Vocabulary', cloze: 'V_c_b_u_ary', def: 'n. 词汇，词汇量' },
-            { word: 'Specific', cloze: 'S_e_i_i_c', def: 'adj. 特定的，具体的' }
+            { word: 'Vocabulary', cloze: 'V_c_b_u_ary', def: 'n. 词汇，词汇量' }
         ];
+        const distractors = ["v. 实现，完成", "n. 架构，框架", "adj. 神经的", "n. 词汇量", "v. 同步数据", "n. 逻辑分析"];
         let wordIdx = 0;
+
         async function runMockSimulation() {
             const item = mockWords[wordIdx];
             const indicators = document.querySelectorAll('#mock-indicators span');
@@ -715,43 +770,49 @@
             const inputText = document.getElementById('mock-input-text');
             const mockDef = document.getElementById('mock-def');
 
-            const setIndicators = (count) => {
-                indicators.forEach((s, i) => {
-                    s.style.backgroundColor = i < count ? 'var(--primary)' : 'transparent';
-                    s.style.borderColor = i < count ? 'var(--primary)' : '#334155';
-                });
-            };
-
             const sleep = ms => new Promise(res => setTimeout(res, ms));
-
             const showUI = (el) => {
                 [p1, p2, p3].forEach(u => { u.classList.add('hidden'); u.classList.remove('opacity-100'); });
                 el.classList.remove('hidden');
                 setTimeout(() => el.classList.add('opacity-100'), 50);
             };
 
-            // Phase 1
-            setIndicators(1); phaseLabel.innerText = "Phase 1: Recognition"; mainWord.innerText = item.word;
+            // Phase 1: Recognition
+            indicators.forEach((s, i) => s.style.backgroundColor = i < 1 ? 'var(--primary)' : 'transparent');
+            phaseLabel.innerText = "Phase 1: Recognition";
+            mainWord.innerText = item.word;
+
             const p1Options = document.querySelectorAll('#mock-ui-p1 > div');
             const correctIdx = Math.floor(Math.random() * 4);
-            const correctDef = item.def.split('；')[0].split('，')[0];
             p1Options.forEach((opt, i) => {
-                opt.style.backgroundColor = '';
                 opt.classList.remove('text-blue-500', 'bg-blue-600/20', 'border-blue-500/30');
-                opt.innerText = i === correctIdx ? correctDef : "v. 随机干扰项测试";
+                if (i === correctIdx) {
+                    opt.innerText = item.def.split('；')[0].split('，')[0];
+                } else {
+                    opt.innerText = distractors[Math.floor(Math.random() * distractors.length)];
+                }
             });
-            showUI(p1); await sleep(1800);
-            p1Options[correctIdx].classList.add('text-blue-500', 'bg-blue-600/20', 'border-blue-500/30'); await sleep(1000);
 
-            // Phase 2
-            setIndicators(2); phaseLabel.innerText = "Phase 2: Self-Test"; showUI(p2); await sleep(1500);
-            document.getElementById('mock-btn-know').style.transform = 'scale(0.95)'; await sleep(150);
-            document.getElementById('mock-btn-know').style.transform = ''; await sleep(800);
+            showUI(p1);
+            await sleep(1800);
+            p1Options[correctIdx].classList.add('text-blue-500', 'bg-blue-600/20', 'border-blue-500/30');
+            await sleep(700);
 
-            // Phase 3
-            setIndicators(3); phaseLabel.innerText = "Phase 3: Output"; mainWord.innerText = item.cloze; mockDef.innerText = item.def; showUI(p3);
-            inputText.innerText = ''; await sleep(800);
-            for (let char of item.word) { inputText.innerText += char; await sleep(180); }
+            // Phase 2: Self-Test
+            indicators.forEach((s, i) => s.style.backgroundColor = i < 2 ? 'var(--primary)' : 'transparent');
+            phaseLabel.innerText = "Phase 2: Self-Test";
+            showUI(p2);
+            await sleep(1500);
+
+            // Phase 3: Output
+            indicators.forEach((s, i) => s.style.backgroundColor = i < 3 ? 'var(--primary)' : 'transparent');
+            phaseLabel.innerText = "Phase 3: Output";
+            mainWord.innerText = item.cloze;
+            mockDef.innerText = item.def;
+            showUI(p3);
+            inputText.innerText = '';
+            await sleep(800);
+            for (let char of item.word) { inputText.innerText += char; await sleep(150); }
 
             await sleep(3000);
             wordIdx = (wordIdx + 1) % mockWords.length;
@@ -761,79 +822,44 @@
         async function fetchLatestChangelog() {
             const loading = document.getElementById('changelog-loading');
             const content = document.getElementById('changelog-content');
-            const error = document.getElementById('changelog-error');
-            const errorMsg = document.getElementById('changelog-error-msg');
-            const repo = "Junpgle/LearnWord";
-
             try {
-                loading.classList.remove('hidden');
-                content.classList.add('hidden');
-                error.classList.add('hidden');
-
-                const response = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, {
-                    headers: { 'Accept': 'application/vnd.github.v3+json' }
-                });
-
-                if (response.status === 403) {
-                    throw new Error('API 访问受限（速率限制），请稍后再试。');
-                }
-                if (!response.ok) throw new Error('API Response Error');
-
+                const response = await fetch(`https://api.github.com/repos/Junpgle/LearnWord/releases/latest`);
+                if (!response.ok) throw new Error();
                 const data = await response.json();
-
                 document.getElementById('release-tag').innerText = data.tag_name;
-                const releaseDate = new Date(data.published_at).toLocaleDateString('zh-CN', {
-                    year: 'numeric', month: 'long', day: 'numeric'
-                });
-                document.getElementById('release-date').innerText = `Released on ${releaseDate}`;
+                document.getElementById('release-date').innerText = `Released on ${new Date(data.published_at).toLocaleDateString()}`;
                 document.getElementById('release-url').href = data.html_url;
-
-                const bodyContent = data.body || "暂无详细描述。";
-                document.getElementById('release-body').innerHTML = typeof marked.parse === 'function' ? marked.parse(bodyContent) : bodyContent;
-
-                loading.classList.add('hidden');
-                content.classList.remove('hidden');
+                document.getElementById('release-body').innerHTML = marked.parse(data.body || "暂无描述");
+                loading.classList.add('hidden'); content.classList.remove('hidden');
                 setTimeout(() => content.classList.add('opacity-100'), 50);
-
             } catch (err) {
-                console.warn('Fetch Changelog Warn:', err.message);
-                errorMsg.innerText = err.message || "无法获取更新日志";
-                loading.classList.add('hidden');
-                error.classList.remove('hidden');
-            }
-        }
-
-        function getOS() {
-            const platform = window.navigator.platform;
-            return ['Win32', 'Win64', 'Windows', 'WinCE'].indexOf(platform) !== -1 ? 'Windows' : 'Other';
-        }
-
-        async function updatePageFromManifest() {
-            const manifestUrl = 'https://raw.githubusercontent.com/Junpgle/LearnWord/refs/heads/master/update_manifest.json';
-            const isWindows = getOS() === 'Windows';
-            try {
-                const response = await fetch(manifestUrl);
-                const data = await response.json();
-                document.querySelectorAll('.download-link').forEach(link => {
-                    if (isWindows) { if (data.download_url) link.href = data.download_url; }
-                    else {
-                        link.href = "javascript:void(0)"; link.classList.remove('btn-shine'); link.style.opacity = "0.6"; link.style.cursor = "not-allowed";
-                        link.innerText = "目前仅支持Windows";
-                    }
-                });
-                if (data.latest_version) document.getElementById('version-badge').innerText = `${data.latest_version} STABLE NOW AVAILABLE`;
-            } catch (e) {
-                if (!isWindows) document.querySelectorAll('.download-link').forEach(l => l.innerText = "暂无下载");
+                loading.classList.add('hidden'); document.getElementById('changelog-error').classList.remove('hidden');
             }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            initTheme();
-            updatePageFromManifest();
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) setTheme(savedTheme === 'light');
+            else setTheme(new Date().getHours() >= 6 && new Date().getHours() < 18);
+
+            initNeuralBg();
+            animateNeuralBg();
             runMockSimulation();
             fetchLatestChangelog();
+
+            fetch('https://raw.githubusercontent.com/Junpgle/LearnWord/refs/heads/master/update_manifest.json')
+                .then(r => r.json())
+                .then(d => {
+                    if(d.latest_version) document.getElementById('version-badge').innerText = `${d.latest_version} STABLE NOW AVAILABLE`;
+                    // 修复：同步解析下载链接到所有下载按钮
+                    if (d.download_url) {
+                        document.querySelectorAll('.download-link').forEach(link => {
+                            link.href = d.download_url;
+                        });
+                    }
+                })
+                .catch(() => {});
         });
     </script>
-
 </body>
 </html>
