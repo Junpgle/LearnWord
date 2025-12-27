@@ -563,30 +563,30 @@
     <script>
         AOS.init({ duration: 1000, once: true, offset: 30, easing: 'ease-out-expo' });
 
-        // 神经网络背景引擎 - 优化防重叠版
+        // 神经网络背景引擎 - 优化防重叠版 & 高清适配 & 平台判断
         const canvas = document.getElementById('neural-bg');
         const ctx = canvas.getContext('2d', { alpha: true });
         let particles = [];
         const words = ['Cognition', 'Neural', 'Language', 'Memorize', 'Efficiency', 'Pattern', 'Knowledge', 'Brain', 'Mastery', 'Logic', 'Sync', 'Data', 'Structure', 'Lexicon', 'Fluent', 'Syntax'];
 
+        // 逻辑宽高（用于计算位置），与物理宽高分离，防止拉伸
+        let logicalWidth, logicalHeight;
+
         class Particle {
             constructor() {
-                // 1. 初始化基础属性
                 this.word = words[Math.floor(Math.random() * words.length)];
                 this.size = Math.random() * 10 + 35;
                 this.padding = 20;
                 this.alpha = Math.random() * 0.15 + 0.02;
 
-                // 2. 预计算尺寸（优化性能）
+                // 使用逻辑字体大小进行测量，因为 ctx 已被缩放
                 ctx.font = `700 ${this.size}px Inter, sans-serif`;
                 this.textWidth = ctx.measureText(this.word).width;
                 this.boxW = this.textWidth + this.padding * 2.5;
                 this.boxH = this.size + this.padding * 1.5;
 
-                // 3. 寻找无碰撞位置
                 this.findSafePosition();
 
-                // 4. 初始化运动属性
                 this.angle = Math.random() * Math.PI * 2;
                 this.speed = Math.random() * 0.003 + 0.002;
                 this.range = Math.random() * 6 + 2;
@@ -595,22 +595,18 @@
             findSafePosition() {
                 let attempts = 0;
                 let found = false;
-                // 安全边距：运动范围(~8px) + 视觉间隔(~10px)
                 const margin = 20;
 
                 while (attempts < 100 && !found) {
-                    // 随机尝试位置（避开屏幕边缘）
                     const edgePadding = 50;
-                    this.baseX = edgePadding + Math.random() * (canvas.width - edgePadding * 2);
-                    this.baseY = edgePadding + Math.random() * (canvas.height - edgePadding * 2);
+                    // 使用 logicalWidth/Height 生成位置，确保在可见区域内
+                    this.baseX = edgePadding + Math.random() * (logicalWidth - edgePadding * 2);
+                    this.baseY = edgePadding + Math.random() * (logicalHeight - edgePadding * 2);
 
-                    // 碰撞检测（AABB 包围盒检测）
                     let overlap = false;
                     for (let p of particles) {
                         const dx = Math.abs(this.baseX - p.baseX);
                         const dy = Math.abs(this.baseY - p.baseY);
-
-                        // 计算两矩形中心点的最小不重叠距离
                         const minDx = (this.boxW + p.boxW) / 2 + margin;
                         const minDy = (this.boxH + p.boxH) / 2 + margin;
 
@@ -619,14 +615,9 @@
                             break;
                         }
                     }
-
-                    if (!overlap) {
-                        found = true;
-                    }
+                    if (!overlap) found = true;
                     attempts++;
                 }
-
-                // 如果找不到位置（屏幕太挤），就用最后一次随机的位置（允许重叠以防止死循环）
                 this.x = this.baseX;
                 this.y = this.baseY;
             }
@@ -639,14 +630,11 @@
 
             draw() {
                 const isLight = document.body.classList.contains('light-theme');
-                // 空间渐隐逻辑：中心虚，边缘实
-                const dxFromCenter = Math.abs(this.x - canvas.width / 2) / (canvas.width / 2);
+                const dxFromCenter = Math.abs(this.x - logicalWidth / 2) / (logicalWidth / 2);
                 const spatialAlpha = Math.max(0.2, Math.pow(dxFromCenter, 0.5));
 
                 ctx.save();
                 ctx.translate(this.x, this.y);
-
-                // 绘制胶囊
                 ctx.beginPath();
                 ctx.roundRect(-this.boxW/2, -this.boxH/2, this.boxW, this.boxH, this.boxH/2);
                 ctx.fillStyle = isLight ? `rgba(255, 255, 255, ${this.alpha * 0.6 * spatialAlpha})` : `rgba(255, 255, 255, 0.05 * spatialAlpha)`;
@@ -655,7 +643,6 @@
                 ctx.lineWidth = 1;
                 ctx.stroke();
 
-                // 绘制文字
                 ctx.font = `700 ${this.size}px Inter, sans-serif`;
                 ctx.fillStyle = isLight ? `rgba(0, 120, 215, ${this.alpha * 2.5 * spatialAlpha})` : `rgba(148, 163, 184, ${this.alpha * 2.5 * spatialAlpha})`;
                 ctx.textAlign = "center";
@@ -666,20 +653,36 @@
         }
 
         function initNeuralBg() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            particles = [];
-            // 调整密度：避免过于拥挤导致找不到位置 (120000 -> 130000)
-            const count = Math.floor((canvas.width * canvas.height) / 130000);
+            // 获取设备像素比，处理高清屏模糊
+            const dpr = window.devicePixelRatio || 1;
 
-            // 逐个生成并检测碰撞
+            // 记录逻辑宽高（CSS像素）
+            logicalWidth = window.innerWidth;
+            logicalHeight = window.innerHeight;
+
+            // 设置画布的物理像素大小
+            canvas.width = logicalWidth * dpr;
+            canvas.height = logicalHeight * dpr;
+
+            // 强制设置 CSS 大小，防止拉伸变形
+            canvas.style.width = `${logicalWidth}px`;
+            canvas.style.height = `${logicalHeight}px`;
+
+            // 缩放绘图上下文，使绘图操作只需关注逻辑坐标
+            ctx.scale(dpr, dpr);
+
+            particles = [];
+            // 基于逻辑面积计算粒子数量
+            const count = Math.floor((logicalWidth * logicalHeight) / 130000);
+
             for (let i = 0; i < Math.max(count, 8); i++) {
                 particles.push(new Particle());
             }
         }
 
         function animateNeuralBg() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // 清除逻辑区域
+            ctx.clearRect(0, 0, logicalWidth, logicalHeight);
             const isLight = document.body.classList.contains('light-theme');
             ctx.lineCap = 'round';
             ctx.lineWidth = 6;
@@ -695,9 +698,7 @@
                     if (distSq < maxDist * maxDist) {
                         const dist = Math.sqrt(distSq);
                         const alpha = (1 - dist / maxDist) * 0.2 * Math.min(particles[i].alpha, particles[j].alpha);
-
-                        // 连线中心淡化
-                        const centerWeight = (Math.abs(particles[i].x + particles[j].x - canvas.width) / canvas.width);
+                        const centerWeight = (Math.abs(particles[i].x + particles[j].x - logicalWidth) / logicalWidth);
 
                         ctx.beginPath();
                         ctx.strokeStyle = isLight ? `rgba(0, 120, 215, ${alpha * 2 * centerWeight})` : `rgba(255, 255, 255, ${alpha * 1.5 * centerWeight})`;
@@ -710,6 +711,32 @@
             }
             particles.forEach(p => { p.update(); p.draw(); });
             requestAnimationFrame(animateNeuralBg);
+        }
+
+        // 平台检测函数
+        function checkPlatform() {
+            const isWindows = navigator.platform.indexOf('Win') > -1 || /Windows/i.test(navigator.userAgent);
+
+            if (!isWindows) {
+                document.querySelectorAll('.download-link').forEach(btn => {
+                    // 移除链接，防止跳转
+                    btn.removeAttribute('href');
+                    // 样式变更：灰色、禁用光标
+                    btn.classList.replace('bg-blue-600', 'bg-slate-700');
+                    btn.classList.replace('hover:bg-blue-700', 'hover:bg-slate-600'); // 移除原有 hover
+                    btn.classList.replace('hover:bg-blue-500', 'hover:bg-slate-600');
+                    btn.classList.remove('shadow-blue-600/30'); // 移除蓝色阴影
+                    btn.classList.add('cursor-not-allowed', 'opacity-80', 'shadow-none');
+
+                    // 更改文字内容
+                    btn.innerHTML = '<i class="fas fa-clock mr-2"></i> 敬请期待 (仅限 Windows)';
+
+                    // 添加点击提示
+                    btn.onclick = (e) => {
+                        e.preventDefault();
+                    };
+                });
+            }
         }
 
         window.addEventListener('resize', initNeuralBg);
@@ -842,8 +869,13 @@
             if (savedTheme) setTheme(savedTheme === 'light');
             else setTheme(new Date().getHours() >= 6 && new Date().getHours() < 18);
 
+            // 初始化背景
             initNeuralBg();
             animateNeuralBg();
+
+            // 执行平台检测
+            checkPlatform();
+
             runMockSimulation();
             fetchLatestChangelog();
 
@@ -854,7 +886,10 @@
                     // 修复：同步解析下载链接到所有下载按钮
                     if (d.download_url) {
                         document.querySelectorAll('.download-link').forEach(link => {
-                            link.href = d.download_url;
+                            // 仅当按钮未被禁用时更新链接（避免覆盖“敬请期待”逻辑）
+                            if (!link.classList.contains('cursor-not-allowed')) {
+                                link.href = d.download_url;
+                            }
                         });
                     }
                 })
