@@ -1,6 +1,12 @@
 {
   "announcements": [
     {
+      "version": "v1.2.0",
+      "title": "🎉 欢迎使用LearnWord v1.2.0！",
+      "content": "自该版本起,软件已支持增量更新!",
+      "show_mode": "once"
+    },
+    {
       "version": "v1.1.2",
       "title": "🎉 欢迎使用LearnWord v1.1.2！",
       "content": "该版本新增网页展示、手动获取公告~\n欢迎体验",
