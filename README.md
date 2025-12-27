@@ -20,8 +20,8 @@ LearnWord 是一款专为高效英语词汇记忆打造的现代化桌面应用�
 | **Stage 2** | **记忆自测** | 主动回想释义（遮盖提示） | ➡️ 晋升 Stage 3 | ⬅️ 降级回 Stage 1（强化惩罚） |
 | **Stage 3** | **拼写填空** | 根据语境与提示拼出完整单词 | ✅ 标记为“已掌握” | ⬅️ 降级回 Stage 1 |
 
-#### 📉 艾宾浩斯智能复习
-- 自动将已学单词按遗忘曲线加入复习队列
+#### 📉 智能复习
+- 自动将已学单词加入复习队列
 - 动态调整复习频率，对抗记忆衰退
 
 #### 📝 高压测试模式（Exam Mode）
@@ -46,7 +46,7 @@ LearnWord 是一款专为高效英语词汇记忆打造的现代化桌面应用�
 - **🔄 智能热更新机制**  
   - 启动时自动检测远程 `update_manifest.json`
   - **增量修复**：仅更新变动资源（如修正词库）
-  - **全量更新**：代码逻辑变更时提示下载新版 EXE
+  - **全量更新**：代码逻辑变更时可自动下载并完成更新
 
 ---
 
@@ -56,7 +56,7 @@ LearnWord 是一款专为高效英语词汇记忆打造的现代化桌面应用�
   用户数据存储于 `%APPDATA%\LearnWord\data`，天然支持多用户隔离，无需管理员权限。
 
 - **📦 零依赖运行**  
-  通过 PyInstaller 打包为独立 `.exe`，无需安装 Python 或其他运行环境。
+  通过 PyInstaller 打包为独立 `.exe`，并通过Inno Setup打包成独立安装包文件，无需安装 Python 或其他运行环境。
 
 - **🖥️ 高清适配**  
   内置 **MiSans 字体**，完美支持高 DPI 缩放，告别模糊界面。
@@ -68,9 +68,10 @@ LearnWord 是一款专为高效英语词汇记忆打造的现代化桌面应用�
 想先了解再下载？👉 访问我们的 **[官方介绍网页](https://junpgle.github.io/LearnWord/)** 查看功能演示与界面预览！
 
 ### 👤 普通用户
-1. 访问 [Releases 页面](https://github.com/Junpgle/LearnWord/releases) 下载 `LearnWord.zip`
-2. 解压后直接运行 `LearnWord.exe`（建议创建桌面快捷方式）
-3. 首次启动将自动初始化配置，数据目录：  
+1. 访问 [Releases 页面](https://github.com/Junpgle/LearnWord/releases) 下载安装包`LearnWord.vx.x.x-Setup.exe`
+2. 双击安装包进行软件安装
+3. 大功告成!
+4. 首次启动将自动初始化配置，数据目录：  
    `C:\Users\<用户名>\AppData\Roaming\LearnWord\data`
 
 ### 👨‍💻 开发者
@@ -145,11 +146,7 @@ pyinstaller --noconfirm --onedir --windowed `
 2. 在 `dev` 分支开发（如新增词库解析、UI 优化）
 3. 提交 Pull Request
 
----
 
-## 📄 许可证
-
-本项目基于 **MIT License** 开源。
 
 > Copyright © 2025 Junpgle  
 > 允许自由使用、修改与分发，但须保留原作者版权声明。
