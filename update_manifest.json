@@ -1,7 +1,8 @@
 {
-  "latest_version": "v1.2.3",
-  "release_date": "2025-12-27",
+  "latest_version": "v1.2.4",
+  "release_date": "2025-12-31",
   "update_notes": [
+    "支持了视频壁纸!!!",
     "1. 设置界面支持管理历史进度文件",
     "2. 首页公告优化了呈现效果",
     "3. 首页新增壁纸轮播, ",
@@ -9,12 +10,12 @@
     "5. Learn模块优化:每天只随机抽取同一批词",
     "6. 公告、关于和检查更新均进行格式优化",
     "优化了使用体验~",
-    "今天狂更五个版本,燃尽了,有缘再会"
+    "今天狂更六个版本,燃尽了,有缘再会"
   ],
-  "download_url": "https://github.com/Junpgle/LearnWord/releases/download/v1.2.3/LearnWord.v1.2.3-Setup.exe",
+  "download_url": "https://github.com/Junpgle/LearnWord/releases/download/v1.2.4/LearnWord.v1.2.4-Setup.exe",
   "patches": {
-    "v1.2.0": "https://github.com/Junpgle/LearnWord/releases/download/v1.2.3/update_patch_v1.2.0to_v1.2.3.zip",
-    "v1.2.1": "https://github.com/Junpgle/LearnWord/releases/download/v1.2.3/update_patch_v1.2.1to_v1.2.3.zip",
-    "v1.2.2": "https://github.com/Junpgle/LearnWord/releases/download/v1.2.3/update_patch_v1.2.2to_v1.2.3.zip"
+    "v1.2.0": "https://github.com/Junpgle/LearnWord/releases/download/v1.2.4/update_patch_v1.2.0to_v1.2.4.zip",
+    "v1.2.1": "https://github.com/Junpgle/LearnWord/releases/download/v1.2.4/update_patch_v1.2.1to_v1.2.4.zip",
+    "v1.2.2": "https://github.com/Junpgle/LearnWord/releases/download/v1.2.4/update_patch_v1.2.2to_v1.2.4.zip"
   }
 }
