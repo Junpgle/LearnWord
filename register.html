@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LearnWord 账号注册</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 LeanCloud JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.12.0/dist/av-min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', 'MiSans', system-ui, -apple-system, sans-serif;
+            background: #0f172a;
+            background-image:
+                radial-gradient(at 0% 0%, rgba(30, 64, 175, 0.3) 0, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(30, 58, 138, 0.3) 0, transparent 50%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4">
+
+    <div class="w-full max-w-md p-8 rounded-3xl glass-card shadow-2xl">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-500/30">
+                <span class="text-3xl">🌟</span>
+            </div>
+            <h1 class="text-2xl font-bold text-white mb-2">创建新账号</h1>
+            <p class="text-slate-400">注册后即可同步你的 LearnWord 学习进度</p>
+        </div>
+
+        <!-- Form -->
+        <div class="space-y-5">
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5 ml-1">用户名</label>
+                <input type="text" id="username"
+                    class="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder="请输入你的学名">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5 ml-1">密码</label>
+                <input type="password" id="password"
+                    class="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder="设置一个安全的密码">
+            </div>
+
+            <button id="reg-btn"
+                class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 transition-all">
+                立即注册
+            </button>
+        </div>
+
+        <!-- Message Area -->
+        <div id="message" class="mt-6 text-center text-sm hidden p-3 rounded-lg"></div>
+
+        <!-- Footer -->
+        <div class="mt-8 pt-6 border-t border-slate-800 text-center">
+            <p class="text-slate-500 text-xs">
+                注册即表示同意使用 LeanCloud 云端同步服务
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. 配置信息 (请务必与 user_manager.py 保持一致) ---
+        const APP_ID = "5wPsbnakcoOjfaPzfC44vfW5-gzGzoHsz"
+        const APP_KEY = "j9qbdfjiJAPsqbGUy04COFTD"
+        const server_url = "https://5wpsbnak.lc-cn-n1-shared.com"
+
+        // --- 2. 初始化 SDK ---
+        AV.init({
+            appId: APP_ID,
+            appKey: APP_KEY,
+            serverURL: SERVER_URL
+        });
+
+        const btn = document.getElementById('reg-btn');
+        const msgDiv = document.getElementById('message');
+
+        function showMessage(text, isError = false) {
+            msgDiv.innerText = text;
+            msgDiv.classList.remove('hidden', 'bg-red-500/10', 'text-red-400', 'bg-green-500/10', 'text-green-400');
+            if (isError) {
+                msgDiv.classList.add('bg-red-500/10', 'text-red-400');
+            } else {
+                msgDiv.classList.add('bg-green-500/10', 'text-green-400');
+            }
+        }
+
+        // --- 3. 注册逻辑 ---
+        btn.onclick = async () => {
+            const user = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value.trim();
+
+            if (!user || !pass) {
+                showMessage("用户名或密码不能为空", true);
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "正在注册...";
+
+            const newUser = new AV.User();
+            newUser.setUsername(user);
+            newUser.setPassword(pass);
+
+            try {
+                await newUser.signUp();
+                showMessage("🎉 注册成功！你现在可以在客户端登录了。");
+                btn.innerText = "注册成功";
+                btn.classList.replace('bg-blue-600', 'bg-green-600');
+            } catch (error) {
+                btn.disabled = false;
+                btn.innerText = "立即注册";
+
+                // 解析 LeanCloud 错误码
+                let errorMsg = error.message;
+                if (error.code === 202) errorMsg = "该用户名已被占用";
+                showMessage("注册失败: " + errorMsg, true);
+            }
+        };
+    </script>
+</body>
+</html>
