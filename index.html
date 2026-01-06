@@ -207,6 +207,10 @@
                 <a href="#detailed-features" class="nav-link hover:text-blue-400 transition-colors" style="color: var(--text-nav)">模块详解</a>
                 <a href="#update-mechanism" class="nav-link hover:text-blue-400 transition-colors" style="color: var(--text-nav)">更新机制</a>
                 <a href="#changelog" class="nav-link hover:text-blue-400 transition-colors" style="color: var(--text-nav)">版本记录</a>
+                <!-- ★★★ 新增：注册/登录链接 ★★★ -->
+                <a href="./register.html" class="nav-link hover:text-blue-400 transition-colors font-bold flex items-center" style="color: var(--text-nav)">
+                    <i class="fas fa-user-circle mr-2"></i>注册/登录
+                </a>
             </div>
 
             <div class="flex items-center space-x-3 lg:space-x-5">
@@ -234,6 +238,8 @@
             <a href="#detailed-features" class="mobile-link" style="color: var(--text-nav)">模块详解</a>
             <a href="#update-mechanism" class="mobile-link" style="color: var(--text-nav)">更新机制</a>
             <a href="#changelog" class="mobile-link" style="color: var(--text-nav)">版本记录</a>
+            <!-- ★★★ 新增：手机版注册入口 ★★★ -->
+            <a href="./register.html" class="mobile-link font-bold text-blue-400" style="color: var(--text-nav)">账号同步(登录/注册)</a>
             <a href="https://github.com/Junpgle/LearnWord/releases" class="download-link bg-blue-600 text-white px-8 py-2.5 rounded-full text-sm font-bold">Windows 下载</a>
         </div>
     </header>
@@ -262,8 +268,9 @@
                     </a>
 
                     <div class="flex items-center gap-3 w-full sm:w-auto">
-                        <a href="#methodology" class="nav-link glass-card flex-1 sm:flex-none px-6 lg:px-8 py-4 rounded-2xl font-bold hover:opacity-80 transition flex items-center justify-center border-white/10" style="color: var(--text-title)">
-                            查看特性
+                        <!-- ★★★ 修改：将原有的 Github 按钮替换为更显著的“注册/同步”入口 ★★★ -->
+                        <a href="./register.html" class="glass-card flex-1 sm:flex-none px-6 lg:px-8 py-4 rounded-2xl font-bold hover:bg-blue-600/10 transition flex items-center justify-center border-white/10" style="color: var(--text-title)">
+                            <i class="fas fa-sync-alt mr-2 text-lg"></i>云端注册/同步
                         </a>
                         <a href="https://github.com/Junpgle/LearnWord" target="_blank" class="glass-card flex-1 sm:flex-none px-6 lg:px-8 py-4 rounded-2xl font-bold hover:opacity-80 transition flex items-center justify-center border-white/10" style="color: var(--text-title)">
                             <i class="fab fa-github mr-2 text-lg"></i>GitHub
@@ -728,8 +735,9 @@
                     btn.classList.remove('shadow-blue-600/30'); // 移除蓝色阴影
                     btn.classList.add('cursor-not-allowed', 'opacity-80', 'shadow-none');
 
-                    // 更改文字内容
-                    btn.innerHTML = '<i class="fas fa-clock mr-2"></i> 敬请期待 (仅限 Windows)';
+                    // 覆盖文字内容时，只在 download-link 上覆盖
+                    const text = btn.id.includes('hero') ? ' Windows 下载' : 'Windows 下载';
+                    btn.innerHTML = `<i class="fas fa-clock mr-2"></i> 敬请期待 (${text})`;
 
                     // 添加点击提示
                     btn.onclick = (e) => {

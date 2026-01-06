@@ -19,13 +19,14 @@ from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput, QVideoSink
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QLabel, QPushButton, QGridLayout, QHBoxLayout, QMessageBox, QDialog,
-    QScrollArea
+    QScrollArea, QFrame, QStackedWidget, QLineEdit
 )
 
 from learn_window import LearnWindow
 from review_window import ReviewWindow
 from setting_window import SettingWindow
 from test_window import TestWindow
+from user_manager import UserManager
 from vocab_model import VocabModel
 
 # 设定当前程序版本号
@@ -41,6 +42,183 @@ def get_resource_path(relative_path):
         base_path = os.getcwd()
     return os.path.join(base_path, relative_path)
 
+
+# =================================================================
+# 账号状态组件 (AccountPanel) - 优化逻辑版
+# =================================================================
+class AccountPanel(QFrame):
+    """
+    状态区域：
+    Index 0: 登录入口 (只有一个登录按钮)
+    Index 1: 登录表单 (输入账号密码)
+    Index 2: 已登录状态 (头像 + 昵称)
+    """
+    login_success = Signal(str)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.user_manager = UserManager()  # 必须添加这一行
+        self.setFixedWidth(260)
+        self.setObjectName("AccountPanel")
+
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(15, 25, 15, 25)
+        self.main_layout.setSpacing(10)
+
+        self.stack = QStackedWidget()
+
+        # --- 1. 登录入口页 (简洁) ---
+        self.entry_page = QWidget()
+        entry_lyt = QVBoxLayout(self.entry_page)
+        entry_lyt.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        entry_icon = QLabel("👤")
+        entry_icon.setStyleSheet("font-size: 48px; color: rgba(255,255,255,0.3); margin-bottom: 10px;")
+        entry_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.btn_goto_login = QPushButton("登录账户")
+        self.btn_goto_login.setFixedSize(160, 45)
+        self.btn_goto_login.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_goto_login.clicked.connect(lambda: self.stack.setCurrentIndex(1))
+        self.btn_goto_login.setStyleSheet("""
+            QPushButton {
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 12px;
+                color: white;
+                font-weight: bold;
+                font-size: 15px;
+            }
+            QPushButton:hover { background: rgba(255, 255, 255, 0.15); border: 1px solid #3b82f6; }
+        """)
+
+        entry_lyt.addStretch()
+        entry_lyt.addWidget(entry_icon)
+        entry_lyt.addWidget(self.btn_goto_login)
+        entry_lyt.addStretch()
+
+        # --- 2. 登录表单页 ---
+        self.form_page = QWidget()
+        form_lyt = QVBoxLayout(self.form_page)
+        form_lyt.setSpacing(12)
+
+        title = QLabel("用户登录")
+        title.setFont(QFont("MiSans", 15, QFont.Weight.Bold))
+        title.setStyleSheet("color: white; margin-bottom: 5px;")
+
+        self.user_input = QLineEdit()
+        self.user_input.setPlaceholderText("用户名")
+        self.pwd_input = QLineEdit()
+        self.pwd_input.setPlaceholderText("密码")
+        self.pwd_input.setEchoMode(QLineEdit.EchoMode.Password)
+
+        input_style = """
+            QLineEdit {
+                background: rgba(255, 255, 255, 0.08);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 8px;
+                padding: 10px;
+                color: white;
+            }
+            QLineEdit:focus { border: 1px solid #3b82f6; background: rgba(255, 255, 255, 0.12); }
+        """
+        self.user_input.setStyleSheet(input_style)
+        self.pwd_input.setStyleSheet(input_style)
+
+        btn_do_login = QPushButton("确认登录")
+        btn_do_login.setFixedHeight(40)
+        btn_do_login.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_do_login.clicked.connect(self._handle_login)
+        btn_do_login.setStyleSheet("""
+            QPushButton { background: #2563eb; color: white; border-radius: 8px; font-weight: bold; }
+            QPushButton:hover { background: #3b82f6; }
+        """)
+
+        btn_back = QPushButton("返回")
+        btn_back.clicked.connect(lambda: self.stack.setCurrentIndex(0))
+        btn_back.setStyleSheet("color: #888; background: transparent; border: none; font-size: 12px;")
+        btn_back.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        form_lyt.addWidget(title)
+        form_lyt.addWidget(self.user_input)
+        form_lyt.addWidget(self.pwd_input)
+        form_lyt.addWidget(btn_do_login)
+        form_lyt.addWidget(btn_back)
+        form_lyt.addStretch()
+
+        # --- 3. 个人信息页 (已登录) ---
+        self.profile_page = QWidget()
+        profile_lyt = QVBoxLayout(self.profile_page)
+        profile_lyt.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
+
+        self.avatar_lbl = QLabel()
+        self.avatar_lbl.setFixedSize(80, 80)
+        self.avatar_lbl.setObjectName("UserAvatar")
+        # 默认使用 Emoji 作为头像，也可以替换为图片
+        self.avatar_lbl.setText("🌟")
+        self.avatar_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.avatar_lbl.setStyleSheet("""
+            #UserAvatar {
+                background: qradialgradient(cx:0.5, cy:0.5, radius:0.5, fx:0.5, fy:0.5, stop:0 rgba(59, 130, 246, 0.4), stop:1 rgba(37, 99, 235, 0.1));
+                border: 2px solid rgba(255, 255, 255, 0.2);
+                border-radius: 40px;
+                font-size: 40px;
+            }
+        """)
+
+        self.username_lbl = QLabel("用户名")
+        self.username_lbl.setFont(QFont("MiSans", 16, QFont.Weight.Bold))
+        self.username_lbl.setStyleSheet("color: #ffffff; margin-top: 10px;")
+        self.username_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.status_tag = QLabel("同步已开启")
+        self.status_tag.setStyleSheet("""
+            color: #4ade80; background: rgba(74, 222, 128, 0.1); 
+            padding: 2px 10px; border-radius: 10px; font-size: 11px; margin-top: 5px;
+        """)
+        self.status_tag.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        btn_logout = QPushButton("退出登录")
+        btn_logout.setFixedWidth(100)
+        btn_logout.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_logout.clicked.connect(lambda: self.stack.setCurrentIndex(0))
+        btn_logout.setStyleSheet("""
+            QPushButton { background: transparent; color: #ff4d4f; border: 1px solid rgba(255,77,79,0.3); border-radius: 6px; padding: 4px; font-size: 12px; margin-top: 30px;}
+            QPushButton:hover { background: rgba(255,77,79,0.1); border: 1px solid #ff4d4f; }
+        """)
+
+        profile_lyt.addSpacing(20)
+        profile_lyt.addWidget(self.avatar_lbl, 0, Qt.AlignmentFlag.AlignCenter)
+        profile_lyt.addWidget(self.username_lbl, 0, Qt.AlignmentFlag.AlignCenter)
+        profile_lyt.addWidget(self.status_tag, 0, Qt.AlignmentFlag.AlignCenter)
+        profile_lyt.addStretch()
+        profile_lyt.addWidget(btn_logout, 0, Qt.AlignmentFlag.AlignCenter)
+
+        self.stack.addWidget(self.entry_page)
+        self.stack.addWidget(self.form_page)
+        self.stack.addWidget(self.profile_page)
+        self.main_layout.addWidget(self.stack)
+
+        self.setStyleSheet("""
+            #AccountPanel {
+                background: rgba(20, 25, 40, 0.45);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 24px;
+            }
+        """)
+
+    def _handle_login(self):
+        user = self.user_input.text()
+        pwd = self.pwd_input.text()
+        if user:
+            # 必须真正调用登录方法，后台状态才会改变
+            success, msg = self.user_manager.login(user, pwd)
+            if success:
+                self.username_lbl.setText(user)
+                self.stack.setCurrentIndex(2)
+                self.login_success.emit(user)
+            else:
+                QMessageBox.warning(self, "登录失败", msg)
 
 # =================================================================
 # 梦幻背景组件 (DreamyBackground)
@@ -388,9 +566,6 @@ class AnnouncementLoader(QObject):
             self.signal_result.emit(False, str(e))
 
 
-# =================================================================
-# ★★★ 公共基类: FramelessDialog ★★★
-# =================================================================
 # =================================================================
 # ★★★ 公共基类: FramelessDialog ★★★
 # =================================================================
@@ -1116,150 +1291,160 @@ class MainWindow(QMainWindow):
         self.setFixedSize(1000, 700)
         self.setWindowIcon(QIcon(get_resource_path("icon.ico")))
 
-        # --- 设置无边框窗口 ---
+        # --- 窗口属性设置 ---
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowSystemMenuHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
+        # 梦幻背景作为中心控件
         self.central = DreamyBackground(self)
         self.setCentralWidget(self.central)
 
+        self.ann_thread = None
+        self.ann_worker = None
+
+        # 状态变量
         self.is_manual_check = False
         self.is_manual_announcement_check = False
         self.drag_pos = None
+        self.is_ann_loading = False
 
-        self.layout = QVBoxLayout(self.central)
-        self.layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
+        # --- 布局构建 ---
+        # 总布局 (垂直)：顶部栏 + 中间内容区
+        self.main_v_layout = QVBoxLayout(self.central)
+        self.main_v_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_v_layout.setSpacing(0)
 
-        # 1. 顶部栏
-        top_bar_layout = QHBoxLayout()
-        top_bar_layout.setContentsMargins(20, 15, 20, 0)
-        top_bar_layout.setSpacing(15)
+        # 1. 初始化顶部工具栏
+        self._setup_top_bar()
 
+        # 2. 中间主体内容区 (水平布局)：左侧账号 + 右侧功能
+        self.content_h_layout = QHBoxLayout()
+        self.content_h_layout.setContentsMargins(50, 20, 50, 60)
+        self.content_h_layout.setSpacing(60)
+
+        # 2.1 添加左侧账号面板 (你要求的：登录在此显示)
+        self.account_panel = AccountPanel(self)
+        self.content_h_layout.addWidget(self.account_panel, 0, Qt.AlignmentFlag.AlignVCenter)
+
+        # 2.2 添加右侧功能网格
+        self._setup_grid_buttons()
+
+        # 将水平内容区加入总布局
+        self.main_v_layout.addLayout(self.content_h_layout, 1)
+
+        # --- 样式应用 ---
+        self._apply_styles()
+
+        # --- 启动后台任务 ---
+        self._start_wallpaper_load()
+        self._start_sentence_load()
+        self._start_announcement_load()
+        self._start_update_check()
+
+
+        # 初始化子窗口对象
+        self.learn_win = None
+        self.review_win = None
+        self.test_win = None
+        self.setting_win = None
+
+    def _setup_top_bar(self):
+        """构建窗口顶部栏：标题、公告、关于、控制按钮"""
+        top_bar_widget = QWidget()
+        top_bar_widget.setFixedHeight(90)
+        layout = QHBoxLayout(top_bar_widget)
+        layout.setContentsMargins(40, 30, 40, 0)
+
+        # 标题
         self.title = QLabel("LearnWord")
-        self.title.setFont(QFont("MiSans", 34, QFont.Weight.Bold))
-        self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.title.setStyleSheet("background-color: transparent; color: #ffffff;")
+        self.title.setFont(QFont("MiSans", 32, QFont.Weight.Bold))
+        self.title.setStyleSheet("color: white; background: transparent;")
+        layout.addWidget(self.title)
 
-        top_bar_layout.addWidget(self.title)
-        top_bar_layout.addStretch()
+        layout.addStretch()
 
-        # 功能按钮
+        # 公告、关于、检查更新 (做成小按钮)
         self.btn_announcement = QPushButton("公告")
-        self.btn_announcement.setObjectName("ann_btn")
         self.btn_announcement.clicked.connect(self._on_announcement_clicked)
 
         self.btn_about = QPushButton("关于")
-        self.btn_about.setObjectName("about_btn")
         self.btn_about.clicked.connect(self._about)
 
         self.btn_update = QPushButton("检查更新")
-        self.btn_update.setObjectName("update_check_btn")
         self.btn_update.clicked.connect(self._start_update_check)
 
         for btn in [self.btn_announcement, self.btn_about, self.btn_update]:
-            btn.setFixedSize(90, 40)
+            btn.setFixedSize(80, 32)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_update.setFixedSize(100, 40)
+            layout.addWidget(btn)
 
-        top_bar_layout.addWidget(self.btn_announcement)
-        top_bar_layout.addWidget(self.btn_about)
-        top_bar_layout.addWidget(self.btn_update)
+        layout.addSpacing(20)
 
-        # 窗口控制按钮
-        top_bar_layout.addSpacing(15)
+        # 系统控制
         self.btn_min = QPushButton("－")
-        self.btn_min.setFixedSize(40, 40)
-        self.btn_min.setObjectName("sys_btn_min")
-        self.btn_min.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_min.setFixedSize(32, 32)
         self.btn_min.clicked.connect(self.showMinimized)
 
         self.btn_close = QPushButton("×")
-        self.btn_close.setFixedSize(40, 40)
-        self.btn_close.setObjectName("sys_btn_close")
-        self.btn_close.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_close.setFixedSize(32, 32)
         self.btn_close.clicked.connect(self.close)
 
-        top_bar_layout.addWidget(self.btn_min)
-        top_bar_layout.addWidget(self.btn_close)
+        layout.addWidget(self.btn_min)
+        layout.addWidget(self.btn_close)
 
-        self.layout.addLayout(top_bar_layout)
-        self.layout.addSpacing(30)
-        self.layout.addStretch(1)
+        self.main_v_layout.addWidget(top_bar_widget)
 
-        # 2. 功能按钮网格
-        grid = QGridLayout()
-        grid.setSpacing(40)
+    def _setup_grid_buttons(self):
+        """构建右侧四个功能大按钮"""
+        grid_widget = QWidget()
+        grid = QGridLayout(grid_widget)
+        grid.setSpacing(35)
+
         self.btn_learn = QPushButton("Learn")
         self.btn_review = QPushButton("Review")
         self.btn_test = QPushButton("Test")
         self.btn_setting = QPushButton("设置")
 
-        for b in [self.btn_learn, self.btn_review, self.btn_test, self.btn_setting]:
-            b.setFixedSize(200, 100)
-            b.setFont(QFont("MiSans", 16, QFont.Weight.Bold))
+        # 绑定点击事件
+        self.btn_learn.clicked.connect(self.open_learn)
+        self.btn_review.clicked.connect(self.open_review)
+        self.btn_test.clicked.connect(self.open_test)
+        self.btn_setting.clicked.connect(self.open_setting)
+
+        for i, b in enumerate([self.btn_learn, self.btn_review, self.btn_test, self.btn_setting]):
+            b.setFixedSize(220, 115)
+            b.setFont(QFont("MiSans", 18, QFont.Weight.Bold))
             b.setCursor(Qt.CursorShape.PointingHandCursor)
-            b.setObjectName(f"mode_btn_{b.text().lower()}")
+            b.setObjectName(f"mode_btn_{i}")
 
         grid.addWidget(self.btn_learn, 0, 0)
         grid.addWidget(self.btn_review, 0, 1)
         grid.addWidget(self.btn_test, 1, 0)
         grid.addWidget(self.btn_setting, 1, 1)
 
-        grid_container = QHBoxLayout()
-        grid_container.addStretch()
-        grid_container.addLayout(grid)
-        grid_container.addStretch()
+        self.content_h_layout.addWidget(grid_widget, 1, Qt.AlignmentFlag.AlignCenter)
 
-        self.layout.addLayout(grid_container)
-        self.layout.addStretch(1)
+    def _apply_styles(self):
+        """统一管理主界面 QSS"""
+        self.setStyleSheet("""
+            QLabel { background: transparent; }
+            QPushButton { border: none; border-radius: 12px; color: white; background: rgba(255, 255, 255, 0.08); }
+            QPushButton:hover { background: rgba(255, 255, 255, 0.15); }
 
-        self.learn_win = None
-        self.review_win = None
-        self.test_win = None
-        self.setting_win = None
+            /* 功能按钮样式 */
+            #mode_btn_0, #mode_btn_1, #mode_btn_2 { 
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 rgba(37, 99, 235, 0.6), stop:1 rgba(29, 78, 216, 0.4)); 
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            #mode_btn_0:hover, #mode_btn_1:hover, #mode_btn_2:hover { background: rgba(37, 99, 235, 0.85); }
 
-        self.btn_learn.clicked.connect(self.open_learn)
-        self.btn_review.clicked.connect(self.open_review)
-        self.btn_test.clicked.connect(self.open_test)
-        self.btn_setting.clicked.connect(self.open_setting)
+            /* 设置按钮样式 */
+            #mode_btn_3 { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); }
 
-        self.center_on_screen()
-
-        # 样式表
-        self.central.setStyleSheet("""
-            QLabel { color: #ffffff; background-color: transparent; }
-            QPushButton { border: none; border-radius: 18px; font-weight: 700; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); }
-
-            #mode_btn_learn, #mode_btn_review, #mode_btn_test { background-color: rgba(0, 120, 215, 0.85); color: white; border: 1px solid rgba(255, 255, 255, 0.1); }
-            #mode_btn_learn:hover, #mode_btn_review:hover, #mode_btn_test:hover { background-color: rgba(51, 154, 240, 0.95); }
-
-            #mode_btn_设置 { background-color: rgba(149, 165, 166, 0.85); color: white; border: 1px solid rgba(255, 255, 255, 0.1); }
-            #mode_btn_设置:hover { background-color: rgba(127, 140, 141, 0.95); }
-
-            #update_check_btn { background-color: rgba(231, 76, 60, 0.9); color: white; border-radius: 10px; font-size: 14px; }
-            #update_check_btn:hover { background-color: #c0392b; }
-
-            #about_btn { background-color: rgba(255, 165, 0, 0.9); color: white; border-radius: 10px; font-size: 14px; }
-            #about_btn:hover { background-color: #e69500; }
-
-            #ann_btn { background-color: rgba(46, 204, 113, 0.9); color: white; border-radius: 10px; font-size: 14px; }
-            #ann_btn:hover { background-color: #27ae60; }
-
-            #sys_btn_min { background-color: rgba(255, 255, 255, 0.15); color: white; border-radius: 20px; font-size: 20px; padding-bottom: 3px; }
-            #sys_btn_min:hover { background-color: rgba(255, 255, 255, 0.3); }
-
-            #sys_btn_close { background-color: rgba(255, 255, 255, 0.15); color: white; border-radius: 20px; font-size: 24px; padding-bottom: 2px; }
-            #sys_btn_close:hover { background-color: #e81123; color: white; }
+            /* 顶部系统按钮 */
+            QPushButton[text="－"], QPushButton[text="×"] { background: rgba(255, 255, 255, 0.1); border-radius: 16px; font-size: 18px; }
+            QPushButton[text="×"]:hover { background: #e81123; }
         """)
-
-        self.ann_thread = None
-        self.update_thread = None
-        self.is_ann_loading = False
-
-        self._start_wallpaper_load()
-        self._start_sentence_load()
-        self._start_announcement_load()
-        self._start_update_check()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -1467,32 +1652,26 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def _start_announcement_load(self):
-        # 1. 标记为正在加载
         self.is_ann_loading = True
 
-        # 2. 清理旧线程 (这是报错的地方，我们需要加异常捕获)
+        # ★★★ 优化：更安全的旧线程清理 ★★★
         if self.ann_thread is not None:
             try:
-                # 尝试断开信号，防止旧线程意外触发回调
-                try:
-                    self.ann_worker.signal_result.disconnect()
-                except Exception:
-                    pass
+                if self.ann_worker is not None:
+                    try:
+                        self.ann_worker.signal_result.disconnect()
+                    except (RuntimeError, TypeError):
+                        pass
 
-                # ★★★ 核心修复：加 try...except 捕获 RuntimeError ★★★
-                # 如果 C++ 对象已经被删除了，访问 .quit() 会崩溃
-                # 我们捕获这个错误，假装无事发生
                 if self.ann_thread.isRunning():
                     self.ann_thread.quit()
-                self.ann_thread.deleteLater()
-
+                    self.ann_thread.wait(1000)  # 等待最多1秒
             except RuntimeError:
-                # 捕获 "Internal C++ object already deleted"
-                # 说明它已经被自动清理了，这很好，我们不用管它了
                 pass
+            finally:
+                self.ann_thread = None
+                self.ann_worker = None
 
-            # 无论如何，把 Python 变量置空
-            self.ann_thread = None
 
         # 3. 启动新线程 (保持不变)
         self.ann_thread = QThread()
@@ -1514,8 +1693,6 @@ class MainWindow(QMainWindow):
         self.btn_announcement.setEnabled(True)
         self.btn_announcement.setText("公告")
 
-        # ... (后续处理逻辑保持不变) ...
-        # (例如：判断 is_manual_announcement_check 来弹窗的代码)
         if not success:
             if self.is_manual_announcement_check:
                 QMessageBox.warning(self, "获取失败", f"无法获取公告: {data_or_error}")
