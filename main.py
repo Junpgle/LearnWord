@@ -57,7 +57,9 @@ class AccountPanel(QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.user_manager = UserManager()  # 必须添加这一行
+        # 初始化用户管理器
+        self.user_manager = UserManager()
+
         self.setFixedWidth(260)
         self.setObjectName("AccountPanel")
 
@@ -125,6 +127,7 @@ class AccountPanel(QFrame):
         self.user_input.setStyleSheet(input_style)
         self.pwd_input.setStyleSheet(input_style)
 
+        # 确认登录按钮
         btn_do_login = QPushButton("确认登录")
         btn_do_login.setFixedHeight(40)
         btn_do_login.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -133,6 +136,23 @@ class AccountPanel(QFrame):
             QPushButton { background: #2563eb; color: white; border-radius: 8px; font-weight: bold; }
             QPushButton:hover { background: #3b82f6; }
         """)
+
+        # ★★★ 新增：网页注册按钮 ★★★
+        self.btn_web_register = QPushButton("还没有账号? 网页注册")
+        self.btn_web_register.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_web_register.setStyleSheet("""
+            QPushButton { 
+                color: #3b82f6; 
+                background: transparent; 
+                border: none; 
+                font-size: 12px; 
+                text-decoration: underline; 
+            }
+            QPushButton:hover { color: #60a5fa; }
+        """)
+        # 绑定跳转逻辑（请替换为你的实际部署地址）
+        reg_url = "https://junpgle.github.io/LearnWord/register.html"
+        self.btn_web_register.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(reg_url)))
 
         btn_back = QPushButton("返回")
         btn_back.clicked.connect(lambda: self.stack.setCurrentIndex(0))
@@ -143,6 +163,7 @@ class AccountPanel(QFrame):
         form_lyt.addWidget(self.user_input)
         form_lyt.addWidget(self.pwd_input)
         form_lyt.addWidget(btn_do_login)
+        form_lyt.addWidget(self.btn_web_register, 0, Qt.AlignmentFlag.AlignCenter)  # 添加注册按钮
         form_lyt.addWidget(btn_back)
         form_lyt.addStretch()
 
@@ -154,7 +175,6 @@ class AccountPanel(QFrame):
         self.avatar_lbl = QLabel()
         self.avatar_lbl.setFixedSize(80, 80)
         self.avatar_lbl.setObjectName("UserAvatar")
-        # 默认使用 Emoji 作为头像，也可以替换为图片
         self.avatar_lbl.setText("🌟")
         self.avatar_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.avatar_lbl.setStyleSheet("""
@@ -208,10 +228,10 @@ class AccountPanel(QFrame):
         """)
 
     def _handle_login(self):
-        user = self.user_input.text()
-        pwd = self.pwd_input.text()
-        if user:
-            # 必须真正调用登录方法，后台状态才会改变
+        user = self.user_input.text().strip()
+        pwd = self.pwd_input.text().strip()
+        if user and pwd:
+            # 真正调用 UserManager 执行登录
             success, msg = self.user_manager.login(user, pwd)
             if success:
                 self.username_lbl.setText(user)
@@ -219,6 +239,8 @@ class AccountPanel(QFrame):
                 self.login_success.emit(user)
             else:
                 QMessageBox.warning(self, "登录失败", msg)
+        else:
+            QMessageBox.warning(self, "提示", "请输入用户名和密码")
 
 # =================================================================
 # 梦幻背景组件 (DreamyBackground)
