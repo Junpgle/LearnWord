@@ -14,8 +14,8 @@
             font-family: 'Inter', 'MiSans', system-ui, -apple-system, sans-serif;
             background: #0f172a;
             background-image:
-                radial-gradient(at 0% 0%, rgba(30, 64, 175, 0.3) 0, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(30, 58, 138, 0.3) 0, transparent 50%);
+                    radial-gradient(at 0% 0%, rgba(30, 64, 175, 0.3) 0, transparent 50%),
+                    radial-gradient(at 100% 100%, rgba(30, 58, 138, 0.3) 0, transparent 50%);
             min-height: 100vh;
             color: white;
         }
@@ -41,255 +41,284 @@
 </head>
 <body class="flex items-center justify-center p-4 relative">
 
-    <!-- 返回首页链接 -->
-    <a href="index.html" class="back-home-link hidden md:flex items-center text-sm font-medium">
-        <i class="fas fa-arrow-left mr-2"></i> 返回主页
-    </a>
+<!-- 返回首页链接 -->
+<a href="index.html" class="back-home-link hidden md:flex items-center text-sm font-medium">
+    <i class="fas fa-arrow-left mr-2"></i> 返回主页
+</a>
 
-    <!-- 1. 注册/登录容器 -->
-    <div id="auth-container" class="w-full max-w-md p-8 rounded-3xl glass-card shadow-2xl transition-all duration-500">
-        <!-- Header -->
-        <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-500/30">
-                <span class="text-3xl">🌟</span>
-            </div>
-            <h1 class="text-2xl font-bold text-white mb-2">LearnWord 账号</h1>
-            <p class="text-slate-400 text-sm">注册并同步你的学习之旅</p>
+<!-- 1. 注册/登录容器 -->
+<div id="auth-container" class="w-full max-w-md p-8 rounded-3xl glass-card shadow-2xl transition-all duration-500">
+    <!-- Header -->
+    <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-500/30">
+            <span class="text-3xl">🌟</span>
+        </div>
+        <h1 class="text-2xl font-bold text-white mb-2">J's 账号</h1>
+        <p class="text-slate-400 text-sm">注册并同步你在J提供的LearnWord以及创新创业题库的学习之旅</p>
+    </div>
+
+    <!-- Form -->
+    <div class="space-y-5">
+        <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">用户名 <span class="text-red-400">*</span></label>
+            <input type="text" id="username"
+                   class="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                   placeholder="请输入用户名 (至少6位)">
         </div>
 
-        <!-- Form -->
-        <div class="space-y-5">
-            <div>
-                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">用户名</label>
-                <input type="text" id="username"
-                    class="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    placeholder="你的学名">
-            </div>
+        <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">电子邮箱 <span class="text-red-400">*</span></label>
+            <input type="email" id="email"
+                   class="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                   placeholder="用于接收验证邮件">
+        </div>
 
-            <div>
-                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">密码</label>
-                <input type="password" id="password"
-                    class="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    placeholder="不少于6位">
-            </div>
+        <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">密码 <span class="text-red-400">*</span></label>
+            <input type="password" id="password"
+                   class="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                   placeholder="请输入密码 (至少8位)">
+        </div>
 
-            <div class="flex gap-3">
-                <button id="reg-btn"
+        <div class="flex gap-3">
+            <button id="reg-btn"
                     class="flex-1 py-3.5 bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 transition-all">
-                    立即注册
-                </button>
-                <button id="login-btn"
+                立即注册
+            </button>
+            <button id="login-btn"
                     class="px-6 py-3.5 bg-slate-700 hover:bg-slate-600 active:scale-[0.98] text-white font-bold rounded-xl transition-all">
-                    登录
-                </button>
-            </div>
-        </div>
-
-        <!-- Message Area -->
-        <div id="message" class="mt-6 text-center text-sm hidden p-3 rounded-xl border border-transparent"></div>
-
-        <div class="mt-8 pt-6 border-t border-slate-800/50 text-center">
-            <p class="text-slate-500 text-xs leading-relaxed">
-                云端数据由 LeanCloud 提供技术支持<br>你的密码将被高度加密存储
-            </p>
+                登录
+            </button>
         </div>
     </div>
 
-    <!-- 2. 个人进度面板 (初始隐藏) -->
-    <div id="dashboard-container" class="w-full max-w-2xl p-8 rounded-3xl glass-card shadow-2xl hidden transition-all duration-500 opacity-0">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-            <div>
-                <h2 class="text-3xl font-bold text-white mb-1">你好, <span id="display-name" class="text-blue-400">同学</span></h2>
-                <p class="text-slate-400 text-sm">这是你的 LearnWord 学习概览</p>
-            </div>
-            <div class="flex gap-3">
-                <a href="index.html" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-all flex items-center">
-                    <i class="fas fa-home mr-2"></i> 返回首页
-                </a>
-                <button onclick="logout()" class="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold rounded-lg border border-red-500/20 transition-all">
-                    退出登录
-                </button>
-            </div>
-        </div>
+    <!-- Message Area -->
+    <div id="message" class="mt-6 text-center text-sm hidden p-3 rounded-xl border border-transparent"></div>
 
-        <!-- 进度统计网格 -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- 学习进度 -->
-            <div class="p-6 rounded-2xl bg-blue-500/5 border border-blue-500/10 flex flex-col items-center text-center">
-                <div class="relative w-24 h-24 mb-4">
-                    <svg class="w-full h-full">
-                        <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-800" />
-                        <circle id="ring-learn" cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent"
+    <div class="mt-8 pt-6 border-t border-slate-800/50 text-center">
+        <p class="text-slate-500 text-xs leading-relaxed">
+            云端数据由 LeanCloud 提供技术支持<br>注册后请查收邮件进行验证
+        </p>
+    </div>
+</div>
+
+<!-- 2. 个人进度面板 (初始隐藏) -->
+<div id="dashboard-container" class="w-full max-w-2xl p-8 rounded-3xl glass-card shadow-2xl hidden transition-all duration-500 opacity-0">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+            <h2 class="text-3xl font-bold text-white mb-1">你好, <span id="display-name" class="text-blue-400">同学</span></h2>
+            <p class="text-slate-400 text-sm">这是你的 LearnWord 学习概览</p>
+        </div>
+        <div class="flex gap-3">
+            <a href="index.html" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-all flex items-center">
+                <i class="fas fa-home mr-2"></i> 返回首页
+            </a>
+            <button onclick="logout()" class="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold rounded-lg border border-red-500/20 transition-all">
+                退出登录
+            </button>
+        </div>
+    </div>
+
+    <!-- 进度统计网格 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- 学习进度 -->
+        <div class="p-6 rounded-2xl bg-blue-500/5 border border-blue-500/10 flex flex-col items-center text-center">
+            <div class="relative w-24 h-24 mb-4">
+                <svg class="w-full h-full">
+                    <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-800" />
+                    <circle id="ring-learn" cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent"
                             stroke-dasharray="251.2" stroke-dashoffset="251.2" class="text-blue-500 progress-ring" />
-                    </svg>
-                    <span id="percent-learn" class="absolute inset-0 flex items-center justify-center font-bold text-lg">0%</span>
-                </div>
-                <h3 class="font-bold mb-1">学习进度</h3>
-                <p id="stat-learn" class="text-slate-400 text-xs">已学习 0 词</p>
+                </svg>
+                <span id="percent-learn" class="absolute inset-0 flex items-center justify-center font-bold text-lg">0%</span>
             </div>
-
-            <!-- 复习进度 -->
-            <div class="p-6 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex flex-col items-center text-center">
-                <div class="relative w-24 h-24 mb-4">
-                    <svg class="w-full h-full">
-                        <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-800" />
-                        <circle id="ring-review" cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent"
-                            stroke-dasharray="251.2" stroke-dashoffset="251.2" class="text-amber-500 progress-ring" />
-                    </svg>
-                    <span id="percent-review" class="absolute inset-0 flex items-center justify-center font-bold text-lg">0%</span>
-                </div>
-                <h3 class="font-bold mb-1">复习进度</h3>
-                <p id="stat-review" class="text-slate-400 text-xs">已复习 0 词</p>
-            </div>
-
-            <!-- 测试准确率 -->
-            <div class="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex flex-col items-center text-center">
-                <div class="relative w-24 h-24 mb-4">
-                    <svg class="w-full h-full">
-                        <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-800" />
-                        <circle id="ring-test" cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent"
-                            stroke-dasharray="251.2" stroke-dashoffset="251.2" class="text-emerald-500 progress-ring" />
-                    </svg>
-                    <span id="percent-test" class="absolute inset-0 flex items-center justify-center font-bold text-lg">0%</span>
-                </div>
-                <h3 class="font-bold mb-1">测试通过</h3>
-                <p id="stat-test" class="text-slate-400 text-xs">已测试 0 词</p>
-            </div>
+            <h3 class="font-bold mb-1">学习进度</h3>
+            <p id="stat-learn" class="text-slate-400 text-xs">已学习 0 词</p>
         </div>
 
-        <div class="mt-8 p-4 rounded-xl bg-slate-800/30 border border-slate-700 text-center">
-            <p class="text-slate-400 text-xs">
-                💡 网页端仅同步展示数据。若需继续背词，请打开桌面客户端进行操作。
-            </p>
+        <!-- 复习进度 -->
+        <div class="p-6 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex flex-col items-center text-center">
+            <div class="relative w-24 h-24 mb-4">
+                <svg class="w-full h-full">
+                    <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-800" />
+                    <circle id="ring-review" cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent"
+                            stroke-dasharray="251.2" stroke-dashoffset="251.2" class="text-amber-500 progress-ring" />
+                </svg>
+                <span id="percent-review" class="absolute inset-0 flex items-center justify-center font-bold text-lg">0%</span>
+            </div>
+            <h3 class="font-bold mb-1">复习进度</h3>
+            <p id="stat-review" class="text-slate-400 text-xs">已复习 0 词</p>
+        </div>
+
+        <!-- 测试准确率 -->
+        <div class="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex flex-col items-center text-center">
+            <div class="relative w-24 h-24 mb-4">
+                <svg class="w-full h-full">
+                    <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-800" />
+                    <circle id="ring-test" cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent"
+                            stroke-dasharray="251.2" stroke-dashoffset="251.2" class="text-emerald-500 progress-ring" />
+                </svg>
+                <span id="percent-test" class="absolute inset-0 flex items-center justify-center font-bold text-lg">0%</span>
+            </div>
+            <h3 class="font-bold mb-1">测试通过</h3>
+            <p id="stat-test" class="text-slate-400 text-xs">已测试 0 词</p>
         </div>
     </div>
 
-    <script>
-        // --- 1. 配置信息 (保持与客户端一致) ---
-        const APP_ID = "5wPsbnakcoOjfaPzfC44vfW5-gzGzoHsz";
-        const APP_KEY = "j9qbdfjiJAPsqbGUy04COFTD";
-        const SERVER_URL = "https://5wpsbnak.lc-cn-n1-shared.com";
+    <div class="mt-8 p-4 rounded-xl bg-slate-800/30 border border-slate-700 text-center">
+        <p class="text-slate-400 text-xs">
+            💡 网页端仅同步展示数据。若需继续背词，请打开桌面客户端进行操作。
+        </p>
+    </div>
+</div>
 
-        AV.init({ appId: APP_ID, appKey: APP_KEY, serverURL: SERVER_URL });
+<script>
+    // --- 1. 配置信息 (保持与客户端一致) ---
+    const APP_ID = "5wPsbnakcoOjfaPzfC44vfW5-gzGzoHsz";
+    const APP_KEY = "j9qbdfjiJAPsqbGUy04COFTD";
+    const SERVER_URL = "https://5wpsbnak.lc-cn-n1-shared.com";
 
-        const authBox = document.getElementById('auth-container');
-        const dashBox = document.getElementById('dashboard-container');
-        const regBtn = document.getElementById('reg-btn');
-        const loginBtn = document.getElementById('login-btn');
-        const msgDiv = document.getElementById('message');
+    AV.init({ appId: APP_ID, appKey: APP_KEY, serverURL: SERVER_URL });
 
-        // --- 2. 核心 UI 函数 ---
-        function showMessage(text, isError = false) {
-            msgDiv.innerText = text;
-            msgDiv.classList.remove('hidden', 'bg-red-500/10', 'text-red-400', 'border-red-500/20', 'bg-green-500/10', 'text-green-400', 'border-green-500/20');
+    const authBox = document.getElementById('auth-container');
+    const dashBox = document.getElementById('dashboard-container');
+    const regBtn = document.getElementById('reg-btn');
+    const loginBtn = document.getElementById('login-btn');
+    const msgDiv = document.getElementById('message');
 
-            if (isError) {
-                msgDiv.classList.add('bg-red-500/10', 'text-red-400', 'border-red-500/20');
-            } else {
-                msgDiv.classList.add('bg-green-500/10', 'text-green-400', 'border-green-500/20');
-            }
-            msgDiv.style.display = "block"; // 强制显示
+    // --- 2. 核心 UI 函数 ---
+    function showMessage(text, isError = false) {
+        msgDiv.innerText = text;
+        msgDiv.classList.remove('hidden', 'bg-red-500/10', 'text-red-400', 'border-red-500/20', 'bg-green-500/10', 'text-green-400', 'border-green-500/20');
+
+        if (isError) {
+            msgDiv.classList.add('bg-red-500/10', 'text-red-400', 'border-red-500/20');
+        } else {
+            msgDiv.classList.add('bg-green-500/10', 'text-green-400', 'border-green-500/20');
+        }
+        msgDiv.style.display = "block"; // 强制显示
+    }
+
+    function updateProgressRing(id, percent) {
+        const circle = document.getElementById(`ring-${id}`);
+        const text = document.getElementById(`percent-${id}`);
+        const offset = 251.2 - (percent / 100 * 251.2);
+        circle.style.strokeDashoffset = offset;
+        text.innerText = `${Math.round(percent)}%`;
+    }
+
+    async function switchView(toDash) {
+        if (toDash) {
+            authBox.classList.add('hidden');
+            dashBox.classList.remove('hidden');
+            setTimeout(() => { dashBox.classList.add('opacity-100'); }, 50);
+            await loadDashboardData();
+        } else {
+            dashBox.classList.add('hidden');
+            dashBox.classList.remove('opacity-100');
+            authBox.classList.remove('hidden');
+        }
+    }
+
+    // --- 3. 数据加载逻辑 ---
+    async function loadDashboardData() {
+        const user = AV.User.current();
+        if (!user) return;
+
+        document.getElementById('display-name').innerText = user.getUsername();
+
+        const learned = user.get('learned_count') || 0;
+        const total = user.get('total_count') || 100;
+        const reviewed = user.get('reviewed_count') || 0;
+        const tested = user.get('tested_count') || 0;
+
+        document.getElementById('stat-learn').innerText = `已学习 ${learned} / 总数 ${total}`;
+        document.getElementById('stat-review').innerText = `已复习 ${reviewed} 词`;
+        document.getElementById('stat-test').innerText = `已通过测试 ${tested} 词`;
+
+        updateProgressRing('learn', (learned / total) * 100);
+        updateProgressRing('review', learned > 0 ? (reviewed / learned) * 100 : 0);
+        updateProgressRing('test', (tested / total) * 100);
+    }
+
+    // --- 4. 事件绑定 (已更新验证逻辑) ---
+    regBtn.onclick = async () => {
+        const user = document.getElementById('username').value.trim();
+        const pass = document.getElementById('password').value.trim();
+        const email = document.getElementById('email').value.trim();
+
+        // 验证用户名长度
+        if (user.length < 6) {
+            showMessage("用户名长度必须至少6位", true);
+            return;
         }
 
-        function updateProgressRing(id, percent) {
-            const circle = document.getElementById(`ring-${id}`);
-            const text = document.getElementById(`percent-${id}`);
-            const offset = 251.2 - (percent / 100 * 251.2);
-            circle.style.strokeDashoffset = offset;
-            text.innerText = `${Math.round(percent)}%`;
+        // 验证密码长度
+        if (pass.length < 8) {
+            showMessage("密码长度必须至少8位", true);
+            return;
         }
 
-        async function switchView(toDash) {
-            if (toDash) {
-                authBox.classList.add('hidden');
-                dashBox.classList.remove('hidden');
-                setTimeout(() => { dashBox.classList.add('opacity-100'); }, 50);
-                await loadDashboardData();
-            } else {
-                dashBox.classList.add('hidden');
-                dashBox.classList.remove('opacity-100');
-                authBox.classList.remove('hidden');
-            }
+        // 验证邮箱格式
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email || !emailRegex.test(email)) {
+            showMessage("请输入有效的电子邮箱地址", true);
+            return;
         }
 
-        // --- 3. 数据加载逻辑 ---
-        async function loadDashboardData() {
-            const user = AV.User.current();
-            if (!user) return;
+        regBtn.disabled = true;
+        regBtn.innerText = "处理中...";
 
-            document.getElementById('display-name').innerText = user.getUsername();
+        const newUser = new AV.User();
+        newUser.setUsername(user);
+        newUser.setPassword(pass);
+        newUser.setEmail(email); // 设置邮箱
 
-            const learned = user.get('learned_count') || 0;
-            const total = user.get('total_count') || 100;
-            const reviewed = user.get('reviewed_count') || 0;
-            const tested = user.get('tested_count') || 0;
+        try {
+            await newUser.signUp();
+            showMessage("🎉 注册成功！请前往邮箱查收验证邮件。", false);
+            // 注册成功后可以选择直接登录，或者提示去邮箱验证
+            // 这里为了体验，展示成功信息后稍作延迟再跳转，但通常 LeanCloud 需要验证邮箱才能真正 active
+            setTimeout(() => switchView(true), 2000);
+        } catch (error) {
+            regBtn.disabled = false;
+            regBtn.innerText = "立即注册";
+            let errorMsg = error.message;
+            if (error.code === 202) errorMsg = "该用户名已被占用";
+            if (error.code === 203) errorMsg = "该邮箱已被占用";
+            if (error.code === 125) errorMsg = "电子邮箱地址无效";
+            showMessage("注册失败: " + errorMsg, true);
+        }
+    };
 
-            document.getElementById('stat-learn').innerText = `已学习 ${learned} / 总数 ${total}`;
-            document.getElementById('stat-review').innerText = `已复习 ${reviewed} 词`;
-            document.getElementById('stat-test').innerText = `已通过测试 ${tested} 词`;
+    loginBtn.onclick = async () => {
+        const user = document.getElementById('username').value.trim();
+        const pass = document.getElementById('password').value.trim();
 
-            updateProgressRing('learn', (learned / total) * 100);
-            updateProgressRing('review', learned > 0 ? (reviewed / learned) * 100 : 0);
-            updateProgressRing('test', (tested / total) * 100);
+        if (!user || !pass) {
+            showMessage("请输入用户名和密码", true);
+            return;
         }
 
-        // --- 4. 事件绑定 ---
-        regBtn.onclick = async () => {
-            const user = document.getElementById('username').value.trim();
-            const pass = document.getElementById('password').value.trim();
-
-            if (!user || pass.length < 6) {
-                showMessage("用户名不能为空，密码需不少于6位", true);
-                return;
-            }
-
-            regBtn.disabled = true;
-            regBtn.innerText = "处理中...";
-
-            const newUser = new AV.User();
-            newUser.setUsername(user);
-            newUser.setPassword(pass);
-
-            try {
-                await newUser.signUp();
-                showMessage("🎉 注册成功！正在进入面板...");
-                setTimeout(() => switchView(true), 1500);
-            } catch (error) {
-                regBtn.disabled = false;
-                regBtn.innerText = "立即注册";
-                let errorMsg = error.message;
-                if (error.code === 202) errorMsg = "该用户名已被占用";
-                showMessage("注册失败: " + errorMsg, true);
-            }
-        };
-
-        loginBtn.onclick = async () => {
-            const user = document.getElementById('username').value.trim();
-            const pass = document.getElementById('password').value.trim();
-
-            if (!user || !pass) {
-                showMessage("请输入用户名和密码", true);
-                return;
-            }
-
-            loginBtn.innerText = "...";
-            try {
-                await AV.User.logIn(user, pass);
-                switchView(true);
-            } catch (error) {
-                loginBtn.innerText = "登录";
-                showMessage("登录失败: 账号或密码错误", true);
-            }
-        };
-
-        function logout() {
-            AV.User.logOut();
-            location.reload();
+        loginBtn.innerText = "...";
+        try {
+            await AV.User.logIn(user, pass);
+            switchView(true);
+        } catch (error) {
+            loginBtn.innerText = "登录";
+            let msg = "登录失败: 账号或密码错误";
+            if (error.code === 216) msg = "请先前往邮箱验证您的账号";
+            showMessage(msg, true);
         }
+    };
 
-        window.onload = () => {
-            if (AV.User.current()) switchView(true);
-        };
-    </script>
+    function logout() {
+        AV.User.logOut();
+        location.reload();
+    }
+
+    window.onload = () => {
+        if (AV.User.current()) switchView(true);
+    };
+</script>
 </body>
 </html>

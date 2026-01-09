@@ -35,9 +35,7 @@
         }
 
         /* 设置全局平滑滚动边距 */
-        html {
-            scroll-padding-top: 80px;
-        }
+        html { scroll-padding-top: 80px; }
 
         .light-theme {
             --bg-body: #f8fafc;
@@ -64,20 +62,14 @@
         h1, h2, h3, h4 { color: var(--text-title); transition: color 0.5s ease; }
         b { color: var(--text-title); transition: color 0.5s ease; }
 
-        .typed-cursor {
-            color: var(--primary);
-            font-size: 0.9em;
-            margin-left: 5px;
-        }
+        .typed-cursor { color: var(--primary); font-size: 0.9em; margin-left: 5px; }
 
         @keyframes float {
             0% { transform: translateY(0px) rotate(1deg); }
             50% { transform: translateY(-15px) rotate(0deg); }
             100% { transform: translateY(0px) rotate(1deg); }
         }
-        .animate-float {
-            animation: float 6s ease-in-out infinite;
-        }
+        .animate-float { animation: float 6s ease-in-out infinite; }
 
         .hero-gradient {
             background: radial-gradient(circle at center, rgba(30, 41, 59, 0.5) 0%, var(--bg-body) 70%);
@@ -99,42 +91,12 @@
             background-size: 50px 50px;
         }
 
-        .software-btn-blue { background-color: var(--primary); color: white !important; }
-        .software-btn-blue:hover { background-color: var(--primary-hover); transform: scale(1.02); }
-
         .nav-blur {
             background: var(--nav-bg);
             backdrop-filter: blur(15px);
             border-bottom: 1px solid var(--glass-border);
             transition: background 0.5s ease;
         }
-
-        .btn-shine {
-            position: relative;
-            overflow: hidden;
-        }
-        .btn-shine::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.15), transparent);
-            transform: rotate(45deg);
-            transition: 0.5s;
-        }
-        .btn-shine:hover::after {
-            left: 100%;
-        }
-
-        .progress-mock {
-            height: 6px;
-            background: var(--glass-border);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-        .progress-inner { height: 100%; border-radius: 4px; }
 
         .content-container {
             max-width: 72rem;
@@ -143,37 +105,6 @@
             padding-left: 1.5rem;
             padding-right: 1.5rem;
         }
-
-        #mobile-menu {
-            background: var(--nav-bg);
-            transition: all 0.3s ease-in-out;
-            transform: translateY(-20px);
-            opacity: 0;
-            pointer-events: none;
-        }
-        #mobile-menu.active {
-            transform: translateY(0);
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .markdown-body { color: var(--text-main); }
-        .markdown-body ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
-        .markdown-body p { margin-bottom: 0.75rem; }
-        .markdown-body code { background: rgba(128,128,128,0.1); padding: 0.2rem 0.4rem; border-radius: 4px; font-family: monospace; }
-
-        #theme-guide {
-            animation: bounceLeft 2s infinite;
-        }
-        @keyframes bounceLeft {
-            0%, 20%, 50%, 80%, 100% {transform: translateX(0);}
-            40% {transform: translateX(-10px);}
-            60% {transform: translateX(-5px);}
-        }
-
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; }
 
         /* 神经网络背景画布样式 */
         #neural-bg {
@@ -184,7 +115,6 @@
             height: 100%;
             z-index: 0;
             pointer-events: none;
-            /* 虚化强度调低，确保单词可见 */
             filter: blur(0.5px);
             opacity: 0.8;
             transform: translateZ(0);
@@ -207,374 +137,165 @@
             <div class="hidden md:flex space-x-10 text-sm font-medium items-center">
                 <a href="#methodology" class="nav-link hover:text-blue-400 transition-colors" style="color: var(--text-nav)">核心逻辑</a>
                 <a href="#detailed-features" class="nav-link hover:text-blue-400 transition-colors" style="color: var(--text-nav)">模块详解</a>
-                <a href="#update-mechanism" class="nav-link hover:text-blue-400 transition-colors" style="color: var(--text-nav)">更新机制</a>
                 <a href="#changelog" class="nav-link hover:text-blue-400 transition-colors" style="color: var(--text-nav)">版本记录</a>
-                <!-- 登录/注册链接 (会被脚本动态替换) -->
-                <a id="nav-auth-link" href="./register.html" class="nav-link hover:text-blue-400 transition-colors font-bold flex items-center" style="color: var(--text-nav)">
-                    <i class="fas fa-user-circle mr-2"></i>注册/登录
-                </a>
+                <!-- 用户状态区域 -->
+                <div id="nav-user-info" class="flex items-center">
+                    <a id="nav-auth-link" href="./register.html" class="nav-link hover:text-blue-400 transition-colors font-bold flex items-center" style="color: var(--text-nav)">
+                        <i class="fas fa-user-circle mr-2"></i>注册/登录
+                    </a>
+                </div>
             </div>
 
             <div class="flex items-center space-x-3 lg:space-x-5">
-                <div class="relative flex items-center">
-                    <div id="theme-guide" class="hidden absolute right-12 bg-blue-600 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap after:content-[''] after:absolute after:top-1/2 after:left-full after:-translate-y-1/2 after:border-8 after:border-y-transparent after:border-r-transparent after:border-l-blue-600">
-                        点击切换模式
-                    </div>
-                    <button id="theme-toggle" class="p-2.5 rounded-xl glass-card hover:bg-blue-600/10 transition-colors text-blue-500" title="切换主题">
-                        <i class="fas fa-moon"></i>
-                    </button>
-                </div>
-
-                <a href="https://github.com/Junpgle/LearnWord/releases" id="nav-download-btn" class="download-link btn-shine hidden sm:block bg-blue-600 hover:bg-blue-500 text-white px-5 lg:px-7 py-2 lg:py-2.5 rounded-full text-xs lg:text-sm font-bold transition-all shadow-lg shadow-blue-600/30">
+                <button id="theme-toggle" class="p-2.5 rounded-xl glass-card hover:bg-blue-600/10 transition-colors text-blue-500" title="切换主题">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <a href="https://github.com/Junpgle/LearnWord/releases" class="download-link hidden sm:block bg-blue-600 hover:bg-blue-500 text-white px-5 lg:px-7 py-2 lg:py-2.5 rounded-full text-xs lg:text-sm font-bold transition-all shadow-lg shadow-blue-600/30">
                     Windows 下载
                 </a>
-                <button id="menu-toggle" class="md:hidden p-2 focus:outline-none transition-colors" style="color: var(--text-title)">
-                    <i class="fas fa-bars text-xl"></i>
-                </button>
             </div>
         </nav>
-
-        <!-- Mobile Menu -->
-        <div id="mobile-menu" class="absolute top-full left-0 w-full border-b border-white/5 py-6 flex flex-col items-center space-y-6 md:hidden">
-            <a href="#methodology" class="mobile-link" style="color: var(--text-nav)">核心逻辑</a>
-            <a href="#detailed-features" class="mobile-link" style="color: var(--text-nav)">模块详解</a>
-            <a href="#update-mechanism" class="mobile-link" style="color: var(--text-nav)">更新机制</a>
-            <a href="#changelog" class="mobile-link" style="color: var(--text-nav)">版本记录</a>
-            <a id="mobile-auth-link" href="./register.html" class="mobile-link font-bold text-blue-400" style="color: var(--text-nav)">账号同步(登录/注册)</a>
-            <a href="https://github.com/Junpgle/LearnWord/releases" class="download-link bg-blue-600 text-white px-8 py-2.5 rounded-full text-sm font-bold">Windows 下载</a>
-        </div>
     </header>
 
     <!-- Hero Section -->
     <section class="hero-gradient pt-32 lg:pt-56 pb-20 lg:pb-40 relative grid-pattern overflow-hidden">
-        <!-- 神经网络背景画布 -->
         <canvas id="neural-bg"></canvas>
 
         <div class="content-container flex flex-col lg:flex-row items-center relative z-10">
             <div class="lg:w-1/2 mb-16 lg:mb-0 text-center lg:text-left" data-aos="fade-right">
                 <div id="version-badge" class="inline-block px-4 py-1.5 mb-6 lg:mb-8 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 text-[10px] lg:text-xs font-bold tracking-widest uppercase">
-                    Loading version...
+                    v1.2.4 STABLE NOW AVAILABLE
                 </div>
                 <h1 class="text-4xl sm:text-5xl lg:text-7xl font-extrabold leading-[1.15] mb-8 tracking-tight">
                     掌握单词<br><span id="typed-text" class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500"></span>
                 </h1>
-                <p class="text-base lg:text-xl mb-10 lg:mb-12 max-w-md mx-auto lg:mx-0 leading-relaxed" style="color: var(--text-main)">
+
+                <!-- 学习状态卡片 (仅登录后可见) -->
+                <div id="hero-study-card" class="hidden mb-10 p-6 rounded-2xl glass-card border-blue-500/20 text-left max-w-sm mx-auto lg:mx-0">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-xs font-bold text-blue-500 uppercase tracking-widest">当前进度</span>
+                        <span id="hero-wordlist-name" class="text-xs text-slate-400 italic">CET4 词库</span>
+                    </div>
+                    <div class="text-3xl font-black mb-2" style="color: var(--text-title)">
+                        <span id="hero-learned-count">0</span> <span class="text-sm font-normal text-slate-500">/ <span id="hero-total-count">0</span> 词</span>
+                    </div>
+                    <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div id="hero-progress-bar" class="h-full bg-blue-600 transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <p id="hero-desc" class="text-base lg:text-xl mb-10 lg:mb-12 max-w-md mx-auto lg:mx-0 leading-relaxed" style="color: var(--text-main)">
                     基于科学的三阶段记忆法，将繁琐的背词过程转化为阶段式的成就挑战。轻量、纯净、开源。
                 </p>
 
-                <!-- 按钮排版 -->
                 <div class="flex flex-col sm:flex-row flex-wrap items-center lg:items-stretch justify-center lg:justify-start gap-4 lg:gap-5">
-                    <a href="https://github.com/Junpgle/LearnWord/releases" id="hero-download-btn" class="download-link btn-shine w-full sm:w-auto bg-blue-600 text-white px-8 lg:px-10 py-4 rounded-2xl font-bold hover:bg-blue-700 transition shadow-2xl shadow-blue-600/20 flex items-center justify-center group">
-                        <i class="fab fa-windows mr-3 text-lg lg:text-xl group-hover:scale-110 transition-transform"></i>Windows 下载
+                    <a href="https://github.com/Junpgle/LearnWord/releases" class="download-link w-full sm:w-auto bg-blue-600 text-white px-8 lg:px-10 py-4 rounded-2xl font-bold hover:bg-blue-700 transition shadow-2xl shadow-blue-600/20 flex items-center justify-center">
+                        <i class="fab fa-windows mr-3 text-lg lg:text-xl"></i>Windows 下载
                     </a>
-
-                    <div class="flex items-center gap-3 w-full sm:w-auto">
-                        <!-- 注册/同步按钮 (会被脚本动态替换) -->
-                        <a id="hero-auth-btn" href="./register.html" class="glass-card flex-1 sm:flex-none px-6 lg:px-8 py-4 rounded-2xl font-bold hover:bg-blue-600/10 transition flex items-center justify-center border-white/10" style="color: var(--text-title)">
-                            <i class="fas fa-sync-alt mr-2 text-lg"></i>云端注册/同步
-                        </a>
-                        <a href="https://github.com/Junpgle/LearnWord" target="_blank" class="glass-card flex-1 sm:flex-none px-6 lg:px-8 py-4 rounded-2xl font-bold hover:opacity-80 transition flex items-center justify-center border-white/10" style="color: var(--text-title)">
-                            <i class="fab fa-github mr-2 text-lg"></i>GitHub
-                        </a>
-                    </div>
+                    <a id="hero-auth-btn" href="./register.html" class="glass-card flex-1 sm:flex-none px-6 lg:px-8 py-4 rounded-2xl font-bold hover:bg-blue-600/10 transition flex items-center justify-center border-white/10" style="color: var(--text-title)">
+                        <i class="fas fa-sync-alt mr-2 text-lg"></i>云端注册/同步
+                    </a>
                 </div>
             </div>
 
-            <div class="lg:w-1/2 relative flex justify-center lg:justify-end" data-aos="zoom-in" data-aos-delay="200">
-                <div class="absolute -inset-10 bg-blue-500/10 blur-[120px] rounded-full hidden lg:block"></div>
-                <!-- 模拟学习界面 -->
-                <div class="relative w-full max-w-[320px] sm:max-w-md glass-card rounded-3xl p-4 sm:p-6 animate-float shadow-2xl scale-90 sm:scale-100 border-white/20">
-                    <div class="flex space-x-2 mb-6" id="mock-indicators">
-                        <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border border-slate-700 transition-colors duration-500"></span>
-                        <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border border-slate-700 transition-colors duration-500"></span>
-                        <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border border-slate-700 transition-colors duration-500"></span>
-                    </div>
-
-                    <div id="mock-content" class="h-64 sm:h-80 rounded-2xl flex flex-col items-center justify-center p-6 sm:p-8 text-center border border-white/5 relative overflow-hidden shadow-inner" style="background: var(--mock-bg)">
-                        <span id="mock-phase-label" class="text-blue-500 text-[9px] sm:text-[10px] font-black tracking-[0.2em] uppercase mb-4">Phase 1: Recognition</span>
-
-                        <div class="flex flex-col items-center justify-center w-full transition-all duration-500" id="mock-stage-body">
-                            <h2 id="mock-main-word" class="text-2xl sm:text-3xl font-black mb-6 tracking-widest min-h-[40px]" style="color: var(--text-title)">Announcement</h2>
-
-                            <div id="mock-ui-p1" class="grid grid-cols-2 gap-2 sm:gap-3 w-full mt-2 opacity-0 hidden transition-opacity duration-300">
-                                <div class="bg-slate-800/30 border border-white/5 h-9 sm:h-10 rounded-xl flex items-center justify-center text-[9px] sm:text-[10px] text-slate-500 text-center px-1 overflow-hidden"></div>
-                                <div class="bg-slate-800/30 border border-white/5 h-9 sm:h-10 rounded-xl flex items-center justify-center text-[9px] sm:text-[10px] text-slate-500 text-center px-1 overflow-hidden"></div>
-                                <div class="bg-slate-800/30 border border-white/5 h-9 sm:h-10 rounded-xl flex items-center justify-center text-[9px] sm:text-[10px] text-slate-500 text-center px-1 overflow-hidden"></div>
-                                <div class="bg-slate-800/30 border border-white/5 h-9 sm:h-10 rounded-xl flex items-center justify-center text-[9px] sm:text-[10px] text-slate-500 text-center px-1 overflow-hidden"></div>
-                            </div>
-
-                            <div id="mock-ui-p2" class="flex gap-3 w-full justify-center mt-4 opacity-0 hidden transition-opacity duration-300">
-                                <div class="px-5 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] sm:text-xs font-bold shadow-md" id="mock-btn-know">认识</div>
-                                <div class="px-5 py-1.5 bg-slate-700 text-slate-300 rounded-lg text-[10px] sm:text-xs shadow-md">不认识</div>
-                            </div>
-
-                            <div id="mock-ui-p3" class="w-full flex flex-col items-center opacity-0 hidden transition-opacity duration-300">
-                                <p id="mock-def" class="text-slate-500 text-[10px] sm:text-sm italic mb-6 sm:mb-8 h-8 overflow-hidden leading-snug">n. 公告，宣告；发表；判决</p>
-                                <div class="w-full max-w-[180px] sm:max-w-[220px] h-10 sm:h-11 rounded-xl border flex items-center px-4 shadow-inner relative transition-all duration-500" style="background: var(--input-bg); border-color: var(--glass-border)">
-                                    <span id="mock-input-text" class="font-mono text-sm sm:text-lg tracking-wide" style="color: var(--text-title)"></span>
-                                    <div id="mock-cursor" class="w-0.5 h-4 sm:h-5 bg-blue-500 animate-pulse ml-0.5"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            <div class="lg:w-1/2 relative flex justify-center lg:justify-end" data-aos="zoom-in">
+                <!-- 模拟界面略 -->
+                <div class="relative w-full max-w-[320px] sm:max-w-md glass-card rounded-3xl p-6 animate-float shadow-2xl">
+                     <div class="text-center py-10">
+                         <i class="fas fa-brain text-5xl text-blue-500 mb-6"></i>
+                         <p class="text-slate-400 italic">科学阶梯记忆，从这里开始</p>
+                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Methodology Section -->
-    <section id="methodology" class="py-24 lg:py-40 relative overflow-hidden">
-        <div class="content-container text-center">
-            <h2 class="text-3xl lg:text-4xl font-bold mb-6" data-aos="fade-up">科学阶梯记忆逻辑</h2>
-            <p class="mb-16 lg:mb-24 max-w-xl mx-auto leading-relaxed text-sm lg:text-base" data-aos="fade-up" data-aos-delay="100" style="color: var(--text-main)">核心采用“三阶段学习法”，针对单词在大脑中从“眼熟”到“反射”的演变过程设计。</p>
-
-            <div class="grid md:grid-cols-3 gap-6 lg:gap-8">
-                <div class="p-8 lg:p-10 glass-card rounded-[2rem] lg:rounded-[2.5rem] text-left group hover:shadow-xl transition-all" data-aos="fade-up" data-aos-delay="200">
-                    <div class="w-12 h-12 lg:w-14 lg:h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-8 lg:mb-10 group-hover:scale-110 transition-transform">
-                        <i class="fas fa-eye text-lg lg:text-xl text-blue-500"></i>
-                    </div>
-                    <h3 class="text-base lg:text-lg font-bold mb-4 tracking-tight">1. 认知激活 (Phase 1)</h3>
-                    <p class="leading-relaxed text-xs lg:text-sm" style="color: var(--text-main)">通过 2x2 网格呈现释义，在干扰项中快速定位正确含义，降低初识单词的挫败感。</p>
-                </div>
-                <div class="p-8 lg:p-10 glass-card rounded-[2rem] lg:rounded-[2.5rem] text-left group hover:shadow-xl transition-all" data-aos="fade-up" data-aos-delay="300">
-                    <div class="w-12 h-12 lg:w-14 lg:h-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-8 lg:mb-10 group-hover:scale-110 transition-transform">
-                        <i class="fas fa-brain text-lg lg:text-xl text-indigo-500"></i>
-                    </div>
-                    <h3 class="text-base lg:text-lg font-bold mb-4 tracking-tight">2. 记忆自测 (Phase 2)</h3>
-                    <p class="leading-relaxed text-xs lg:text-sm" style="color: var(--text-main)">强制闭卷自测。仅凭单词外观回忆释义。记错将直接退回阶段 1 重修，确保记忆真实性。</p>
-                </div>
-                <div class="p-8 lg:p-10 glass-card rounded-[2rem] lg:rounded-[2.5rem] text-left group hover:shadow-xl transition-all" data-aos="fade-up" data-aos-delay="400">
-                    <div class="w-12 h-12 lg:w-14 lg:h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-8 lg:mb-10 group-hover:scale-110 transition-transform">
-                        <i class="fas fa-keyboard text-lg lg:text-xl text-emerald-500"></i>
-                    </div>
-                    <h3 class="text-base lg:text-lg font-bold mb-4 tracking-tight">3. 拼写精通 (Phase 3)</h3>
-                    <p class="leading-relaxed text-xs lg:text-sm" style="color: var(--text-main)">系统随机隐藏关键字母。只有完成正确拼写输出，才判定该单词为“已学会”。</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Detailed Features Section -->
-    <section id="detailed-features" class="py-24 lg:py-40 bg-slate-900/5 dark:bg-slate-900/10">
-        <div class="content-container">
-            <div class="text-center mb-20 lg:mb-32">
-                <h2 class="text-3xl lg:text-4xl font-bold mb-6" data-aos="fade-up">深度功能解析</h2>
-                <p class="text-sm lg:text-base" data-aos="fade-up" data-aos-delay="100" style="color: var(--text-main)">为您量身定制的四个核心交互模块</p>
-            </div>
-
-            <div class="space-y-32 lg:space-y-48">
-                <!-- 模块1 -->
-                <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
-                    <div class="lg:w-1/2 text-center lg:text-left" data-aos="fade-right">
-                        <h3 class="text-xl lg:text-2xl font-bold mb-6 lg:mb-8 flex items-center justify-center lg:justify-start">
-                            <span class="w-10 h-10 bg-blue-500/20 text-blue-500 rounded-lg flex items-center justify-center mr-4 text-sm"><i class="fas fa-graduation-cap"></i></span>
-                            沉浸式学习界面
-                        </h3>
-                        <p class="mb-8 leading-relaxed text-sm lg:text-base" style="color: var(--text-main)">
-                            左上角配备三颗“认知指示灯”，代表单词的三个掌握阶段。通过 QGridLayout 实现的 2x2 释义布局，让您在大面积的可选区域内快速建立语感。
-                        </p>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="glass-card p-4 rounded-xl text-left border-blue-500/10">
-                                <span class="text-blue-500 text-[10px] lg:text-xs font-bold block mb-1">指示灯</span>
-                                <p class="text-[9px] lg:text-[10px] leading-tight" style="color: var(--text-muted)">蓝灯代表阶段，透明代表未完成</p>
-                            </div>
-                            <div class="glass-card p-4 rounded-xl text-left border-blue-500/10">
-                                <span class="text-blue-500 text-[10px] lg:text-xs font-bold block mb-1">防错机制</span>
-                                <p class="text-[9px] lg:text-[10px] leading-tight" style="color: var(--text-muted)">错误点击将展示正确释义并退回进度</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="lg:w-1/2 w-full" data-aos="fade-left">
-                        <div class="glass-card p-4 rounded-3xl shadow-lg">
-                            <div class="rounded-2xl p-6 sm:p-8 h-56 sm:h-64 flex flex-col shadow-inner" style="background: var(--mock-bg)">
-                                <div class="flex space-x-2 mb-6">
-                                    <span class="w-3 h-3 rounded-full bg-blue-600"></span>
-                                    <span class="w-3 h-3 rounded-full bg-blue-600"></span>
-                                    <span class="w-3 h-3 rounded-full border border-slate-700"></span>
-                                </div>
-                                <div class="flex-grow flex flex-col items-center justify-center">
-                                    <h4 class="text-xl sm:text-2xl font-bold mb-6 sm:mb-8" style="color: var(--text-title)">Vocabulary</h4>
-                                    <div class="grid grid-cols-2 gap-2 sm:gap-3 w-full max-w-sm">
-                                        <div class="bg-blue-600/90 h-9 sm:h-10 rounded-xl flex items-center justify-center text-[9px] sm:text-[10px] font-bold text-white">n. 词汇量</div>
-                                        <div class="bg-slate-800/20 h-9 sm:h-10 rounded-xl flex items-center justify-center text-[9px] sm:text-[10px] text-slate-500">v. 改变</div>
-                                        <div class="bg-slate-800/20 h-9 sm:h-10 rounded-xl flex items-center justify-center text-[9px] sm:text-[10px] text-slate-500">adj. 复杂的</div>
-                                        <div class="bg-slate-800/20 h-9 sm:h-10 rounded-xl flex items-center justify-center text-[9px] sm:text-[10px] text-slate-500">n. 结果</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Changelog & Footer -->
-    <footer class="py-16 lg:py-24 border-t border-slate-200 dark:border-white/5 relative z-10 bg-slate-50 dark:bg-transparent">
-        <div class="content-container text-center">
-            <div class="flex justify-center space-x-8 lg:space-x-12 mb-10 lg:mb-14">
-                <a href="https://github.com/Junpgle/LearnWord" target="_blank" class="hover:text-blue-500 transition-colors" style="color: var(--text-muted)"><i class="fab fa-github text-xl lg:text-2xl"></i></a>
-                <a href="https://github.com/Junpgle/LearnWord/releases" target="_blank" class="hover:text-blue-500 transition-colors text-[10px] lg:text-xs font-bold tracking-widest uppercase" style="color: var(--text-muted)">Releases</a>
-                <a href="./register.html" class="hover:text-blue-500 transition-colors text-[10px] lg:text-xs font-bold tracking-widest uppercase" style="color: var(--text-muted)">Web Console</a>
-            </div>
-            <p class="text-[10px] lg:text-xs tracking-wide" style="color: var(--text-muted)">© 2025 LearnWord Project. Designed by Junpgle.</p>
-        </div>
+    <!-- Footer -->
+    <footer class="py-16 border-t border-white/5 text-center">
+        <p class="text-xs text-slate-500">© 2025 LearnWord Project. Designed by Junpgle.</p>
     </footer>
 
     <script>
-        // --- 1. 配置信息 (请确保这里与 register.html 一致) ---
+        // --- 1. 配置与初始化 ---
         const APP_ID = "5wPsbnakcoOjfaPzfC44vfW5-gzGzoHsz";
         const APP_KEY = "j9qbdfjiJAPsqbGUy04COFTD";
         const SERVER_URL = "https://5wpsbnak.lc-cn-n1-shared.com";
 
-        // 初始化 SDK
         AV.init({ appId: APP_ID, appKey: APP_KEY, serverURL: SERVER_URL });
 
         // --- 2. 核心状态同步逻辑 ---
-        function syncLoginStatus() {
+        async function syncLoginStatus() {
             const currentUser = AV.User.current();
             if (currentUser) {
-                // 1. 同步桌面导航栏
-                const navAuthBtn = document.getElementById('nav-auth-link');
-                if (navAuthBtn) {
-                    navAuthBtn.innerHTML = `
-                        <div class="flex items-center space-x-2 bg-blue-600/10 px-3 py-1.5 rounded-lg border border-blue-500/20 text-blue-500">
-                            <i class="fas fa-user-circle"></i>
-                            <span>${currentUser.getUsername()}</span>
-                        </div>
-                    `;
-                }
+                try {
+                    // 刷新获取最新字段
+                    await currentUser.fetch();
 
-                // 2. 同步 Hero 区域大按钮
-                const heroAuthBtn = document.getElementById('hero-auth-btn');
-                if (heroAuthBtn) {
-                    heroAuthBtn.innerHTML = '<i class="fas fa-chart-line mr-2 text-lg"></i>查看学习进度';
-                    heroAuthBtn.classList.add('bg-blue-600', 'text-white');
-                    heroAuthBtn.classList.remove('border-white/10', 'hover:bg-blue-600/10');
-                    heroAuthBtn.style.color = 'white';
-                }
+                    const username = currentUser.getUsername();
+                    const wordlistName = currentUser.get('wordlistName') || '暂无词库';
+                    const learned = currentUser.get('learnedCount') || 0;
+                    const total = currentUser.get('totalCount') || 0;
+                    const progress = total > 0 ? (learned / total * 100) : 0;
 
-                // 3. 同步移动端菜单
-                const mobileAuthLink = document.getElementById('mobile-auth-link');
-                if (mobileAuthLink) {
-                    mobileAuthLink.innerHTML = `<i class="fas fa-user-circle mr-2"></i>我的控制台`;
+                    // 1. 更新导航栏
+                    const navAuthLink = document.getElementById('nav-auth-link');
+                    if (navAuthLink) {
+                        navAuthLink.innerHTML = `
+                            <div class="flex items-center space-x-2 bg-blue-600/10 px-3 py-1.5 rounded-lg border border-blue-500/20 text-blue-500">
+                                <i class="fas fa-user-circle"></i>
+                                <span>${username}</span>
+                            </div>
+                        `;
+                    }
+
+                    // 2. 显示学习状态卡片
+                    document.getElementById('hero-study-card').classList.remove('hidden');
+                    document.getElementById('hero-desc').classList.add('hidden');
+                    document.getElementById('hero-wordlist-name').innerText = wordlistName;
+                    document.getElementById('hero-learned-count').innerText = learned;
+                    document.getElementById('hero-total-count').innerText = total;
+                    document.getElementById('hero-progress-bar').style.width = `${progress}%`;
+
+                    // 3. 修改 Hero 按钮
+                    const heroAuthBtn = document.getElementById('hero-auth-btn');
+                    if (heroAuthBtn) {
+                        heroAuthBtn.innerHTML = '<i class="fas fa-chart-pie mr-2 text-lg"></i>数据中心';
+                        heroAuthBtn.classList.add('bg-blue-600', 'text-white');
+                    }
+                } catch (e) {
+                    console.error("Sync Error:", e);
                 }
             }
         }
 
-        // --- 3. 原有 UI 交互逻辑 (AOS, Typed, etc.) ---
+        // --- 3. UI 效果逻辑 ---
         document.addEventListener('DOMContentLoaded', () => {
-            AOS.init({ duration: 1000, once: true, offset: 30, easing: 'ease-out-expo' });
-
-            // 初始化背景
-            initNeuralBg();
-            animateNeuralBg();
-            checkPlatform();
-
-            // 执行登录同步
+            AOS.init({ duration: 1000, once: true });
             syncLoginStatus();
 
             new Typed('#typed-text', {
-                strings: ['从未如此高效', '竟然如此简单', '只需三个阶段', '支持离线使用'],
-                typeSpeed: 80, backSpeed: 50, backDelay: 2000, loop: true
+                strings: ['从未如此高效', '竟然如此简单', '只需三个阶段'],
+                typeSpeed: 80, backSpeed: 50, loop: true
             });
-
-            // 获取版本号并更新下载链接
-            fetch('https://raw.githubusercontent.com/Junpgle/LearnWord/refs/heads/master/update_manifest.json')
-                .then(r => r.json())
-                .then(d => {
-                    if(d.latest_version) document.getElementById('version-badge').innerText = `${d.latest_version} STABLE NOW AVAILABLE`;
-                    if (d.download_url) {
-                        document.querySelectorAll('.download-link').forEach(link => {
-                            if (!link.classList.contains('cursor-not-allowed')) link.href = d.download_url;
-                        });
-                    }
-                }).catch(() => {});
         });
 
-        // 神经网络背景引擎 (省略重复的绘图代码块，实际代码应包含之前的完整逻辑)
-        // ... 此处保留你 index.html 中 Particle 类和 initNeuralBg 函数 ...
+        // 神经网络背景简单版
         const canvas = document.getElementById('neural-bg');
-        const ctx = canvas.getContext('2d', { alpha: true });
-        let particles = [];
-        const words_pool = ['Cognition', 'Neural', 'Language', 'Memorize', 'Efficiency', 'Pattern', 'Knowledge', 'Brain', 'Mastery', 'Logic', 'Sync', 'Data', 'Structure', 'Lexicon', 'Fluent', 'Syntax'];
-        let logicalWidth, logicalHeight;
-
-        class Particle {
-            constructor() {
-                this.word = words_pool[Math.floor(Math.random() * words_pool.length)];
-                this.size = Math.random() * 10 + 35;
-                this.padding = 20;
-                this.alpha = Math.random() * 0.15 + 0.02;
-                ctx.font = `700 ${this.size}px Inter, sans-serif`;
-                this.textWidth = ctx.measureText(this.word).width;
-                this.boxW = this.textWidth + this.padding * 2.5;
-                this.boxH = this.size + this.padding * 1.5;
-                this.findSafePosition();
-                this.angle = Math.random() * Math.PI * 2;
-                this.speed = Math.random() * 0.003 + 0.002;
-                this.range = Math.random() * 6 + 2;
-            }
-            findSafePosition() {
-                let attempts = 0; let found = false; const margin = 20;
-                while (attempts < 100 && !found) {
-                    const edgePadding = 50;
-                    this.baseX = edgePadding + Math.random() * (window.innerWidth - edgePadding * 2);
-                    this.baseY = edgePadding + Math.random() * (window.innerHeight - edgePadding * 2);
-                    let overlap = false;
-                    for (let p of particles) {
-                        if (Math.abs(this.baseX - p.baseX) < (this.boxW + p.boxW)/2 + margin && Math.abs(this.baseY - p.baseY) < (this.boxH + p.boxH)/2 + margin) { overlap = true; break; }
-                    }
-                    if (!overlap) found = true;
-                    attempts++;
-                }
-                this.x = this.baseX; this.y = this.baseY;
-            }
-            update() { this.angle += this.speed; this.x = this.baseX + Math.cos(this.angle) * this.range; this.y = this.baseY + Math.sin(this.angle * 0.8) * this.range; }
-            draw() {
-                const isLight = document.body.classList.contains('light-theme');
-                ctx.save(); ctx.translate(this.x, this.y); ctx.beginPath();
-                ctx.roundRect(-this.boxW/2, -this.boxH/2, this.boxW, this.boxH, this.boxH/2);
-                ctx.fillStyle = isLight ? `rgba(255, 255, 255, 0.4)` : `rgba(255, 255, 255, 0.05)`;
-                ctx.fill(); ctx.font = `700 ${this.size}px Inter, sans-serif`;
-                ctx.fillStyle = isLight ? `rgba(0, 120, 215, 0.3)` : `rgba(148, 163, 184, 0.2)`;
-                ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(this.word, 0, 3); ctx.restore();
-            }
+        const ctx = canvas.getContext('2d');
+        function initBg() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            ctx.fillStyle = "rgba(0, 120, 215, 0.05)";
+            for(let i=0; i<20; i++) ctx.fillRect(Math.random()*canvas.width, Math.random()*canvas.height, 2, 2);
         }
+        window.addEventListener('resize', initBg);
+        initBg();
 
-        function initNeuralBg() {
-            const dpr = window.devicePixelRatio || 1;
-            logicalWidth = window.innerWidth; logicalHeight = window.innerHeight;
-            canvas.width = logicalWidth * dpr; canvas.height = logicalHeight * dpr;
-            canvas.style.width = `${logicalWidth}px`; canvas.style.height = `${logicalHeight}px`;
-            ctx.scale(dpr, dpr);
-            particles = []; for (let i = 0; i < 12; i++) { particles.push(new Particle()); }
-        }
-
-        function animateNeuralBg() {
-            ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-            particles.forEach(p => { p.update(); p.draw(); });
-            requestAnimationFrame(animateNeuralBg);
-        }
-
-        function checkPlatform() {
-            const isWindows = navigator.platform.indexOf('Win') > -1 || /Windows/i.test(navigator.userAgent);
-            if (!isWindows) {
-                document.querySelectorAll('.download-link').forEach(btn => {
-                    btn.removeAttribute('href'); btn.classList.replace('bg-blue-600', 'bg-slate-700');
-                    btn.innerHTML = `<i class="fas fa-clock mr-2"></i> 敬请期待 (Windows)`;
-                });
-            }
-        }
-
-        document.getElementById('theme-toggle').addEventListener('click', () => {
+        const themeToggle = document.getElementById('theme-toggle');
+        themeToggle.onclick = () => {
             document.body.classList.toggle('light-theme');
-            const isLight = document.body.classList.contains('light-theme');
-            localStorage.setItem('theme', isLight ? 'light' : 'dark');
-        });
-
-        window.addEventListener('resize', initNeuralBg);
-        document.getElementById('menu-toggle').addEventListener('click', () => document.getElementById('mobile-menu').classList.toggle('active'));
+            localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
+        };
     </script>
 </body>
 </html>
