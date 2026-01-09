@@ -24,8 +24,34 @@
             backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgb(71, 85, 105);
+            border-radius: 0.75rem;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .form-input::placeholder { color: rgb(100, 116, 139); }
+        .form-input:focus {
+            outline: none;
+            ring: 2px;
+            ring-color: #3b82f6;
+            border-color: transparent;
+        }
+        .form-label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: rgb(100, 116, 139);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.375rem;
+            margin-left: 0.25rem;
+        }
+        .form-label .required { color: #f87171; }
         .progress-ring { transition: stroke-dashoffset 0.35s; transform: rotate(-90deg); transform-origin: 50% 50%; }
-
         .back-home-link {
             position: absolute;
             top: 2rem;
@@ -37,18 +63,17 @@
             color: white;
             transform: translateX(-5px);
         }
-
         .tab-btn {
+            padding-bottom: 0.75rem;
+            font-weight: 600;
             transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
         }
         .tab-btn.active {
-            border-b: 2px solid #3b82f6;
+            border-bottom-color: #3b82f6;
             color: white;
         }
-        .tab-btn.inactive {
-            border-b: 2px solid transparent;
-            color: rgba(255,255,255,0.5);
-        }
+        .tab-btn.inactive { color: rgba(255,255,255,0.5); }
     </style>
 </head>
 <body class="flex items-center justify-center p-4 relative">
@@ -78,28 +103,18 @@
     <!-- 注册表单 -->
     <div id="register-form" class="space-y-5">
         <div>
-            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">用户名 <span class="text-red-400">*</span></label>
-            <input type="text" id="reg-username"
-                   class="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                   placeholder="请输入用户名 (至少6位)">
+            <label class="form-label">用户名 <span class="required">*</span></label>
+            <input type="text" id="reg-username" class="form-input" placeholder="请输入用户名 (6-15位)">
         </div>
-
         <div>
-            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">电子邮箱 <span class="text-red-400">*</span></label>
-            <input type="email" id="reg-email"
-                   class="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                   placeholder="用于接收验证邮件">
+            <label class="form-label">电子邮箱 <span class="required">*</span></label>
+            <input type="email" id="reg-email" class="form-input" placeholder="用于接收验证邮件">
         </div>
-
         <div>
-            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">密码 <span class="text-red-400">*</span></label>
-            <input type="password" id="reg-password"
-                   class="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                   placeholder="请输入密码 (至少8位)">
+            <label class="form-label">密码 <span class="required">*</span></label>
+            <input type="password" id="reg-password" class="form-input" placeholder="请输入密码 (至少8位)">
         </div>
-
-        <button id="reg-btn"
-                class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 transition-all">
+        <button id="reg-btn" class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 transition-all">
             立即注册
         </button>
     </div>
@@ -107,21 +122,14 @@
     <!-- 登录表单 -->
     <div id="login-form" class="space-y-5 hidden">
         <div>
-            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">用户名 <span class="text-red-400">*</span></label>
-            <input type="text" id="login-username"
-                   class="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                   placeholder="请输入用户名">
+            <label class="form-label">用户名 <span class="required">*</span></label>
+            <input type="text" id="login-username" class="form-input" placeholder="请输入用户名">
         </div>
-
         <div>
-            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">密码 <span class="text-red-400">*</span></label>
-            <input type="password" id="login-password"
-                   class="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                   placeholder="请输入密码">
+            <label class="form-label">密码 <span class="required">*</span></label>
+            <input type="password" id="login-password" class="form-input" placeholder="请输入密码">
         </div>
-
-        <button id="login-btn"
-                class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 transition-all">
+        <button id="login-btn" class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 transition-all">
             登录
         </button>
     </div>
@@ -158,39 +166,25 @@
         <!-- 学习进度 -->
         <div class="p-6 rounded-2xl bg-blue-500/5 border border-blue-500/10 flex flex-col items-center text-center">
             <div class="relative w-24 h-24 mb-4">
-                <svg class="w-full h-full">
-                    <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-800" />
-                    <circle id="ring-learn" cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent"
-                            stroke-dasharray="251.2" stroke-dashoffset="251.2" class="text-blue-500 progress-ring" />
-                </svg>
+                <svg class="w-full h-full"><circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-800" /><circle id="ring-learn" cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" stroke-dasharray="251.2" stroke-dashoffset="251.2" class="text-blue-500 progress-ring" /></svg>
                 <span id="percent-learn" class="absolute inset-0 flex items-center justify-center font-bold text-lg">0%</span>
             </div>
             <h3 class="font-bold mb-1">学习进度</h3>
             <p id="stat-learn" class="text-slate-400 text-xs">已学习 0 词</p>
         </div>
-
         <!-- 复习进度 -->
         <div class="p-6 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex flex-col items-center text-center">
             <div class="relative w-24 h-24 mb-4">
-                <svg class="w-full h-full">
-                    <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-800" />
-                    <circle id="ring-review" cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent"
-                            stroke-dasharray="251.2" stroke-dashoffset="251.2" class="text-amber-500 progress-ring" />
-                </svg>
+                <svg class="w-full h-full"><circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-800" /><circle id="ring-review" cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" stroke-dasharray="251.2" stroke-dashoffset="251.2" class="text-amber-500 progress-ring" /></svg>
                 <span id="percent-review" class="absolute inset-0 flex items-center justify-center font-bold text-lg">0%</span>
             </div>
             <h3 class="font-bold mb-1">复习进度</h3>
             <p id="stat-review" class="text-slate-400 text-xs">已复习 0 词</p>
         </div>
-
         <!-- 测试准确率 -->
         <div class="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex flex-col items-center text-center">
             <div class="relative w-24 h-24 mb-4">
-                <svg class="w-full h-full">
-                    <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-800" />
-                    <circle id="ring-test" cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent"
-                            stroke-dasharray="251.2" stroke-dashoffset="251.2" class="text-emerald-500 progress-ring" />
-                </svg>
+                <svg class="w-full h-full"><circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-800" /><circle id="ring-test" cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" stroke-dasharray="251.2" stroke-dashoffset="251.2" class="text-emerald-500 progress-ring" /></svg>
                 <span id="percent-test" class="absolute inset-0 flex items-center justify-center font-bold text-lg">0%</span>
             </div>
             <h3 class="font-bold mb-1">测试通过</h3>
@@ -206,81 +200,98 @@
 </div>
 
 <script>
-    // --- 1. 配置信息 (保持与客户端一致) ---
+    // --- 1. 配置信息 ---
     const APP_ID = "5wPsbnakcoOjfaPzfC44vfW5-gzGzoHsz";
     const APP_KEY = "j9qbdfjiJAPsqbGUy04COFTD";
     const SERVER_URL = "https://5wpsbnak.lc-cn-n1-shared.com";
 
     AV.init({ appId: APP_ID, appKey: APP_KEY, serverURL: SERVER_URL });
 
-    const authBox = document.getElementById('auth-container');
-    const dashBox = document.getElementById('dashboard-container');
-    const msgDiv = document.getElementById('message');
+    // --- DOM 元素缓存 ---
+    const elements = {
+        authBox: document.getElementById('auth-container'),
+        dashBox: document.getElementById('dashboard-container'),
+        msgDiv: document.getElementById('message'),
+        tabRegister: document.getElementById('tab-register'),
+        tabLogin: document.getElementById('tab-login'),
+        registerForm: document.getElementById('register-form'),
+        loginForm: document.getElementById('login-form'),
+        regBtn: document.getElementById('reg-btn'),
+        loginBtn: document.getElementById('login-btn'),
+    };
 
-    const tabRegister = document.getElementById('tab-register');
-    const tabLogin = document.getElementById('tab-login');
-    const registerForm = document.getElementById('register-form');
-    const loginForm = document.getElementById('login-form');
-
-    const regBtn = document.getElementById('reg-btn');
-    const loginBtn = document.getElementById('login-btn');
-
-    // --- 2. 核心 UI 函数 ---
+    // --- 2. 工具函数 ---
     function showMessage(text, isError = false) {
-        msgDiv.innerText = text;
-        msgDiv.classList.remove('hidden', 'bg-red-500/10', 'text-red-400', 'border-red-500/20', 'bg-green-500/10', 'text-green-400', 'border-green-500/20');
+        elements.msgDiv.innerText = text;
+        const baseClasses = ['hidden', 'bg-red-500/10', 'text-red-400', 'border-red-500/20', 'bg-green-500/10', 'text-green-400', 'border-green-500/20'];
+        baseClasses.forEach(cls => elements.msgDiv.classList.remove(cls));
 
         if (isError) {
-            msgDiv.classList.add('bg-red-500/10', 'text-red-400', 'border-red-500/20');
+            elements.msgDiv.classList.add('bg-red-500/10', 'text-red-400', 'border-red-500/20');
         } else {
-            msgDiv.classList.add('bg-green-500/10', 'text-green-400', 'border-green-500/20');
+            elements.msgDiv.classList.add('bg-green-500/10', 'text-green-400', 'border-green-500/20');
         }
-        msgDiv.style.display = "block";
     }
 
-    function updateProgressRing(id, percent) {
-        const circle = document.getElementById(`ring-${id}`);
-        const text = document.getElementById(`percent-${id}`);
-        const offset = 251.2 - (percent / 100 * 251.2);
-        circle.style.strokeDashoffset = offset;
-        text.innerText = `${Math.round(percent)}%`;
+    function setButtonState(btn, isLoading) {
+        btn.disabled = isLoading;
+        btn.innerText = isLoading ? "处理中..." : (btn === elements.regBtn ? "立即注册" : "登录");
+    }
+
+    function switchTab(toLogin) {
+        const [activeTab, inactiveTab] = toLogin ? [elements.tabLogin, elements.tabRegister] : [elements.tabRegister, elements.tabLogin];
+        activeTab.classList.add('active');
+        activeTab.classList.remove('inactive');
+        inactiveTab.classList.remove('active');
+        inactiveTab.classList.add('inactive');
+        elements.registerForm.classList.toggle('hidden', toLogin);
+        elements.loginForm.classList.toggle('hidden', !toLogin);
+        elements.msgDiv.classList.add('hidden');
     }
 
     async function switchView(toDash) {
         if (toDash) {
-            authBox.classList.add('hidden');
-            dashBox.classList.remove('hidden');
-            setTimeout(() => { dashBox.classList.add('opacity-100'); }, 50);
+            elements.authBox.classList.add('hidden');
+            elements.dashBox.classList.remove('hidden');
+            setTimeout(() => elements.dashBox.classList.add('opacity-100'), 50);
             await loadDashboardData();
         } else {
-            dashBox.classList.add('hidden');
-            dashBox.classList.remove('opacity-100');
-            authBox.classList.remove('hidden');
+            elements.dashBox.classList.add('hidden');
+            elements.dashBox.classList.remove('opacity-100');
+            elements.authBox.classList.remove('hidden');
         }
     }
 
-    // --- 3. 选项卡切换逻辑 ---
-    tabRegister.onclick = () => {
-        tabRegister.classList.add('active');
-        tabRegister.classList.remove('inactive');
-        tabLogin.classList.remove('active');
-        tabLogin.classList.add('inactive');
-        registerForm.classList.remove('hidden');
-        loginForm.classList.add('hidden');
-        msgDiv.classList.add('hidden');
+    // --- 3. 验证函数 ---
+    const validators = {
+        username: (user) => {
+            if (user.length < 6) return "用户名长度必须至少 6 位";
+            if (user.length > 15) return "用户名长度不能超过 15 个字符";
+            if (!/^[a-zA-Z0-9_]+$/.test(user)) return "用户名只能包含字母、数字和下划线";
+            return null;
+        },
+        email: (email) => {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email || !emailRegex.test(email)) return "请输入有效的电子邮箱地址";
+            return null;
+        },
+        password: (pass) => {
+            if (pass.length < 8) return "密码长度必须至少 8 位";
+            return null;
+        }
     };
 
-    tabLogin.onclick = () => {
-        tabLogin.classList.add('active');
-        tabLogin.classList.remove('inactive');
-        tabRegister.classList.remove('active');
-        tabRegister.classList.add('inactive');
-        loginForm.classList.remove('hidden');
-        registerForm.classList.add('hidden');
-        msgDiv.classList.add('hidden');
-    };
+    function updateProgressRing(id, percent) {
+        const circle = document.getElementById(`ring-${id}`);
+        const text = document.getElementById(`percent-${id}`);
+        if (circle && text) {
+            const offset = 251.2 - (percent / 100 * 251.2);
+            circle.style.strokeDashoffset = offset;
+            text.innerText = `${Math.round(percent)}%`;
+        }
+    }
 
-    // --- 4. 数据加载逻辑 ---
+    // --- 4. 数据加载 ---
     async function loadDashboardData() {
         const user = AV.User.current();
         if (!user) return;
@@ -301,59 +312,50 @@
         updateProgressRing('test', (tested / total) * 100);
     }
 
-    // --- 5. 注册逻辑 ---
-    regBtn.onclick = async () => {
+    // --- 5. 选项卡事件 ---
+    elements.tabRegister.onclick = () => switchTab(false);
+    elements.tabLogin.onclick = () => switchTab(true);
+
+    // --- 6. 注册处理 ---
+    elements.regBtn.onclick = async () => {
         const user = document.getElementById('reg-username').value.trim();
         const email = document.getElementById('reg-email').value.trim();
         const pass = document.getElementById('reg-password').value.trim();
 
-        // 验证用户名长度
-        if (user.length < 6) {
-            showMessage("用户名长度必须至少6位", true);
+        // 验证
+        let error = validators.username(user) || validators.email(email) || validators.password(pass);
+        if (error) {
+            showMessage(error, true);
             return;
         }
 
-        // 验证邮箱格式
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!email || !emailRegex.test(email)) {
-            showMessage("请输入有效的电子邮箱地址", true);
-            return;
-        }
-
-        // 验证密码长度
-        if (pass.length < 8) {
-            showMessage("密码长度必须至少8位", true);
-            return;
-        }
-
-        regBtn.disabled = true;
-        regBtn.innerText = "处理中...";
+        setButtonState(elements.regBtn, true);
 
         const newUser = new AV.User();
         newUser.setUsername(user);
         newUser.setPassword(pass);
         newUser.setEmail(email);
+        newUser.set('emailVerified', false);
 
         try {
             await newUser.signUp();
-            showMessage("🎉 注册成功！请前往邮箱查收验证邮件。", false);
+            showMessage("🎉 注册成功！验证邮件已发送，请前往邮箱查收并验证。", false);
             document.getElementById('reg-username').value = '';
             document.getElementById('reg-email').value = '';
             document.getElementById('reg-password').value = '';
-            setTimeout(() => switchView(true), 2000);
+            setTimeout(() => {
+                switchTab(true);
+                showMessage("⚠️ 请完成邮箱验证后再登录", false);
+            }, 2000);
         } catch (error) {
-            regBtn.disabled = false;
-            regBtn.innerText = "立即注册";
-            let errorMsg = error.message;
-            if (error.code === 202) errorMsg = "该用户名已被占用";
-            if (error.code === 203) errorMsg = "该邮箱已被占用";
-            if (error.code === 125) errorMsg = "电子邮箱地址无效";
-            showMessage("注册失败: " + errorMsg, true);
+            const errorMap = { 202: "该用户名已被占用", 203: "该邮箱已被占用", 125: "电子邮箱地址无效" };
+            showMessage("注册失败: " + (errorMap[error.code] || error.message), true);
+            setButtonState(elements.regBtn, false);
         }
     };
 
-    // --- 6. 登录逻辑 ---
-    loginBtn.onclick = async () => {
+    // --- 7. 登录处理 ---
+    elements.loginBtn.onclick = async () => {
         const user = document.getElementById('login-username').value.trim();
         const pass = document.getElementById('login-password').value.trim();
 
@@ -362,34 +364,41 @@
             return;
         }
 
-        loginBtn.disabled = true;
-        loginBtn.innerText = "处理中...";
+        setButtonState(elements.loginBtn, true);
 
         try {
-            await AV.User.logIn(user, pass);
+            const loginUser = await AV.User.logIn(user, pass);
+
+            if (!loginUser.get('emailVerified')) {
+                await AV.User.logOut();
+                setButtonState(elements.loginBtn, false);
+                showMessage("❌ 账户邮箱还未验证，请前往邮箱点击验证链接后再登录", true);
+                return;
+            }
+
             showMessage("✅ 登录成功！", false);
             document.getElementById('login-username').value = '';
             document.getElementById('login-password').value = '';
             setTimeout(() => switchView(true), 1000);
         } catch (error) {
-            loginBtn.disabled = false;
-            loginBtn.innerText = "登录";
-            let msg = "登录失败: 账号或密码错误";
-            if (error.code === 216) msg = "请先前往邮箱验证您的账号";
+            const msg = error.code === 216 ? "请先前往邮箱验证您的账号" : "登录失败: 账号或密码错误";
             showMessage(msg, true);
+            setButtonState(elements.loginBtn, false);
         }
     };
 
+    // --- 8. 初始化 ---
     function logout() {
         AV.User.logOut();
         location.reload();
     }
 
     window.onload = () => {
-        if (AV.User.current()) switchView(true);
+        const user = AV.User.current();
+        if (user && user.get('emailVerified')) {
+            switchView(true);
+        }
     };
 </script>
 </body>
 </html>
-    </body>
-    </html>
