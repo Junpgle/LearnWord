@@ -66,15 +66,21 @@ class ReviewWindow(QMainWindow):
         self.unknow_btn = QPushButton("不认识")
         self.unknow_btn.setObjectName("unknow_btn")
 
+        # ✅ 阶段一：增加“我记错了”按钮，仅在点击“认识”后出现
+        self.phase2_wrong_btn = QPushButton("我记错了")
+        self.phase2_wrong_btn.setObjectName("wrong_btn")
+        self.phase2_wrong_btn.hide()
+        self.phase2_wrong_btn.clicked.connect(self.on_phase1_wrong)
+
         # ✅ 修复点：在初始化时创建“下一个”按钮，并添加到布局中间
         self.phase2_next_btn = QPushButton("下一个")
-        self.phase2_next_btn.setObjectName("next_btn")  # 样式与 submit 相同
-        self.phase2_next_btn.hide()  # 默认隐藏
+        self.phase2_next_btn.setObjectName("next_btn")
+        self.phase2_next_btn.hide()
         self.phase2_next_btn.clicked.connect(self.on_phase2_next)
 
         know_row.addWidget(self.know_btn)
         know_row.addWidget(self.unknow_btn)
-        # 将“下一个”按钮添加到 最后一个 Stretch 之前，确保居中
+        know_row.addWidget(self.phase2_wrong_btn)
         know_row.addWidget(self.phase2_next_btn)
 
         # 布局结束的伸缩项
@@ -127,8 +133,11 @@ class ReviewWindow(QMainWindow):
         self.idk_btn.clicked.connect(self.on_idk)
 
         # 队列和当前单词初始化
-        self.queue = []
+        self.queue = []  # 第一阶段队列（识别）
+        self.phase2_queue = []  # 第二阶段队列（拼写：仅第一阶段“认识”的单词）
         self.current = None
+        self.in_phase2 = False
+        self.last_action = None  # 记录第一阶段最后一次操作："know" 或 "unknow"
         self._prepare_and_start()
 
         # ✅ 按钮样式美化
@@ -154,12 +163,12 @@ class ReviewWindow(QMainWindow):
                 background-color: #005bb5;
             }
 
-            /* 次要/重置动作 (不认识, 我不会) - 红色/警告色 */
-            #unknow_btn, #idk_btn {
+            /* 次要/重置动作 (不认识, 我记错了, 我不会) - 红色/警告色 */
+            #unknow_btn, #wrong_btn, #idk_btn {
                 background-color: #dc3545; /* 红色 */
                 color: #ffffff;
             }
-            #unknow_btn:hover, #idk_btn:hover {
+            #unknow_btn:hover, #wrong_btn:hover, #idk_btn:hover {
                 background-color: #c82333;
             }
 
@@ -191,19 +200,20 @@ class ReviewWindow(QMainWindow):
         """)
 
     def _prepare_and_start(self):
-        """准备复习队列：优先选择 learned=True 的单词。"""
+        """准备复习队列：仅抽取 learned=True 且 reviewed=False 的单词；若无则提示无需复习。"""
         count = self.model.settings.get("review_count", 15)
         pool = self.model.words
-        learned_pool = [w for w in pool if w.learned]
-        use_pool = learned_pool if learned_pool else pool
+        to_review_pool = [w for w in pool if getattr(w, "learned", False) and not getattr(w, "reviewed", False)]
 
-        if not use_pool:
-            QMessageBox.information(self, "提示", "词库为空。")
+        if not to_review_pool:
+            QMessageBox.information(self, "提示", "没有单词需要复习。")
             QTimer.singleShot(100, self.close)
             return
 
-        random.shuffle(use_pool)
-        self.queue = use_pool[:min(count, len(use_pool))]
+        random.shuffle(to_review_pool)
+        self.queue = to_review_pool[:min(count, len(to_review_pool))]
+        self.phase2_queue = []
+        self.in_phase2 = False
         self._show_next()
 
     def keyPressEvent(self, event):
@@ -231,64 +241,149 @@ class ReviewWindow(QMainWindow):
                 dot.setStyleSheet("border:2px solid #555; border-radius:10px; background-color:transparent;")
 
     def _show_next(self):
-        """显示下一个单词，或结束复习。"""
-        if not self.queue:
+        """显示下一个条目：先跑完整个第一阶段识别；完成后再进入第二阶段拼写。"""
+        # 若在第一阶段
+        if not self.in_phase2:
+            if not self.queue:
+                # 第一阶段结束，进入第二阶段
+                if not self.phase2_queue:
+                    # 没有任何单词进入第二阶段，直接结束
+                    self.word_label.setText("🎉 本次复习完成！ 🎉")
+                    self.phase2_widget.hide()
+                    self.phase3_widget.hide()
+                    QTimer.singleShot(3000, self.close)
+                    return
+                self.in_phase2 = True
+                # 切到第二阶段视图
+                self.phase2_widget.hide()
+                self.phase3_widget.show()
+                self._update_stage_indicator(2)
+                # 从第二阶段队列取第一个进入拼写
+                self.current = self.phase2_queue.pop(0)
+                self.word_label.setText(f"{self.current.pos}. {self.current.definition}")
+                self.cloze.setText(self._make_cloze(self.current.word))
+                self.input.setText("")
+                self.input.setFocus()
+                return
+
+            # 继续第一阶段：展示下一个词
+            self.current = self.queue.pop(0)
+            self.word_label.setText(self.current.word)
+
+            # 第一阶段控件显示
+            self.phase2_widget.show()
+            self.know_btn.show()
+            self.unknow_btn.show()
+            self.phase2_wrong_btn.hide()
+            self.phase2_next_btn.hide()
+            self.phase3_widget.hide()
+            self._update_stage_indicator(1)
+            return
+
+        # 第二阶段流程
+        if not self.phase2_queue and not self.current:
+            # 第二阶段无任务
             self.word_label.setText("🎉 本次复习完成！ 🎉")
             self.phase2_widget.hide()
             self.phase3_widget.hide()
             QTimer.singleShot(3000, self.close)
             return
 
-        self.current = self.queue.pop(0)
-        self.word_label.setText(self.current.word)
+        # 若当前为空（来自 on_phase2_next 或提交后），取下一条
+        if not self.current:
+            self.current = self.phase2_queue.pop(0)
 
-        self.phase2_widget.show()
-
-        # 恢复按钮状态：确保显示认识/不认识，隐藏“下一个”
-        self.know_btn.show()
-        self.unknow_btn.show()
-        self.phase2_next_btn.hide()
-
-        self.phase3_widget.hide()
-        self._update_stage_indicator(1)
-
-    def on_know(self):
-        """用户点击“认识”：进入阶段二。"""
-        if not self.current: return
+        # 切换到拼写视图
         self.phase2_widget.hide()
         self.phase3_widget.show()
         self._update_stage_indicator(2)
-
         self.word_label.setText(f"{self.current.pos}. {self.current.definition}")
         self.cloze.setText(self._make_cloze(self.current.word))
         self.input.setText("")
         self.input.setFocus()
 
-    def on_unknow(self):
-        """用户点击“不认识”：显示释义。"""
+    def on_know(self):
+        """第一阶段：用户点击“认识”，先展示释义，然后让用户选择“下一个”或“我记错了”。"""
         if not self.current: return
+        self.last_action = "know"
 
-        # 状态重置/调整
-        self.current.stage = 1
-        self.current.attempts += 1
-        self.queue.append(self.current)
-        self.model.save_progress()
-
-        # UI 变更：显示释义
+        # 展示释义
         self.word_label.setText(f"{self.current.word}\n{self.current.pos}. {self.current.definition}")
 
-        # 隐藏 认识/不认识，显示下一个
+        # 切换按钮：隐藏认识/不认识，显示 下一个 + 我记错了
         self.know_btn.hide()
         self.unknow_btn.hide()
+        self.phase2_wrong_btn.show()
         self.phase2_next_btn.show()
 
-    def on_phase2_next(self):
-        """点击不认识后的确认按钮，进入下一个单词"""
+        # 保持在第一阶段视图
+        self.phase2_widget.show()
+        self.phase3_widget.hide()
+        self._update_stage_indicator(1)
+
+    def on_unknow(self):
+        """第一阶段：用户点击“不认识”，短暂展示释义，然后将该词放队尾，点击“下一个”继续。"""
+        if not self.current: return
+        self.last_action = "unknow"
+
+        # 状态调整（维持未复习），先不立刻入队尾，等待点击“下一个”后再入队
+        self.current.stage = 1
+        self.current.attempts += 1
+
+        # 展示释义
+        self.word_label.setText(f"{self.current.word}\n{self.current.pos}. {self.current.definition}")
+
+        # 切换按钮：隐藏认识/不认识，仅显示 下一个（不显示我记错了）
+        self.know_btn.hide()
+        self.unknow_btn.hide()
+        self.phase2_wrong_btn.hide()
+        self.phase2_next_btn.show()
+
+        self.phase2_widget.show()
+        self.phase3_widget.hide()
+        self._update_stage_indicator(1)
+
+    def on_phase1_wrong(self):
+        """第一阶段：用户在认识后点击“我记错了”，等同于不认识，放队尾。"""
+        if not self.current: return
+        # 入队尾
+        self.queue.append(self.current)
+        self.model.save_progress()
+        # 重置按钮状态并进入下一项
+        self.phase2_wrong_btn.hide()
         self.phase2_next_btn.hide()
+        self.current = None
+        self._show_next()
+
+    def on_phase2_next(self):
+        """第一阶段释义提示后的“下一个”按钮：根据 last_action 处理并进入下一项。"""
+        if not self.current: return
+
+        if self.last_action == "know":
+            # 认识：加入第二阶段队列
+            self.phase2_queue.append(self.current)
+        elif self.last_action == "unknow":
+            # 不认识：放队尾
+            self.queue.append(self.current)
+        # 清理并继续
+        self.model.save_progress()
+        self.phase2_wrong_btn.hide()
+        self.phase2_next_btn.hide()
+        self.current = None
+        self._show_next()
+
+    def _advance_phase2_or_finish(self):
+        """第二阶段调度：若队列为空则结束，否则展示下一条。"""
+        if not self.phase2_queue:
+            self.word_label.setText("🎉 本次复习完成！ 🎉")
+            self.phase2_widget.hide()
+            self.phase3_widget.hide()
+            QTimer.singleShot(3000, self.close)
+            return
         self._show_next()
 
     def on_submit(self):
-        """用户在阶段二提交拼写答案。"""
+        """第二阶段：提交拼写答案。正确则标记 reviewed=True；错误则放回队尾继续第二阶段。"""
         if not self.current: return
         s = self.input.text().strip()
 
@@ -298,22 +393,27 @@ class ReviewWindow(QMainWindow):
             self.current.reviewed = True
             self.current.stage = min(3, self.current.stage + 1)
             self.model.save_progress()
-            QTimer.singleShot(200, self._show_next)
+            # 清空当前，继续第二阶段下一个
+            self.current = None
+            QTimer.singleShot(150, self._advance_phase2_or_finish)
         else:
             QMessageBox.information(self, "错误", f"正确答案: {self.current.word}")
             self.current.stage = 1
-            self.queue.append(self.current)
+            # 错误：回到第二阶段队尾
+            self.phase2_queue.append(self.current)
             self.model.save_progress()
-            QTimer.singleShot(100, self._show_next)
+            self.current = None
+            QTimer.singleShot(150, self._advance_phase2_or_finish)
 
     def on_idk(self):
-        """用户点击“我不会”。"""
+        """第二阶段：用户点击“我不会”，与错误相同处理。"""
         if not self.current: return
         QMessageBox.information(self, "提示", f"正确答案是: {self.current.word}")
         self.current.stage = 1
-        self.queue.append(self.current)
+        self.phase2_queue.append(self.current)
         self.model.save_progress()
-        QTimer.singleShot(200, self._show_next)
+        self.current = None
+        QTimer.singleShot(150, self._advance_phase2_or_finish)
 
     def _make_cloze(self, word):
         """生成填空提示。"""

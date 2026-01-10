@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LearnWord 账号中心</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- 引入 LeanCloud JS SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.12.0/dist/av-min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.15.0/dist/av-min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         body {
@@ -40,11 +40,15 @@
             ring-color: #3b82f6;
             border-color: transparent;
         }
+        .form-input:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
         .form-label {
             display: block;
             font-size: 0.75rem;
             font-weight: 600;
-            color: rgb(100, 116, 139);
+            color: rgb(148, 163, 184);
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 0.375rem;
@@ -58,6 +62,7 @@
             left: 2rem;
             color: rgba(255,255,255,0.5);
             transition: all 0.3s ease;
+            z-index: 50;
         }
         .back-home-link:hover {
             color: white;
@@ -74,34 +79,62 @@
             color: white;
         }
         .tab-btn.inactive { color: rgba(255,255,255,0.5); }
+
+        .fade-enter { opacity: 0; transform: scale(0.95); }
+        .fade-enter-active { opacity: 1; transform: scale(1); transition: opacity 300ms, transform 300ms; }
     </style>
 </head>
-<body class="flex items-center justify-center p-4 relative">
+<body class="flex items-center justify-center p-4 relative overflow-x-hidden">
 
 <!-- 返回首页链接 -->
 <a href="index.html" class="back-home-link hidden md:flex items-center text-sm font-medium">
     <i class="fas fa-arrow-left mr-2"></i> 返回主页
 </a>
 
-<!-- 1. 注册/登录容器 -->
-<div id="auth-container" class="w-full max-w-md p-8 rounded-3xl glass-card shadow-2xl transition-all duration-500">
+<!-- ========================================== -->
+<!-- 1. 注册/登录容器 (Auth Container)          -->
+<!-- ========================================== -->
+<div id="auth-container" class="w-full max-w-md p-8 rounded-3xl glass-card shadow-2xl transition-all duration-500 z-10">
     <!-- Header -->
     <div class="text-center mb-8">
         <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-500/30">
             <span class="text-3xl">🌟</span>
         </div>
         <h1 class="text-2xl font-bold text-white mb-2">J's 账号</h1>
-        <p class="text-slate-400 text-sm">注册并同步你在J提供的LearnWord以及创新创业题库的学习之旅</p>
+        <p class="text-slate-400 text-sm">同步你在 LearnWord 及创新创业题库的学习进度</p>
     </div>
 
-    <!-- 选项卡 -->
-    <div class="flex gap-6 mb-8 border-b border-slate-700">
-        <button id="tab-register" class="tab-btn active pb-3 font-semibold">注册</button>
-        <button id="tab-login" class="tab-btn inactive pb-3 font-semibold">登录</button>
+    <!-- 选项卡 (仅在非重置密码模式下显示) -->
+    <div id="auth-tabs" class="flex gap-6 mb-8 border-b border-slate-700">
+        <!-- 默认登录激活 -->
+        <button id="tab-login" class="tab-btn active pb-3 font-semibold w-1/2 text-center">登录</button>
+        <button id="tab-register" class="tab-btn inactive pb-3 font-semibold w-1/2 text-center">注册</button>
     </div>
 
-    <!-- 注册表单 -->
-    <div id="register-form" class="space-y-5">
+    <!-- 登录表单 (默认显示) -->
+    <div id="login-form" class="space-y-5">
+        <div>
+            <label class="form-label">用户名 <span class="required">*</span></label>
+            <input type="text" id="login-username" class="form-input" placeholder="请输入用户名">
+        </div>
+        <div>
+            <label class="form-label">密码 <span class="required">*</span></label>
+            <input type="password" id="login-password" class="form-input" placeholder="请输入密码">
+        </div>
+
+        <div class="flex justify-end">
+            <button onclick="toggleResetMode(true)" class="text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                忘记密码？
+            </button>
+        </div>
+
+        <button id="login-btn" class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 transition-all">
+            登录
+        </button>
+    </div>
+
+    <!-- 注册表单 (默认隐藏) -->
+    <div id="register-form" class="space-y-5 hidden">
         <div>
             <label class="form-label">用户名 <span class="required">*</span></label>
             <input type="text" id="reg-username" class="form-input" placeholder="请输入用户名 (6-15位)">
@@ -119,23 +152,26 @@
         </button>
     </div>
 
-    <!-- 登录表单 -->
-    <div id="login-form" class="space-y-5 hidden">
-        <div>
-            <label class="form-label">用户名 <span class="required">*</span></label>
-            <input type="text" id="login-username" class="form-input" placeholder="请输入用户名">
+    <!-- 重置密码表单 (独立状态，默认隐藏) -->
+    <div id="reset-form" class="space-y-5 hidden">
+        <div class="text-center mb-6">
+            <h3 class="text-lg font-bold text-white">重置密码</h3>
+            <p class="text-slate-400 text-xs mt-1">输入你的注册邮箱，我们将发送重置链接给你。</p>
         </div>
         <div>
-            <label class="form-label">密码 <span class="required">*</span></label>
-            <input type="password" id="login-password" class="form-input" placeholder="请输入密码">
+            <label class="form-label">电子邮箱 <span class="required">*</span></label>
+            <input type="email" id="reset-email" class="form-input" placeholder="请输入绑定的邮箱地址">
         </div>
-        <button id="login-btn" class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 transition-all">
-            登录
+        <button id="reset-btn" onclick="requestPasswordReset()" class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 transition-all">
+            发送重置邮件
+        </button>
+        <button onclick="toggleResetMode(false)" class="w-full py-2 text-slate-400 hover:text-white text-sm font-medium transition-colors">
+            返回登录
         </button>
     </div>
 
-    <!-- Message Area -->
-    <div id="message" class="mt-6 text-center text-sm hidden p-3 rounded-xl border border-transparent"></div>
+    <!-- Auth Message Area -->
+    <div id="auth-message" class="mt-6 text-center text-sm hidden p-3 rounded-xl border border-transparent"></div>
 
     <div class="mt-8 pt-6 border-t border-slate-800/50 text-center">
         <p class="text-slate-500 text-xs leading-relaxed">
@@ -144,19 +180,25 @@
     </div>
 </div>
 
-<!-- 2. 个人进度面板 (初始隐藏) -->
-<div id="dashboard-container" class="w-full max-w-2xl p-8 rounded-3xl glass-card shadow-2xl hidden transition-all duration-500 opacity-0">
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+<!-- ========================================== -->
+<!-- 2. 个人进度面板 (Dashboard Container)      -->
+<!-- ========================================== -->
+<div id="dashboard-container" class="w-full max-w-2xl p-8 rounded-3xl glass-card shadow-2xl hidden opacity-0 z-10 relative">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-slate-700/50 pb-6">
         <div>
             <h2 class="text-3xl font-bold text-white mb-1">你好, <span id="display-name" class="text-blue-400">同学</span></h2>
             <p class="text-slate-400 text-sm">这是你的 LearnWord 学习概览</p>
         </div>
-        <div class="flex gap-3">
-            <a href="index.html" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-all flex items-center">
-                <i class="fas fa-home mr-2"></i> 返回首页
+        <div class="flex gap-2">
+            <!-- 设置按钮 -->
+            <button onclick="openSettings()" class="px-3 py-2 bg-slate-700/50 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg transition-all flex items-center border border-slate-600/50" title="个人设置">
+                <i class="fas fa-cog mr-2"></i> 设置
+            </button>
+            <a href="index.html" class="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-all flex items-center">
+                <i class="fas fa-home mr-2"></i> 首页
             </a>
-            <button onclick="logout()" class="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold rounded-lg border border-red-500/20 transition-all">
-                退出登录
+            <button onclick="logout()" class="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold rounded-lg border border-red-500/20 transition-all">
+                退出
             </button>
         </div>
     </div>
@@ -164,7 +206,7 @@
     <!-- 进度统计网格 -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- 学习进度 -->
-        <div class="p-6 rounded-2xl bg-blue-500/5 border border-blue-500/10 flex flex-col items-center text-center">
+        <div class="p-6 rounded-2xl bg-blue-500/5 border border-blue-500/10 flex flex-col items-center text-center hover:bg-blue-500/10 transition-colors">
             <div class="relative w-24 h-24 mb-4">
                 <svg class="w-full h-full"><circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-800" /><circle id="ring-learn" cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" stroke-dasharray="251.2" stroke-dashoffset="251.2" class="text-blue-500 progress-ring" /></svg>
                 <span id="percent-learn" class="absolute inset-0 flex items-center justify-center font-bold text-lg">0%</span>
@@ -173,7 +215,7 @@
             <p id="stat-learn" class="text-slate-400 text-xs">已学习 0 词</p>
         </div>
         <!-- 复习进度 -->
-        <div class="p-6 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex flex-col items-center text-center">
+        <div class="p-6 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex flex-col items-center text-center hover:bg-amber-500/10 transition-colors">
             <div class="relative w-24 h-24 mb-4">
                 <svg class="w-full h-full"><circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-800" /><circle id="ring-review" cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" stroke-dasharray="251.2" stroke-dashoffset="251.2" class="text-amber-500 progress-ring" /></svg>
                 <span id="percent-review" class="absolute inset-0 flex items-center justify-center font-bold text-lg">0%</span>
@@ -182,7 +224,7 @@
             <p id="stat-review" class="text-slate-400 text-xs">已复习 0 词</p>
         </div>
         <!-- 测试准确率 -->
-        <div class="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex flex-col items-center text-center">
+        <div class="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex flex-col items-center text-center hover:bg-emerald-500/10 transition-colors">
             <div class="relative w-24 h-24 mb-4">
                 <svg class="w-full h-full"><circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-800" /><circle id="ring-test" cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" stroke-dasharray="251.2" stroke-dashoffset="251.2" class="text-emerald-500 progress-ring" /></svg>
                 <span id="percent-test" class="absolute inset-0 flex items-center justify-center font-bold text-lg">0%</span>
@@ -191,11 +233,58 @@
             <p id="stat-test" class="text-slate-400 text-xs">已测试 0 词</p>
         </div>
     </div>
+</div>
 
-    <div class="mt-8 p-4 rounded-xl bg-slate-800/30 border border-slate-700 text-center">
-        <p class="text-slate-400 text-xs">
-            💡 网页端仅同步展示数据。若需继续背词，请打开桌面客户端进行操作。
-        </p>
+<!-- ========================================== -->
+<!-- 3. 设置/个人中心面板 (Settings Container)    -->
+<!-- ========================================== -->
+<div id="settings-container" class="w-full max-w-lg p-8 rounded-3xl glass-card shadow-2xl hidden opacity-0 z-20 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-700">
+        <h2 class="text-2xl font-bold text-white"><i class="fas fa-user-cog text-blue-500 mr-2"></i>个人中心</h2>
+        <button onclick="closeSettings()" class="text-slate-400 hover:text-white transition-colors">
+            <i class="fas fa-times text-xl"></i>
+        </button>
+    </div>
+
+    <!-- 消息区域 -->
+    <div id="settings-message" class="mb-4 text-center text-sm hidden p-3 rounded-xl border border-transparent"></div>
+
+    <div class="space-y-8 h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+        <!-- 基本信息 -->
+        <div class="space-y-4">
+            <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider">基本资料</h3>
+
+            <div>
+                <label class="form-label">当前用户</label>
+                <input type="text" id="set-username" class="form-input bg-slate-800/50 text-slate-400 cursor-not-allowed" disabled>
+            </div>
+
+            <div>
+                <label class="form-label flex justify-between">
+                    绑定邮箱
+                    <span id="email-status" class="text-xs px-2 py-0.5 rounded bg-slate-700 text-slate-300">未知状态</span>
+                </label>
+                <div class="flex gap-2">
+                    <input type="email" id="set-email" class="form-input" placeholder="绑定新邮箱">
+                    <button id="btn-update-email" onclick="updateEmail()" class="px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold transition-colors whitespace-nowrap">
+                        保存
+                    </button>
+                </div>
+                <p class="text-xs text-slate-500 mt-2">修改邮箱后需要前往新邮箱验证。</p>
+            </div>
+        </div>
+
+        <!-- 安全设置 -->
+        <div class="space-y-4 pt-4 border-t border-slate-700/50">
+            <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider">安全设置</h3>
+
+            <p class="text-xs text-slate-400 mb-2">如果您忘记了密码或希望修改密码，我们可以向您的邮箱发送重置链接。</p>
+
+            <button id="btn-send-reset-settings" onclick="sendResetEmailFromSettings()" class="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-all border border-slate-600 flex items-center justify-center">
+                <i class="fas fa-envelope mr-2"></i> 发送密码重置邮件
+            </button>
+        </div>
     </div>
 </div>
 
@@ -211,53 +300,111 @@
     const elements = {
         authBox: document.getElementById('auth-container'),
         dashBox: document.getElementById('dashboard-container'),
-        msgDiv: document.getElementById('message'),
+        settingsBox: document.getElementById('settings-container'),
+
+        authMsg: document.getElementById('auth-message'),
+        settingsMsg: document.getElementById('settings-message'),
+
+        authTabs: document.getElementById('auth-tabs'),
         tabRegister: document.getElementById('tab-register'),
         tabLogin: document.getElementById('tab-login'),
+
         registerForm: document.getElementById('register-form'),
         loginForm: document.getElementById('login-form'),
+        resetForm: document.getElementById('reset-form'),
+
         regBtn: document.getElementById('reg-btn'),
         loginBtn: document.getElementById('login-btn'),
+        resetBtn: document.getElementById('reset-btn'),
+
+        // Settings inputs
+        setUsername: document.getElementById('set-username'),
+        setEmail: document.getElementById('set-email'),
+        emailStatus: document.getElementById('email-status'),
+        btnUpdateEmail: document.getElementById('btn-update-email'),
+        btnSendResetSettings: document.getElementById('btn-send-reset-settings')
     };
 
     // --- 2. 工具函数 ---
-    function showMessage(text, isError = false) {
-        elements.msgDiv.innerText = text;
+    function showMessage(target, text, isError = false) {
+        const msgDiv = target === 'auth' ? elements.authMsg : elements.settingsMsg;
+        msgDiv.innerText = text;
         const baseClasses = ['hidden', 'bg-red-500/10', 'text-red-400', 'border-red-500/20', 'bg-green-500/10', 'text-green-400', 'border-green-500/20'];
-        baseClasses.forEach(cls => elements.msgDiv.classList.remove(cls));
+        baseClasses.forEach(cls => msgDiv.classList.remove(cls));
 
+        msgDiv.classList.remove('hidden');
         if (isError) {
-            elements.msgDiv.classList.add('bg-red-500/10', 'text-red-400', 'border-red-500/20');
+            msgDiv.classList.add('bg-red-500/10', 'text-red-400', 'border-red-500/20');
         } else {
-            elements.msgDiv.classList.add('bg-green-500/10', 'text-green-400', 'border-green-500/20');
+            msgDiv.classList.add('bg-green-500/10', 'text-green-400', 'border-green-500/20');
+        }
+
+        // Auto hide after 5 seconds
+        setTimeout(() => {
+            msgDiv.classList.add('hidden');
+        }, 5000);
+    }
+
+    function setButtonState(btn, isLoading, defaultText) {
+        btn.disabled = isLoading;
+        if(isLoading) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> 处理中...';
+        } else {
+            btn.innerText = defaultText;
         }
     }
 
-    function setButtonState(btn, isLoading) {
-        btn.disabled = isLoading;
-        btn.innerText = isLoading ? "处理中..." : (btn === elements.regBtn ? "立即注册" : "登录");
-    }
-
-    function switchTab(toLogin) {
+    // 切换登录/注册 Tab
+    function switchTab(toLogin, presetUsername = '') {
         const [activeTab, inactiveTab] = toLogin ? [elements.tabLogin, elements.tabRegister] : [elements.tabRegister, elements.tabLogin];
+
+        // UI 更新
         activeTab.classList.add('active');
         activeTab.classList.remove('inactive');
         inactiveTab.classList.remove('active');
         inactiveTab.classList.add('inactive');
+
         elements.registerForm.classList.toggle('hidden', toLogin);
         elements.loginForm.classList.toggle('hidden', !toLogin);
-        elements.msgDiv.classList.add('hidden');
+        elements.resetForm.classList.add('hidden'); // 确保重置表单关闭
+        elements.authTabs.classList.remove('hidden'); // 确保 Tab 显示
+
+        elements.authMsg.classList.add('hidden');
+
+        // 如果传入了预设用户名（自动切换时），则填入并聚焦到下一步
+        if (!toLogin && presetUsername) {
+            document.getElementById('reg-username').value = presetUsername;
+            document.getElementById('reg-email').focus();
+            showMessage('auth', `账号 "${presetUsername}" 不存在，已为您切换到注册页面`, false);
+        }
     }
 
-    async function switchView(toDash) {
-        if (toDash) {
-            elements.authBox.classList.add('hidden');
+    // 切换到重置密码模式
+    function toggleResetMode(showReset) {
+        if (showReset) {
+            elements.loginForm.classList.add('hidden');
+            elements.registerForm.classList.add('hidden');
+            elements.authTabs.classList.add('hidden');
+            elements.resetForm.classList.remove('hidden');
+            elements.authMsg.classList.add('hidden');
+        } else {
+            // 返回登录
+            switchTab(true);
+        }
+    }
+
+    async function switchView(target) {
+        elements.authBox.classList.add('hidden');
+        elements.dashBox.classList.add('hidden');
+        elements.dashBox.classList.remove('opacity-100');
+        elements.settingsBox.classList.add('hidden');
+        elements.settingsBox.classList.remove('opacity-100');
+
+        if (target === 'dashboard') {
             elements.dashBox.classList.remove('hidden');
             setTimeout(() => elements.dashBox.classList.add('opacity-100'), 50);
             await loadDashboardData();
-        } else {
-            elements.dashBox.classList.add('hidden');
-            elements.dashBox.classList.remove('opacity-100');
+        } else if (target === 'auth') {
             elements.authBox.classList.remove('hidden');
         }
     }
@@ -291,7 +438,7 @@
         }
     }
 
-    // --- 4. 数据加载 ---
+    // --- 4. 数据加载 (Dashboard) ---
     async function loadDashboardData() {
         try {
             const user = AV.User.current();
@@ -299,27 +446,23 @@
 
             document.getElementById('display-name').innerText = user.getUsername();
 
-            // 从云端获取最新数据
             await user.fetch();
 
-            // 改为驼峰命名法，与后端保存的字段名一致
             const learned = user.get('learnedCount') || 0;
             const total = user.get('totalCount') || 100;
             const reviewed = user.get('reviewedCount') || 0;
             const tested = user.get('testedCount') || 0;
 
-            // 更新统计信息
             document.getElementById('stat-learn').innerText = `已学习 ${learned} / 总数 ${total}`;
             document.getElementById('stat-review').innerText = `已复习 ${reviewed} 词`;
             document.getElementById('stat-test').innerText = `已通过测试 ${tested} 词`;
 
-            // 更新进度圆环
             updateProgressRing('learn', (learned / total) * 100);
             updateProgressRing('review', learned > 0 ? (reviewed / learned) * 100 : 0);
             updateProgressRing('test', (tested / total) * 100);
         } catch (error) {
             console.error('加载数据失败:', error);
-            showMessage('无法加载学习数据，请刷新页面', true);
+            showMessage('auth', '无法加载学习数据，请刷新页面', true);
         }
     }
 
@@ -333,72 +476,194 @@
         const email = document.getElementById('reg-email').value.trim();
         const pass = document.getElementById('reg-password').value.trim();
 
-        // 验证
         let error = validators.username(user) || validators.email(email) || validators.password(pass);
         if (error) {
-            showMessage(error, true);
+            showMessage('auth', error, true);
             return;
         }
 
-        setButtonState(elements.regBtn, true);
+        setButtonState(elements.regBtn, true, '立即注册');
 
         const newUser = new AV.User();
         newUser.setUsername(user);
         newUser.setPassword(pass);
         newUser.setEmail(email);
-        newUser.set('emailVerified', false);
 
         try {
             await newUser.signUp();
-            showMessage("🎉 注册成功！验证邮件已发送，请前往邮箱查收并验证。", false);
+            showMessage('auth', "🎉 注册成功！验证邮件已发送，请前往邮箱查收。", false);
+            // Clear inputs
             document.getElementById('reg-username').value = '';
             document.getElementById('reg-email').value = '';
             document.getElementById('reg-password').value = '';
             setTimeout(() => {
                 switchTab(true);
-                showMessage("⚠️ 请完成邮箱验证后再登录", false);
+                setButtonState(elements.regBtn, false, '立即注册');
             }, 2000);
         } catch (error) {
             const errorMap = { 202: "该用户名已被占用", 203: "该邮箱已被占用", 125: "电子邮箱地址无效" };
-            showMessage("注册失败: " + (errorMap[error.code] || error.message), true);
-            setButtonState(elements.regBtn, false);
+            showMessage('auth', "注册失败: " + (errorMap[error.code] || error.message), true);
+            setButtonState(elements.regBtn, false, '立即注册');
         }
     };
 
-    // --- 7. 登录处理 ---
+    // --- 7. 登录处理 (包含自动切换逻辑) ---
     elements.loginBtn.onclick = async () => {
         const user = document.getElementById('login-username').value.trim();
         const pass = document.getElementById('login-password').value.trim();
 
         if (!user || !pass) {
-            showMessage("请输入用户名和密码", true);
+            showMessage('auth', "请输入用户名和密码", true);
             return;
         }
 
-        setButtonState(elements.loginBtn, true);
+        setButtonState(elements.loginBtn, true, '登录');
 
         try {
             const loginUser = await AV.User.logIn(user, pass);
 
             if (!loginUser.get('emailVerified')) {
                 await AV.User.logOut();
-                setButtonState(elements.loginBtn, false);
-                showMessage("❌ 账户邮箱还未验证，请前往邮箱点击验证链接后再登录", true);
+                setButtonState(elements.loginBtn, false, '登录');
+                showMessage('auth', "❌ 邮箱未验证，请检查收件箱或垃圾邮件文件夹", true);
                 return;
             }
 
-            showMessage("✅ 登录成功！", false);
+            showMessage('auth', "✅ 登录成功！", false);
             document.getElementById('login-username').value = '';
             document.getElementById('login-password').value = '';
-            setTimeout(() => switchView(true), 1000);
+            setTimeout(() => {
+                setButtonState(elements.loginBtn, false, '登录');
+                switchView('dashboard');
+            }, 1000);
         } catch (error) {
-            const msg = error.code === 216 ? "请先前往邮箱验证您的账号" : "登录失败: 账号或密码错误";
-            showMessage(msg, true);
-            setButtonState(elements.loginBtn, false);
+            // Error 211: Could not find user (Account not found)
+            if (error.code === 211) {
+                setButtonState(elements.loginBtn, false, '登录');
+                // 自动切换到注册并带入用户名
+                switchTab(false, user);
+                return;
+            }
+
+            const msg = error.code === 210 ? "登录失败: 密码错误" : "登录失败: " + (error.message || "未知错误");
+            showMessage('auth', msg, true);
+            setButtonState(elements.loginBtn, false, '登录');
         }
     };
 
-    // --- 8. 初始化 ---
+    // --- 8. 重置密码处理 ---
+    async function requestPasswordReset() {
+        const email = document.getElementById('reset-email').value.trim();
+        if (!email) {
+            showMessage('auth', "请输入您的注册邮箱", true);
+            return;
+        }
+
+        setButtonState(elements.resetBtn, true, '发送重置邮件');
+
+        try {
+            await AV.User.requestPasswordReset(email);
+            showMessage('auth', "✅ 重置邮件已发送！请查收邮件并按照提示操作。", false);
+            setTimeout(() => {
+                toggleResetMode(false); // 成功后返回登录界面
+                setButtonState(elements.resetBtn, false, '发送重置邮件');
+            }, 3000);
+        } catch (error) {
+            let msg = "发送失败，请稍后重试";
+            if (error.code === 205) msg = "找不到使用该邮箱注册的用户";
+            if (error.code === 125) msg = "无效的邮箱地址";
+            showMessage('auth', msg, true);
+            setButtonState(elements.resetBtn, false, '发送重置邮件');
+        }
+    }
+
+    // --- 9. 设置面板逻辑 ---
+    function openSettings() {
+        const user = AV.User.current();
+        if(!user) return;
+
+        elements.dashBox.classList.add('blur-sm');
+        elements.settingsBox.classList.remove('hidden');
+        setTimeout(() => elements.settingsBox.classList.remove('opacity-0'), 50);
+
+        elements.setUsername.value = user.getUsername();
+        elements.setEmail.value = user.getEmail();
+
+        const isVerified = user.get('emailVerified');
+        elements.emailStatus.innerText = isVerified ? '已验证' : '未验证';
+        elements.emailStatus.className = `text-xs px-2 py-0.5 rounded ${isVerified ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`;
+
+        elements.settingsMsg.classList.add('hidden');
+    }
+
+    function closeSettings() {
+        elements.settingsBox.classList.add('opacity-0');
+        elements.dashBox.classList.remove('blur-sm');
+        setTimeout(() => {
+            elements.settingsBox.classList.add('hidden');
+        }, 300);
+    }
+
+    async function updateEmail() {
+        const newEmail = elements.setEmail.value.trim();
+        const emailError = validators.email(newEmail);
+
+        if (emailError) {
+            showMessage('settings', emailError, true);
+            return;
+        }
+
+        const user = AV.User.current();
+        if (newEmail === user.getEmail()) {
+            showMessage('settings', "新邮箱不能与当前邮箱相同", true);
+            return;
+        }
+
+        setButtonState(elements.btnUpdateEmail, true, '保存');
+
+        try {
+            user.setEmail(newEmail);
+            await user.save();
+            showMessage('settings', "✅ 邮箱已更新！请前往新邮箱进行验证。", false);
+            elements.emailStatus.innerText = "未验证";
+            elements.emailStatus.className = 'text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400';
+        } catch (error) {
+            console.error(error);
+            let msg = "邮箱更新失败";
+            if(error.code === 203) msg = "该邮箱已被其他账号占用";
+            showMessage('settings', msg, true);
+            elements.setEmail.value = user.getEmail();
+        } finally {
+            setButtonState(elements.btnUpdateEmail, false, '保存');
+        }
+    }
+
+    // 设置中心：发送重置邮件
+    async function sendResetEmailFromSettings() {
+        const user = AV.User.current();
+        const email = user.getEmail();
+
+        if (!email) {
+            showMessage('settings', "当前账户未绑定邮箱，无法重置密码", true);
+            return;
+        }
+
+        setButtonState(elements.btnSendResetSettings, true, '发送密码重置邮件');
+
+        try {
+            await AV.User.requestPasswordReset(email);
+            showMessage('settings', `✅ 重置邮件已发送至 ${email}`, false);
+        } catch (error) {
+            console.error(error);
+            showMessage('settings', "发送失败，请稍后重试", true);
+        } finally {
+            setTimeout(() => {
+                 setButtonState(elements.btnSendResetSettings, false, '<i class="fas fa-envelope mr-2"></i> 发送密码重置邮件');
+            }, 2000);
+        }
+    }
+
+    // --- 10. 初始化 ---
     function logout() {
         AV.User.logOut();
         location.reload();
@@ -407,7 +672,12 @@
     window.onload = () => {
         const user = AV.User.current();
         if (user && user.get('emailVerified')) {
-            switchView(true);
+            switchView('dashboard');
+        } else if (user && !user.get('emailVerified')) {
+            AV.User.logOut();
+            elements.authBox.classList.remove('hidden');
+        } else {
+            elements.authBox.classList.remove('hidden');
         }
     };
 </script>

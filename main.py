@@ -30,8 +30,8 @@ from user_manager import UserManager
 from vocab_model import VocabModel
 
 # 设定当前程序版本号
-CURRENT_VERSION = "v1.2.4"
-CURRENT_VERSION_DATE = "20251231"
+CURRENT_VERSION = "v1.3.5"
+CURRENT_VERSION_DATE = "20260110"
 
 
 # ★★★ 资源路径获取函数 ★★★

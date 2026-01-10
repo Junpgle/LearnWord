@@ -327,32 +327,26 @@ class SettingWindow(QMainWindow):
         super().__init__(parent)
         self.model = model
 
-        # --- 增强版 UserManager 获取逻辑 (修复 AttributeError 并增强状态同步) ---
+        # --- 增强版 UserManager 获取逻辑 ---
         self.user_manager = None
-
-        # 1. 尝试从 parent (MainWindow) 及其子控件中探测
         main_win = parent
         if not main_win:
-            # 如果没传 parent，从全局顶级窗口中搜寻 MainWindow
             for widget in QApplication.topLevelWidgets():
                 if "MainWindow" in str(type(widget)):
                     main_win = widget
                     break
 
         if main_win:
-            # 优先从 MainWindow 本身拿，其次从它的 account_panel 拿
             self.user_manager = getattr(main_win, 'user_manager', None)
             if not self.user_manager:
                 panel = main_win.findChild(QWidget, "AccountPanel")
                 self.user_manager = getattr(panel, 'user_manager', None)
 
-        # 2. 兜底：如果实在没找着共享实例，新建一个 (UserManager 会尝试加载本地 session 文件)
         if not self.user_manager:
             self.user_manager = UserManager()
 
         self.setWindowTitle("设置与数据管理")
-
-        self.setFixedSize(1000, 700)
+        self.setFixedSize(1000, 750)
         self.central = QWidget()
         self.setCentralWidget(self.central)
         self.main_layout = QVBoxLayout(self.central)
@@ -362,10 +356,11 @@ class SettingWindow(QMainWindow):
         self.refresh_view()
 
     def setup_ui(self):
-        # 1. 顶部工具栏 (所有操作按钮并排)
+        # 1. 顶部工具栏 (设置 Stretch 让按钮铺满)
         tool_group = QGroupBox("数据操作")
         tool_group.setStyleSheet(GROUP_BOX_STYLE)
         tool_layout = QHBoxLayout(tool_group)
+        tool_layout.setSpacing(15)
 
         self.btn_import = QPushButton("导入词库")
         self.btn_download = QPushButton("下载词库")
@@ -373,10 +368,12 @@ class SettingWindow(QMainWindow):
         self.btn_cloud_backup = QPushButton("☁️ 云端备份")
         self.btn_cloud_restore = QPushButton("⬇️ 云端恢复")
 
-        for b in [self.btn_import, self.btn_download, self.btn_manage_backup,self.btn_cloud_backup,self.btn_cloud_restore]:
-            b.setStyleSheet(BTN_STYLE);
-            b.setFixedHeight(38);
-            tool_layout.addWidget(b)
+        for b in [self.btn_import, self.btn_download, self.btn_manage_backup, self.btn_cloud_backup,
+                  self.btn_cloud_restore]:
+            b.setStyleSheet(BTN_STYLE)
+            b.setFixedHeight(42)
+            b.setCursor(Qt.CursorShape.PointingHandCursor)
+            tool_layout.addWidget(b, 1)
 
         self.main_layout.addWidget(tool_group)
 
@@ -384,7 +381,6 @@ class SettingWindow(QMainWindow):
         content_layout = QHBoxLayout()
         left_side = QVBoxLayout()
 
-        # 进度组
         progress_group = QGroupBox("进度统计");
         progress_group.setStyleSheet(GROUP_BOX_STYLE)
         prog_v = QVBoxLayout(progress_group)
@@ -402,7 +398,6 @@ class SettingWindow(QMainWindow):
         prog_v.addWidget(self.test_progress)
         left_side.addWidget(progress_group)
 
-        # 参数组
         set_group = QGroupBox("参数配置");
         set_group.setStyleSheet(GROUP_BOX_STYLE)
         set_v = QVBoxLayout(set_group)
@@ -422,7 +417,6 @@ class SettingWindow(QMainWindow):
         left_side.addWidget(set_group)
         content_layout.addLayout(left_side, 2)
 
-        # 预览组
         pre_group = QGroupBox("当前词库预览");
         pre_group.setStyleSheet(GROUP_BOX_STYLE)
         pre_v = QVBoxLayout(pre_group)
@@ -437,15 +431,87 @@ class SettingWindow(QMainWindow):
         self.lbl_cloud_status = QLabel();
         self.main_layout.addWidget(self.lbl_cloud_status)
 
-        # 连信号
+        # 信号
         self.btn_import.clicked.connect(self.import_wordlist)
         self.btn_download.clicked.connect(self.download_wordlist)
         self.btn_manage_backup.clicked.connect(self.open_backup_manager)
         self.btn_cloud_backup.clicked.connect(self.handle_backup)
         self.btn_cloud_restore.clicked.connect(self.handle_restore)
 
+    def handle_backup(self):
+        """处理云端备份 (同步统计数据到网页端)"""
+        temp = os.path.join(self.model.data_dir, "cloud_sync_temp.json")
+        try:
+            # 1. 保存内存中的最新进度到临时文件
+            self.model.save_progress(temp)
+
+            # 2. 提取并计算各种统计数字
+            learned, total = self.model.get_stats()
+            # 统计复习过的单词（learned 且 reviewed 为 True）
+            reviewed = sum(1 for w in self.model.words if w.learned and w.reviewed)
+            # 统计通过测试的单词
+            tested = sum(1 for w in self.model.words if w.tested)
+
+            # 封装成字典
+            stats = {
+                "wordlist_name": self.model.current_wordlist_name,
+                "learned_count": learned,
+                "total_count": total,
+                "reviewed_count": reviewed,
+                "tested_count": tested
+            }
+
+            # 3. 执行备份
+            self.btn_cloud_backup.setText("正在上传...")
+            self.btn_cloud_backup.setEnabled(False)
+            QApplication.processEvents()  # 强制刷新UI显示
+
+            success, msg = self.user_manager.backup_progress(temp, stats_dict=stats)
+
+            if success:
+                QMessageBox.information(self, "成功", "备份成功！网页端已实时同步您的学习进度。")
+            else:
+                # 针对 SSL 错误提供更友好的提示
+                err_msg = str(msg)
+                if "SSL" in err_msg or "EOF" in err_msg:
+                    err_msg = "网络 HTTPS 握手失败 (SSL Error)。\n提示：请关闭系统代理、VPN 后重试。"
+                QMessageBox.warning(self, "备份失败", err_msg)
+
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"发生意外错误: {str(e)}")
+        finally:
+            self.btn_cloud_backup.setText("☁️ 云端备份")
+            self.btn_cloud_backup.setEnabled(True)
+            if os.path.exists(temp): os.remove(temp)
+
+    def refresh_view(self):
+        """刷新界面内容和云端按钮状态"""
+        is_logged = self.user_manager.is_logged_in()
+        self.btn_cloud_backup.setEnabled(is_logged)
+        self.btn_cloud_restore.setEnabled(is_logged)
+
+        if is_logged:
+            user = self.user_manager.get_username()
+            self.lbl_cloud_status.setText(f"云端状态：已登录为 {user} (同步已就绪)")
+            self.lbl_cloud_status.setStyleSheet("color: #28a745; font-weight: bold;")
+        else:
+            self.lbl_cloud_status.setText("云端状态：未登录 (请在主界面登录账户以开启同步)")
+            self.lbl_cloud_status.setStyleSheet("color: #d32f2f;")
+
+        self.wordlist_name_label.setText(f"当前文件: {self.model.current_wordlist_name}")
+        learned, total = self.model.get_stats()
+
+        # 更新进度条
+        self.progress.setRange(0, total if total > 0 else 1)
+        self.progress.setValue(learned)
+        self.progress.setFormat(f"已学 {learned}/{total}")
+
+        # 更新预览内容 (仅限前100行防卡顿)
+        lines = [f"[{w.stage}] {w.word} : {w.definition}" for w in self.model.words[:100]]
+        self.words_view.setPlainText("\n".join(lines))
+
+    # --- 辅助方法 ---
     def _create_backup(self):
-        """自动备份当前进度 (修复 AttributeError)"""
         backup_dir = os.path.join(self.model.data_dir, "backup")
         if not os.path.exists(backup_dir): os.makedirs(backup_dir, exist_ok=True)
         date_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -456,24 +522,15 @@ class SettingWindow(QMainWindow):
         except Exception as e:
             print(f"Backup failed: {e}")
 
-    def refresh_view(self):
-        # --- 修改处：确保 UI 刷新时强制同步逻辑状态 ---
-        is_logged = self.user_manager.is_logged_in()
-        self.btn_cloud_backup.setEnabled(is_logged)
-        self.btn_cloud_restore.setEnabled(is_logged)
+    def _auto_save_setting(self, k, v):
+        self.model.settings[k] = v
+        self.model.save_settings()
 
-        if is_logged:
-            user = self.user_manager.get_username()
-            self.lbl_cloud_status.setText(f"云端状态：已登录为 {user} (数据同步已就绪)")
-            self.lbl_cloud_status.setStyleSheet("color: #28a745; font-weight: bold;")
-        else:
-            self.lbl_cloud_status.setText("云端状态：未登录 (请在主界面侧边栏登录账户以启用云同步)")
-            self.lbl_cloud_status.setStyleSheet("color: #d32f2f;")
-        # ------------------------------------------
+    def open_backup_manager(self):
+        if BackupManagerDialog(self.model, self).exec() == QDialog.DialogCode.Accepted:
+            self.refresh_view()
 
-        self.wordlist_name_label.setText(f"当前文件: {self.model.current_wordlist_name}")
-
-
+    # --- 导入/下载方法 ---
     def import_wordlist(self):
         path, _ = QFileDialog.getOpenFileName(self, "选择单词库", "", "词库文件 (*.csv *.json)")
         if path:
@@ -482,19 +539,19 @@ class SettingWindow(QMainWindow):
                 self.model.load_words_from_json(path)
             else:
                 self.model.load_words_from_csv(path)
-            self.model.save_progress();
+            self.model.save_progress()
             self.refresh_view()
 
     def download_wordlist(self):
-        available = ["1-初中-顺序.json", "2-高中-顺序.json", "3-CET4-顺序.json", "4-CET6-顺序.json"]
+        available = ["1-初中-顺序.json", "2-高中-顺序.json", "3-CET4-顺序.json", "4-CET6-顺序.json", "5-考研-顺序.json"]
         item, ok = QInputDialog.getItem(self, "下载词库", "选择词库:", available, 0, False)
         if ok and item:
             url = f"https://raw.githubusercontent.com/Junpgle/LearnWord/master/%E8%AF%8D%E5%BA%93/{item}"
             self.dl_dlg = DownloadProgressDialog(f"下载: {item}", self)
             self.worker = DownloadWorker(url, item)
             self.worker.progress_updated.connect(self.dl_dlg.setValue)
-            self.worker.finished.connect(self._on_dl_finished);
-            self.worker.start();
+            self.worker.finished.connect(self._on_dl_finished)
+            self.worker.start()
             self.dl_dlg.exec()
 
     def _on_dl_finished(self, success, content, filename):
@@ -505,25 +562,19 @@ class SettingWindow(QMainWindow):
             with open(path, 'w', encoding='utf-8') as f: f.write(content)
             self.model.load_words_from_json(path)
             self.model.current_wordlist_name = f"[下载] {filename}"
-            self.model.save_progress();
+            self.model.save_progress()
             self.refresh_view()
-
-    def handle_backup(self):
-        temp = os.path.join(self.model.data_dir, "cloud_sync_temp.json")
-        self.model.save_progress(temp)
-        success, msg = self.user_manager.backup_progress(temp)
-        QMessageBox.information(self, "结果", "备份成功" if success else msg)
-        if os.path.exists(temp): os.remove(temp)
 
     def handle_restore(self):
         if QMessageBox.question(self, "确认", "恢复将覆盖本地进度，是否继续？") == QMessageBox.StandardButton.Yes:
             temp = os.path.join(self.model.data_dir, "cloud_restore_temp.json")
             success, msg = self.user_manager.restore_progress(temp)
             if success:
-                self._create_backup();
-                self.model.load_progress(temp);
-                self.model.save_progress();
+                self._create_backup()
+                self.model.load_progress(temp)
+                self.model.save_progress()
                 self.refresh_view()
+                QMessageBox.information(self, "成功", "已从云端恢复进度。")
             else:
                 QMessageBox.warning(self, "失败", msg)
             if os.path.exists(temp): os.remove(temp)
