@@ -19,7 +19,7 @@ from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput, QVideoSink
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QLabel, QPushButton, QGridLayout, QHBoxLayout, QMessageBox, QDialog,
-    QScrollArea, QFrame, QStackedWidget, QLineEdit
+    QScrollArea, QFrame, QStackedWidget, QLineEdit, QCheckBox
 )
 
 from learn_window import LearnWindow
@@ -99,6 +99,8 @@ class AccountPanel(QFrame):
         entry_lyt.addWidget(self.btn_goto_login)
         entry_lyt.addStretch()
 
+        # 稍后添加其他页面之后，检查并恢复会话
+
         # --- 2. 登录表单页 ---
         self.form_page = QWidget()
         form_lyt = QVBoxLayout(self.form_page)
@@ -126,6 +128,26 @@ class AccountPanel(QFrame):
         """
         self.user_input.setStyleSheet(input_style)
         self.pwd_input.setStyleSheet(input_style)
+
+        # ★★★ 新增：记住密码复选框 ★★★
+        self.remember_pwd_checkbox = QCheckBox("记住密码")
+        self.remember_pwd_checkbox.setStyleSheet("""
+            QCheckBox {
+                color: rgba(255, 255, 255, 0.7);
+                spacing: 8px;
+            }
+            QCheckBox::indicator {
+                width: 16px;
+                height: 16px;
+                border-radius: 3px;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                background: rgba(255, 255, 255, 0.05);
+            }
+            QCheckBox::indicator:checked {
+                background: #3b82f6;
+                border: 1px solid #3b82f6;
+            }
+        """)
 
         # 确认登录按钮
         btn_do_login = QPushButton("确认登录")
@@ -162,6 +184,7 @@ class AccountPanel(QFrame):
         form_lyt.addWidget(title)
         form_lyt.addWidget(self.user_input)
         form_lyt.addWidget(self.pwd_input)
+        form_lyt.addWidget(self.remember_pwd_checkbox)
         form_lyt.addWidget(btn_do_login)
         form_lyt.addWidget(self.btn_web_register, 0, Qt.AlignmentFlag.AlignCenter)  # 添加注册按钮
         form_lyt.addWidget(btn_back)
@@ -201,7 +224,7 @@ class AccountPanel(QFrame):
         btn_logout = QPushButton("退出登录")
         btn_logout.setFixedWidth(100)
         btn_logout.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_logout.clicked.connect(lambda: self.stack.setCurrentIndex(0))
+        btn_logout.clicked.connect(self._handle_logout)
         btn_logout.setStyleSheet("""
             QPushButton { background: transparent; color: #ff4d4f; border: 1px solid rgba(255,77,79,0.3); border-radius: 6px; padding: 4px; font-size: 12px; margin-top: 30px;}
             QPushButton:hover { background: rgba(255,77,79,0.1); border: 1px solid #ff4d4f; }
@@ -227,6 +250,9 @@ class AccountPanel(QFrame):
             }
         """)
 
+        # ★★★ 启动时检查并恢复会话 ★★★
+        self._check_and_restore_session()
+
     def _handle_login(self):
         user = self.user_input.text().strip()
         pwd = self.pwd_input.text().strip()
@@ -234,6 +260,13 @@ class AccountPanel(QFrame):
             # 真正调用 UserManager 执行登录
             success, msg = self.user_manager.login(user, pwd)
             if success:
+                # ★★★ 新增：如果勾选了"记住密码"，保存凭据 ★★★
+                if self.remember_pwd_checkbox.isChecked():
+                    self.user_manager.save_remember_password(user, pwd)
+                else:
+                    # 未勾选则清除之前保存的凭据
+                    self.user_manager.clear_remember_password()
+
                 self.username_lbl.setText(user)
                 self.stack.setCurrentIndex(2)
                 self.login_success.emit(user)
@@ -241,6 +274,59 @@ class AccountPanel(QFrame):
                 QMessageBox.warning(self, "登录失败", msg)
         else:
             QMessageBox.warning(self, "提示", "请输入用户名和密码")
+
+    def _check_and_restore_session(self):
+        """启动时检查并恢复会话"""
+        # 首先检查是否有有效的会话令牌
+        if self.user_manager.is_logged_in():
+            # 有有效的会话，直接显示已登录状态
+            username = self.user_manager.get_username()
+            if username:
+                self.username_lbl.setText(username)
+                self.stack.setCurrentIndex(2)
+                self.login_success.emit(username)
+                return
+
+        # 没有会话令牌，尝试使用记住的凭据自动登录
+        username, password = self.user_manager.get_remember_password()
+        if username and password:
+            print(f"[启动恢复] 发现保存的凭据，正在自动登录: {username}")
+            # 自动填充用户名和密码
+            self.user_input.setText(username)
+            self.pwd_input.setText(password)
+            self.remember_pwd_checkbox.setChecked(True)
+            # 延迟 500ms 后自动提交登录，确保 UI 已渲染
+            QTimer.singleShot(500, self._auto_login)
+        else:
+            # 无有效会话和记住的凭据，显示登录入口
+            self.stack.setCurrentIndex(0)
+
+    def _auto_login(self):
+        """自动登录（从记住的凭据）"""
+        user = self.user_input.text().strip()
+        pwd = self.pwd_input.text().strip()
+        if user and pwd:
+            success, msg = self.user_manager.login(user, pwd)
+            if success:
+                print(f"[启动恢复] ✅ 自动登录成功: {user}")
+                self.username_lbl.setText(user)
+                self.stack.setCurrentIndex(2)
+                self.login_success.emit(user)
+            else:
+                print(f"[启动恢复] ❌ 自动登录失败: {msg}")
+                # 自动登录失败，清除保存的凭据，显示登录表单
+                self.user_manager.clear_remember_password()
+                self.user_input.setText("")
+                self.pwd_input.setText("")
+                self.remember_pwd_checkbox.setChecked(False)
+                self.stack.setCurrentIndex(1)
+
+    def _handle_logout(self):
+        """处理退出登录"""
+        self.user_manager.logout()
+        self.user_input.setText("")
+        self.pwd_input.setText("")
+        self.stack.setCurrentIndex(0)
 
 # =================================================================
 # 梦幻背景组件 (DreamyBackground)
