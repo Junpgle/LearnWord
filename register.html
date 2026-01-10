@@ -293,23 +293,34 @@
 
     // --- 4. 数据加载 ---
     async function loadDashboardData() {
-        const user = AV.User.current();
-        if (!user) return;
+        try {
+            const user = AV.User.current();
+            if (!user) return;
 
-        document.getElementById('display-name').innerText = user.getUsername();
+            document.getElementById('display-name').innerText = user.getUsername();
 
-        const learned = user.get('learned_count') || 0;
-        const total = user.get('total_count') || 100;
-        const reviewed = user.get('reviewed_count') || 0;
-        const tested = user.get('tested_count') || 0;
+            // 从云端获取最新数据
+            await user.fetch();
 
-        document.getElementById('stat-learn').innerText = `已学习 ${learned} / 总数 ${total}`;
-        document.getElementById('stat-review').innerText = `已复习 ${reviewed} 词`;
-        document.getElementById('stat-test').innerText = `已通过测试 ${tested} 词`;
+            // 改为驼峰命名法，与后端保存的字段名一致
+            const learned = user.get('learnedCount') || 0;
+            const total = user.get('totalCount') || 100;
+            const reviewed = user.get('reviewedCount') || 0;
+            const tested = user.get('testedCount') || 0;
 
-        updateProgressRing('learn', (learned / total) * 100);
-        updateProgressRing('review', learned > 0 ? (reviewed / learned) * 100 : 0);
-        updateProgressRing('test', (tested / total) * 100);
+            // 更新统计信息
+            document.getElementById('stat-learn').innerText = `已学习 ${learned} / 总数 ${total}`;
+            document.getElementById('stat-review').innerText = `已复习 ${reviewed} 词`;
+            document.getElementById('stat-test').innerText = `已通过测试 ${tested} 词`;
+
+            // 更新进度圆环
+            updateProgressRing('learn', (learned / total) * 100);
+            updateProgressRing('review', learned > 0 ? (reviewed / learned) * 100 : 0);
+            updateProgressRing('test', (tested / total) * 100);
+        } catch (error) {
+            console.error('加载数据失败:', error);
+            showMessage('无法加载学习数据，请刷新页面', true);
+        }
     }
 
     // --- 5. 选项卡事件 ---
