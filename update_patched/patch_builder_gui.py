@@ -4,10 +4,12 @@ import hashlib
 import time
 import zipfile
 import json
+import re
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                                QHBoxLayout, QLabel, QLineEdit, QPushButton,
                                QFileDialog, QTextEdit, QGroupBox, QMessageBox, QProgressBar, QGridLayout)
-from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtCore import QThread, Signal
+import fnmatch
 
 
 # ==========================================
@@ -18,13 +20,22 @@ class PatchWorker(QThread):
     progress_signal = Signal(int)  # 进度信号
     finished_signal = Signal(bool, str)  # 完成信号
 
-    def __init__(self, old_dir, new_dir, output_name, new_version):
+    def __init__(self, old_dir, new_dir, output_name, new_version, exclude_patterns=None):
         super().__init__()
         self.old_dir = old_dir
         self.new_dir = new_dir
         self.output_name = output_name
         self.new_version = new_version
         self._is_running = True
+        self.exclude_patterns = exclude_patterns or []
+
+    def _excluded(self, rel_path):
+        """是否命中排除模式（相对路径或文件名）"""
+        for pat in self.exclude_patterns:
+            if not pat: continue
+            if fnmatch.fnmatch(rel_path, pat) or fnmatch.fnmatch(os.path.basename(rel_path), pat):
+                return True
+        return False
 
     def get_file_md5(self, filepath):
         """计算文件 MD5"""
@@ -37,7 +48,7 @@ class PatchWorker(QThread):
         return hash_md5.hexdigest()
 
     def scan_directory(self, directory):
-        """扫描目录并返回 {相对路径: MD5}"""
+        """扫描目录并返回 {相对路径: MD5}，支持排除模式"""
         file_map = {}
         directory = os.path.normpath(directory)
 
@@ -50,10 +61,14 @@ class PatchWorker(QThread):
                 if not self._is_running: return {}
 
                 full_path = os.path.join(root, file)
-                rel_path = os.path.relpath(full_path, directory)
+                rel_path = str(os.path.relpath(full_path, directory))
 
                 # 忽略一些不需要打包的文件
                 if file.endswith('.pyc') or '__pycache__' in rel_path or file.endswith('.DS_Store'):
+                    continue
+
+                # 应用排除模式
+                if self._excluded(rel_path):
                     continue
 
                 file_map[rel_path] = self.get_file_md5(full_path)
@@ -90,6 +105,10 @@ class PatchWorker(QThread):
                 if file_path not in new_files:
                     deleted.append(file_path)
 
+            # 如果排除了文件，输出提示
+            if self.exclude_patterns:
+                self.log_signal.emit(f"🧹 已应用排除模式: {', '.join(self.exclude_patterns)}")
+
             self.log_signal.emit("-" * 40)
             self.log_signal.emit(f"📊 [新增]: {len(added)} 个文件")
             self.log_signal.emit(f"📊 [修改]: {len(modified)} 个文件")
@@ -121,10 +140,10 @@ class PatchWorker(QThread):
 
                     src_path = os.path.join(self.new_dir, file_path)
                     self.log_signal.emit(f"  + 添加: {file_path}")
-                    zipf.write(src_path, arcname=file_path)
+                    zipf.write(str(src_path), arcname=str(file_path))
 
                     # 打包过程占总进度的剩余 20% (80% -> 100%)
-                    progress = 80 + int(((idx + 1) / total_pack) * 20)
+                    progress = 80 + (int(((idx + 1) / total_pack) * 20) if total_pack > 0 else 20)
                     self.progress_signal.emit(progress)
 
                 # 写入清单文件
@@ -163,7 +182,7 @@ class PatchBuilderWindow(QMainWindow):
         self.old_dir_edit = QLineEdit()
         self.old_dir_edit.setPlaceholderText("选择旧版本的文件夹 (例如 dist_v1.0/LearnWord)")
         btn_old = QPushButton("浏览...")
-        btn_old.clicked.connect(lambda: self.select_dir(self.old_dir_edit))
+        btn_old.clicked.connect(lambda: self.select_dir_with_version(self.old_dir_edit, self.old_ver_edit))
         h1.addWidget(QLabel("旧版目录:"))
         h1.addWidget(self.old_dir_edit)
         h1.addWidget(btn_old)
@@ -174,7 +193,7 @@ class PatchBuilderWindow(QMainWindow):
         self.new_dir_edit = QLineEdit()
         self.new_dir_edit.setPlaceholderText("选择新版本的文件夹 (例如 dist_v1.1/LearnWord)")
         btn_new = QPushButton("浏览...")
-        btn_new.clicked.connect(lambda: self.select_dir(self.new_dir_edit))
+        btn_new.clicked.connect(lambda: self.select_dir_with_version(self.new_dir_edit, self.new_ver_edit))
         h2.addWidget(QLabel("新版目录:"))
         h2.addWidget(self.new_dir_edit)
         h2.addWidget(btn_new)
@@ -192,6 +211,10 @@ class PatchBuilderWindow(QMainWindow):
         self.output_edit.setReadOnly(False)  # 允许手动微调
         self.output_edit.setPlaceholderText("将自动生成文件名...")
 
+        # 排除模式输入（分号分隔，支持通配符）
+        self.exclude_edit = QLineEdit("updater.exe;*.ico;*.mp4")
+        self.exclude_edit.setPlaceholderText("可选：排除的文件模式，如 updater.exe;*.ico;*.mp4")
+
         # 绑定自动重命名逻辑
         self.old_ver_edit.textChanged.connect(self.update_filename)
         self.new_ver_edit.textChanged.connect(self.update_filename)
@@ -206,6 +229,9 @@ class PatchBuilderWindow(QMainWindow):
 
         ver_layout.addWidget(QLabel("输出文件:"), 1, 0)
         ver_layout.addWidget(self.output_edit, 1, 1, 1, 3)
+
+        ver_layout.addWidget(QLabel("排除模式:"), 2, 0)
+        ver_layout.addWidget(self.exclude_edit, 2, 1, 1, 3)
 
         layout.addWidget(ver_group)
 
@@ -258,10 +284,52 @@ class PatchBuilderWindow(QMainWindow):
         filename = f"update_patch_{old_v}to_{new_v}.zip"
         self.output_edit.setText(filename)
 
+    def extract_version_from_path(self, path):
+        """从路径中提取版本号，支持 'v1.1.0' 或 'LearnWord v1.1.0' 等格式"""
+        if not path:
+            return None
+
+        # 获取路径的最后一个目录名
+        folder_name = os.path.basename(os.path.normpath(path))
+
+        # 支持的版本号模式：v1.2.3 或 v1.2 等
+        version_patterns = [
+            r'v(\d+\.\d+\.\d+)',  # v1.2.3
+            r'v(\d+\.\d+)',        # v1.2
+            r'(\d+\.\d+\.\d+)',    # 1.2.3 (无 v 前缀)
+            r'(\d+\.\d+)',         # 1.2 (无 v 前缀)
+        ]
+
+        for pattern in version_patterns:
+            match = re.search(pattern, folder_name)
+            if match:
+                version = match.group(1)
+                # 如果原始匹配中有 'v'，则保留；否则添加 'v'
+                if 'v' in match.group(0):
+                    return f"v{version}"
+                else:
+                    # 检查原始字符串是否有 v 前缀
+                    if folder_name.lower().find('v' + version) >= 0:
+                        return f"v{version}"
+                    return f"v{version}"
+
+        return None
+
     def select_dir(self, line_edit):
         path = QFileDialog.getExistingDirectory(self, "选择文件夹")
         if path:
             line_edit.setText(path)
+
+    def select_dir_with_version(self, dir_edit, ver_edit):
+        """选择目录并自动提取版本号"""
+        path = QFileDialog.getExistingDirectory(self, "选择文件夹")
+        if path:
+            dir_edit.setText(path)
+            # 尝试从路径提取版本号
+            version = self.extract_version_from_path(path)
+            if version:
+                ver_edit.setText(version)
+                self.log(f"✅ 自动识别版本号: {version}")
 
     def log(self, msg):
         self.log_view.append(msg)
@@ -282,14 +350,19 @@ class PatchBuilderWindow(QMainWindow):
             QMessageBox.warning(self, "错误", "所选路径不存在，请检查。")
             return
 
+        # 解析排除模式
+        exclude_patterns = [p.strip() for p in self.exclude_edit.text().split(';') if p.strip()]
+
         # 锁定界面
         self.btn_build.setEnabled(False)
         self.log_view.clear()
         self.progress_bar.setValue(0)
         self.log(f"准备生成补丁: {new_ver}")
+        if exclude_patterns:
+            self.log(f"应用排除模式: {', '.join(exclude_patterns)}")
 
         # 启动后台线程
-        self.worker = PatchWorker(old_dir, new_dir, out_name, new_ver)
+        self.worker = PatchWorker(old_dir, new_dir, out_name, new_ver, exclude_patterns)
         self.worker.log_signal.connect(self.log)
         self.worker.progress_signal.connect(self.progress_bar.setValue)
         self.worker.finished_signal.connect(self.on_finished)
