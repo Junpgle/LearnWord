@@ -38,6 +38,8 @@ except Exception as e:
 import leancloud
 import os
 import shutil
+import json
+import time
 
 
 class UserManager:
@@ -46,7 +48,13 @@ class UserManager:
         self.APP_KEY = "j9qbdfjiJAPsqbGUy04COFTD"
         # 初始化 LeanCloud
         leancloud.init(self.APP_ID, self.APP_KEY)
-        self.current_user = leancloud.User.get_current()
+
+        # 会话配置
+        self.SESSION_FILE = os.path.join(os.path.expanduser("~"), ".learnword_session.json")
+        self.SESSION_EXPIRE_DAYS = 7
+
+        # 尝试恢复之前保存的会话
+        self.current_user = self._restore_session() or leancloud.User.get_current()
 
     def is_logged_in(self):
         return self.current_user is not None
@@ -56,10 +64,73 @@ class UserManager:
             return self.current_user.get_username()
         return None
 
+    def _save_session(self):
+        """保存会话信息到本地文件"""
+        if not self.current_user:
+            return
+        try:
+            session_data = {
+                "username": self.current_user.get_username(),
+                "session_token": self.current_user.get_session_token(),
+                "saved_at": time.time()
+            }
+            with open(self.SESSION_FILE, 'w') as f:
+                json.dump(session_data, f)
+        except Exception as e:
+            print(f"保存会话失败: {e}")
+
+    def _restore_session(self):
+        """尝试从本地文件恢复会话"""
+        if not os.path.exists(self.SESSION_FILE):
+            return None
+
+        try:
+            with open(self.SESSION_FILE, 'r') as f:
+                session_data = json.load(f)
+
+            # 检查会话是否过期
+            saved_at = session_data.get('saved_at', 0)
+            elapsed_days = (time.time() - saved_at) / (24 * 3600)
+
+            if elapsed_days > self.SESSION_EXPIRE_DAYS:
+                # 会话已过期，删除文件
+                os.remove(self.SESSION_FILE)
+                return None
+
+            # 尝试使用保存的 session token 恢复用户对象
+            session_token = session_data.get('session_token')
+            username = session_data.get('username')
+
+            if session_token and username:
+                user = leancloud.User()
+                user.set_username(username)
+                user._session_token = session_token
+
+                # 验证 token 是否仍然有效
+                try:
+                    user.fetch()
+                    return user
+                except:
+                    # Token 失效，删除文件
+                    os.remove(self.SESSION_FILE)
+                    return None
+        except Exception as e:
+            print(f"恢复会话失败: {e}")
+            return None
+
+    def _clear_session(self):
+        """清除本地保存的会话"""
+        if os.path.exists(self.SESSION_FILE):
+            try:
+                os.remove(self.SESSION_FILE)
+            except Exception as e:
+                print(f"清除会话失败: {e}")
+
     def login(self, username, password):
         try:
             self.current_user = leancloud.User()
             self.current_user.login(username, password)
+            self._save_session()  # 登录成功后保存会话
             return True, "登录成功"
         except leancloud.LeanCloudError as e:
             return False, f"登录失败: {e}"
@@ -80,6 +151,7 @@ class UserManager:
         if self.current_user:
             self.current_user.logout()
             self.current_user = None
+        self._clear_session()  # 登出时清除保存的会话
 
     def backup_progress(self, file_path, stats_dict=None):
         """
