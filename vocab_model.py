@@ -261,11 +261,11 @@ def get_word_rich_text(item: WordItem, mode="simple") -> str:
     content = f"""
     <table width='100%' border='0' cellspacing='0' cellpadding='0' style='margin: 0; padding: 0; border-collapse: collapse;'>
         <tr>
-            <td width='50%' valign='top' style='padding-right: 25px; padding-top: 0; padding-bottom: 0; margin: 0;'>
+            <td width='45%' valign='top' style='padding-right: 25px; padding-top: 0; padding-bottom: 0; margin: 0;'>
                 {left_top_html}
                 {left_bottom_html}
             </td>
-            <td width='50%' valign='top' style='border-left: 1px solid #ecf0f1; padding-left: 25px; padding-top: 0; padding-bottom: 0; margin: 0;'>
+            <td width='55%' valign='top' style='border-left: 1px solid #ecf0f1; padding-left: 25px; padding-top: 0; padding-bottom: 0; margin: 0;'>
                 {right_html}
             </td>
         </tr>

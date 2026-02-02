@@ -18,26 +18,6 @@ except ImportError:
 
 from vocab_model import VocabModel
 
-# --- 样式常量 ---
-BTN_STYLE = """
-    QPushButton {
-        background-color: #0078d7;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 5px 15px;
-    }
-    QPushButton:hover { background-color: #339af0; }
-    QPushButton:disabled { background-color: #cccccc; color: #666666; }
-"""
-
-GROUP_BOX_STYLE = "QGroupBox{border:1px solid #ddd; border-radius:12px; padding:15px; margin-top: 10px; font-weight: bold;}"
-
-PROGRESS_BAR_STYLE = """
-    QProgressBar { border: 1px solid #e0e0e0; border-radius: 10px; text-align: center; background: #f5f5f5;}
-    QProgressBar::chunk { background-color: %s; border-radius: 10px; }
-"""
-
 
 def get_resource_path(relative_path):
     """获取资源的绝对路径。"""
@@ -122,9 +102,14 @@ class DownloadProgressDialog(QDialog):
         self.setWindowModality(Qt.WindowModality.WindowModal)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)
 
-        self.setStyleSheet("""
-            QDialog { background-color: #ffffff; }
-            QLabel { color: #333333; background-color: transparent; }
+        # 简单的自适应背景
+        is_dark = self.palette().window().color().lightness() < 128
+        bg_color = "#2d2d2d" if is_dark else "#ffffff"
+        text_color = "#ffffff" if is_dark else "#333333"
+
+        self.setStyleSheet(f"""
+            QDialog {{ background-color: {bg_color}; }}
+            QLabel {{ color: {text_color}; background-color: transparent; }}
         """)
 
         layout = QVBoxLayout(self)
@@ -153,33 +138,34 @@ class DownloadProgressDialog(QDialog):
         layout.addWidget(self.status_label)
 
         self.progress_bar = QProgressBar()
-        self.progress_bar.setStyleSheet("""
-            QProgressBar {
+        # 简单进度条样式
+        self.progress_bar.setStyleSheet(f"""
+            QProgressBar {{
                 border: 1px solid #e0e0e0;
-                background-color: #f5f5f5;
+                background-color: {'#444' if is_dark else '#f5f5f5'};
                 border-radius: 5px;
                 text-align: center;
                 height: 15px;
-                color: #333333;
-            }
-            QProgressBar::chunk {
+                color: {text_color};
+            }}
+            QProgressBar::chunk {{
                 background-color: #0078d7;
                 border-radius: 5px;
-            }
+            }}
         """)
         layout.addWidget(self.progress_bar)
 
         self.cancel_btn = QPushButton("取消下载")
-        self.cancel_btn.setStyleSheet("""
-            QPushButton { 
-                background-color: #f0f0f0; 
+        self.cancel_btn.setStyleSheet(f"""
+            QPushButton {{ 
+                background-color: {'#444' if is_dark else '#f0f0f0'}; 
                 border: 1px solid #ccc; 
                 border-radius: 5px; 
                 padding: 6px; 
-                color: #333333;
-            }
-            QPushButton:hover { background-color: #e0e0e0; }
-            QPushButton:pressed { background-color: #d0d0d0; }
+                color: {text_color};
+            }}
+            QPushButton:hover {{ background-color: {'#555' if is_dark else '#e0e0e0'}; }}
+            QPushButton:pressed {{ background-color: {'#666' if is_dark else '#d0d0d0'}; }}
         """)
         self.cancel_btn.clicked.connect(self.on_cancel)
         layout.addWidget(self.cancel_btn)
@@ -307,18 +293,26 @@ class SettingWindow(QMainWindow):
 
         self.setWindowTitle("设置与数据管理")
         self.setFixedSize(1000, 750)
+
+        # 1. 检测当前主题模式 (亮/暗)
+        self.is_dark = self.palette().window().color().lightness() < 128
+
         self.central = QWidget()
+        self.central.setObjectName("CentralWidget")
         self.setCentralWidget(self.central)
+
         self.main_layout = QVBoxLayout(self.central)
         self.main_layout.setContentsMargins(20, 20, 20, 20)
         self.main_layout.setSpacing(15)
+
         self.setup_ui()
+        self._apply_adaptive_stylesheet()
         self.refresh_view()
 
     def setup_ui(self):
         # 1. 顶部工具栏
         tool_group = QGroupBox("数据操作")
-        tool_group.setStyleSheet(GROUP_BOX_STYLE)
+        tool_group.setObjectName("ToolGroup")
         tool_layout = QHBoxLayout(tool_group)
         tool_layout.setSpacing(15)
 
@@ -330,7 +324,6 @@ class SettingWindow(QMainWindow):
 
         for b in [self.btn_import, self.btn_download, self.btn_manage_backup, self.btn_cloud_backup,
                   self.btn_cloud_restore]:
-            b.setStyleSheet(BTN_STYLE)
             b.setFixedHeight(42)
             b.setCursor(Qt.CursorShape.PointingHandCursor)
             tool_layout.addWidget(b, 1)
@@ -343,14 +336,15 @@ class SettingWindow(QMainWindow):
 
         # 进度统计
         progress_group = QGroupBox("进度统计")
-        progress_group.setStyleSheet(GROUP_BOX_STYLE)
+        progress_group.setObjectName("ProgressGroup")
         prog_v = QVBoxLayout(progress_group)
         self.progress = QProgressBar()
-        self.progress.setStyleSheet(PROGRESS_BAR_STYLE % "#0078d7")
+        self.progress.setObjectName("BlueProg")
         self.review_progress = QProgressBar()
-        self.review_progress.setStyleSheet(PROGRESS_BAR_STYLE % "#ffa500")
+        self.review_progress.setObjectName("OrangeProg")
         self.test_progress = QProgressBar()
-        self.test_progress.setStyleSheet(PROGRESS_BAR_STYLE % "#32cd32")
+        self.test_progress.setObjectName("GreenProg")
+
         prog_v.addWidget(QLabel("学习进度："))
         prog_v.addWidget(self.progress)
         prog_v.addWidget(QLabel("复习进度："))
@@ -361,7 +355,7 @@ class SettingWindow(QMainWindow):
 
         # 参数配置
         set_group = QGroupBox("参数配置")
-        set_group.setStyleSheet(GROUP_BOX_STYLE)
+        set_group.setObjectName("SettingGroup")
         set_v = QVBoxLayout(set_group)
         self.learn_spin = QSpinBox()
         self.review_spin = QSpinBox()
@@ -381,7 +375,7 @@ class SettingWindow(QMainWindow):
 
         # 词库预览
         pre_group = QGroupBox("当前词库预览")
-        pre_group.setStyleSheet(GROUP_BOX_STYLE)
+        pre_group.setObjectName("PreviewGroup")
         pre_v = QVBoxLayout(pre_group)
         self.wordlist_name_label = QLabel()
         self.words_view = QTextEdit()
@@ -405,6 +399,98 @@ class SettingWindow(QMainWindow):
         self.btn_manage_backup.clicked.connect(self.open_backup_manager)
         self.btn_cloud_backup.clicked.connect(self.handle_backup)
         self.btn_cloud_restore.clicked.connect(self.handle_restore)
+
+    def _apply_adaptive_stylesheet(self):
+        """根据 is_dark 状态应用不同的样式表"""
+        if self.is_dark:
+            main_bg = "#1e1e1e"
+            text_color = "#ecf0f1"
+            group_border = "#444"
+            btn_bg = "#2d2d2d"
+            btn_border = "#444"
+            input_bg = "#2d2d2d"
+            input_border = "#444"
+            prog_bg = "#444"
+            prog_text = "#ffffff"
+        else:
+            main_bg = "#f8f9fa"
+            text_color = "#2c3e50"
+            group_border = "#ddd"
+            btn_bg = "#0078d7"
+            btn_border = "none"
+            input_bg = "#ffffff"
+            input_border = "#ccc"
+            prog_bg = "#f5f5f5"
+            prog_text = "#000000"
+
+        # 按钮通用样式
+        btn_base = f"""
+            QPushButton {{
+                border-radius: 8px;
+                padding: 5px 15px;
+                color: {text_color if self.is_dark else 'white'};
+                border: {btn_border};
+            }}
+            QPushButton:disabled {{ background-color: #cccccc; color: #666666; }}
+        """
+
+        # 针对浅色模式，按钮使用蓝色背景
+        if not self.is_dark:
+            btn_base += """
+                QPushButton { background-color: #0078d7; color: white; }
+                QPushButton:hover { background-color: #339af0; }
+            """
+        else:
+            btn_base += f"""
+                QPushButton {{ background-color: {btn_bg}; }}
+                QPushButton:hover {{ background-color: #3d3d3d; }}
+            """
+
+        self.setStyleSheet(f"""
+            #CentralWidget {{ background-color: {main_bg}; }}
+
+            QGroupBox {{
+                border: 1px solid {group_border}; 
+                border-radius: 12px; 
+                padding: 15px; 
+                margin-top: 10px; 
+                font-weight: bold;
+                color: {text_color};
+            }}
+            QGroupBox::title {{ subcontrol-origin: margin; left: 10px; padding: 0 3px; }}
+
+            QLabel {{ color: {text_color}; }}
+
+            QSpinBox {{
+                padding: 5px;
+                border: 1px solid {input_border};
+                border-radius: 6px;
+                background-color: {input_bg};
+                color: {text_color};
+            }}
+
+            QTextEdit {{
+                border: 1px solid {input_border};
+                border-radius: 6px;
+                background-color: {input_bg};
+                color: {text_color};
+            }}
+
+            /* 进度条样式 - 增加文字颜色设置 */
+            QProgressBar {{ 
+                border: 1px solid {input_border}; 
+                border-radius: 10px; 
+                text-align: center; 
+                background: {prog_bg};
+                color: {prog_text};
+            }}
+
+            #BlueProg::chunk {{ background-color: #0078d7; border-radius: 10px; }}
+            #OrangeProg::chunk {{ background-color: #ffa500; border-radius: 10px; }}
+            #GreenProg::chunk {{ background-color: #32cd32; border-radius: 10px; }}
+
+            {btn_base}
+        """)
 
     def _auto_save_setting(self, k, v):
         self.model.settings[k] = v

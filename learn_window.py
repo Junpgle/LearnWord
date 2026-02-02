@@ -39,7 +39,7 @@ class LearnWindow(QMainWindow):
         # central.setStyleSheet(...)
 
         layout = QVBoxLayout(central)
-        layout.setSpacing(15)
+        layout.setSpacing(20)
         layout.setContentsMargins(30, 30, 30, 30)
 
         # --- 顶部区域 ---
@@ -80,6 +80,10 @@ class LearnWindow(QMainWindow):
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setFrameShape(QFrame.NoFrame)
         self.scroll_area.setStyleSheet("background: transparent; border: none;")
+        # ★★★ 隐藏滚动条 ★★★
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
 
         self.scroll_content = QWidget()
         self.scroll_content.setStyleSheet("background: transparent;")
@@ -96,8 +100,8 @@ class LearnWindow(QMainWindow):
         self.scroll_layout.addWidget(self.word_label)
         self.scroll_area.setWidget(self.scroll_content)
 
-        # ScrollArea 占据主要空间 - 调整权重为 8 (约占 80%)
-        layout.addWidget(self.scroll_area, 8)
+        # ScrollArea 占据主要空间 - 调整权重为 15 (约占 88%)
+        layout.addWidget(self.scroll_area, 15)
 
         # ★★★ Phase 3 专用提示标签 (替代 ScrollArea 以避免大片空白) ★★★
         self.phase3_hint_label = QLabel("", alignment=Qt.AlignCenter)
@@ -372,16 +376,11 @@ class LearnWindow(QMainWindow):
     def _show_next(self):
         if not self.queue:
             self._hide_all()
-
-            # 使用 cloze_label 显示居中的完成信息 (而不是 word_label，避免上对齐问题)
-            self.scroll_area.hide()
+            msg = "<span style='color: white;'>🎉 本次学习完成！ 🎉</span>" if self.is_dark else "🎉 本次学习完成！ 🎉"
+            self.word_label.setText(msg)
+            self.scroll_area.show()
             self.phase3_hint_label.hide()
-
-            text_color = "#ffffff" if self.is_dark else "#2c3e50"
-            self.cloze_label.setStyleSheet(f"color: {text_color}; font-size: 32px; font-weight: bold;")
-            self.cloze_label.setText("🎉 本次学习完成！ 🎉")
-            self.cloze_label.show()
-
+            self.cloze_label.hide()
             QTimer.singleShot(3000, self.close)
             return
 
