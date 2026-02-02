@@ -30,7 +30,7 @@ from user_manager import UserManager
 from vocab_model import VocabModel
 
 # 设定当前程序版本号
-CURRENT_VERSION = "v2.0.0"
+CURRENT_VERSION = "v2.0.1"
 CURRENT_VERSION_DATE = "20260202"
 
 

@@ -1,21 +1,19 @@
 {
-  "latest_version": "v1.4.0",
-  "release_date": "2026-01-10",
+  "latest_version": "v2.0.1",
+  "release_date": "2026-02-02",
   "update_notes": [
-    "这是2026年的第二个版本,祝大家新年快乐,万事如意~",
-    "1.自这个版本起,软件已接入leancloud数据库,支持注册、登录、云备份。",
-    "2.修正了部分逻辑",
-    "3.新增网页进度查看 ",
-    "4.优化了增量更新逻辑，增量包更小啦！",
-    "5.支持记住密码,会话状态保持",
-    "优化了使用体验~",
-    "部分挂梯子的用户可能需要连续点击两次登录才能登录上"
+    "这是2026年的第三个版本，寒假的第一个版本，祝大家新年快乐,万事如意~",
+    "1. 适配支持了词根词缀的词库",
+    "2. 支持了原有词库的短语释义显示",
+    "3. 重构了部分界面的展示和交互逻辑",
+    "4. 优化了软件的启动速度和运行效率",
+    "5. 修复了已知的若干bug"
   ],
-  "download_url": "https://github.com/Junpgle/LearnWord/releases/download/v1.4.0/LearnWord.v1.4.0-Setup.exe",
+  "download_url": "https://github.com/Junpgle/LearnWord/releases/download/v2.0.1/LearnWord.v2.0.1-Setup.exe",
   "patches": {
-    "v1.2.1": "https://github.com/Junpgle/LearnWord/releases/download/v1.4.0/update_patch_v1.2.1to_v1.4.0.zip",
-    "v1.2.2": "https://github.com/Junpgle/LearnWord/releases/download/v1.4.0/update_patch_v1.2.2to_v1.4.0.zip",
-    "v1.2.4": "https://github.com/Junpgle/LearnWord/releases/download/v1.4.0/update_patch_v1.2.4to_v1.4.0.zip",
-    "v1.3.6": "https://github.com/Junpgle/LearnWord/releases/download/v1.4.0/update_patch_v1.3.6to_v1.4.0.zip"
+    "v1.2.2": "https://github.com/Junpgle/LearnWord/releases/download/v2.0.1/update_patch_v1.2.2to_v2.0.1.zip",
+    "v1.2.4": "https://github.com/Junpgle/LearnWord/releases/download/v2.0.1/update_patch_v1.2.4to_v2.0.1.zip",
+    "v1.3.6": "https://github.com/Junpgle/LearnWord/releases/download/v2.0.1/update_patch_v1.3.6to_v2.0.1.zip",
+    "v1.4.0": "https://github.com/Junpgle/LearnWord/releases/download/v2.0.1/update_patch_v1.4.0to_v2.0.1.zip"
   }
 }
