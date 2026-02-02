@@ -49,13 +49,13 @@ class ReviewWindow(QMainWindow):
         self.stage_row.addStretch()
         layout.addLayout(self.stage_row)
 
-        # 返回按钮
-        btn_row = QHBoxLayout()
-        btn_row.addStretch()
-        self.btn_return = QPushButton("返回主页面")
-        self.btn_return.setObjectName("return_btn")
-        btn_row.addWidget(self.btn_return)
-        layout.addLayout(btn_row)
+        # # 返回按钮
+        # btn_row = QHBoxLayout()
+        # btn_row.addStretch()
+        # self.btn_return = QPushButton("返回主页面")
+        # self.btn_return.setObjectName("return_btn")
+        # btn_row.addWidget(self.btn_return)
+        # layout.addLayout(btn_row)
 
         # 顶部弹簧 (权重 1) - 用于垂直居中
         layout.addStretch(1)
@@ -171,7 +171,7 @@ class ReviewWindow(QMainWindow):
         layout.addStretch(1)
 
         # --- 连接信号 ---
-        self.btn_return.clicked.connect(self.close)
+        # self.btn_return.clicked.connect(self.close)
         self.know_btn.clicked.connect(self.on_know)
         self.unknow_btn.clicked.connect(self.on_unknow)
         self.submit_btn.clicked.connect(self.on_submit)

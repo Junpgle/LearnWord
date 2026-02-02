@@ -39,8 +39,8 @@ class LearnWindow(QMainWindow):
         # central.setStyleSheet(...)
 
         layout = QVBoxLayout(central)
-        layout.setSpacing(20)
-        layout.setContentsMargins(30, 30, 30, 30)
+        layout.setSpacing(10)
+        layout.setContentsMargins(40, 30, 30, 30)
 
         # --- 顶部区域 ---
 
@@ -62,13 +62,13 @@ class LearnWindow(QMainWindow):
         self.stage_row.addStretch()  # 将指示灯推到左侧
         layout.addLayout(self.stage_row)
 
-        # 返回按钮
-        btn_row = QHBoxLayout()
-        btn_row.addStretch()
-        self.btn_return = QPushButton("返回主页面")
-        self.btn_return.setObjectName("return_btn")
-        btn_row.addWidget(self.btn_return)
-        layout.addLayout(btn_row)
+        # # 返回按钮
+        # btn_row = QHBoxLayout()
+        # btn_row.addStretch()
+        # self.btn_return = QPushButton("返回主页面")
+        # self.btn_return.setObjectName("return_btn")
+        # btn_row.addWidget(self.btn_return)
+        # layout.addLayout(btn_row)
 
         # ★★★ 布局修改：添加顶部弹簧，实现垂直居中 ★★★
         layout.addStretch(1)
@@ -188,7 +188,7 @@ class LearnWindow(QMainWindow):
         # --- 状态与连接 ---
         self.submit_btn.clicked.connect(self.on_submit)
         self.idk_btn.clicked.connect(self.on_idk)
-        self.btn_return.clicked.connect(self.close)
+        # self.btn_return.clicked.connect(self.close)
 
         self.queue = deque()
         self.current = None

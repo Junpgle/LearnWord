@@ -29,14 +29,14 @@ class TestWindow(QMainWindow):
         layout.setSpacing(10)
         layout.setContentsMargins(30, 20, 30, 20)
 
-        # 返回按钮布局
-        btn_row = QHBoxLayout()
-        btn_row.addStretch()
-        self.btn_return = QPushButton("返回主页面")
-        self.btn_return.setObjectName("return_btn")
-        self.btn_return.clicked.connect(self.close)
-        btn_row.addWidget(self.btn_return)
-        layout.addLayout(btn_row)
+        # # 返回按钮布局
+        # btn_row = QHBoxLayout()
+        # btn_row.addStretch()
+        # self.btn_return = QPushButton("返回主页面")
+        # self.btn_return.setObjectName("return_btn")
+        # self.btn_return.clicked.connect(self.close)
+        # btn_row.addWidget(self.btn_return)
+        # layout.addLayout(btn_row)
 
         # 顶部弹簧
         layout.addStretch(1)

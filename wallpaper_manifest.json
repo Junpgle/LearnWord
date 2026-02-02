@@ -1,7 +1,7 @@
 {
   "fixed_wallpaper": {
-    "active": false,
-    "url": "https://raw.githubusercontent.com/Junpgle/LearnWord/refs/heads/master/background/fireworks.mp4",
-    "name": "fireworks.mp4"
+    "active": true,
+    "url": "https://raw.githubusercontent.com/Junpgle/LearnWord/refs/heads/master/background/hfut_snow.jpg",
+    "name": "hfut_snow.jpg"
   }
 }
