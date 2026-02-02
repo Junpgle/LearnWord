@@ -3,7 +3,7 @@
 ; Non-commercial use only
 
 #define MyAppName "LearnWord"
-#define MyAppVersion "1.2.3"
+#define MyAppVersion "2.0.1"
 #define MyAppPublisher "Junpgle"
 #define MyAppURL "https://github.com/Junpgle/LearnWord/"
 #define MyAppExeName "LearnWord.exe"
