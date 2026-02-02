@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, Q
                                QPushButton, QProgressBar, QSpinBox, QTextEdit, QGroupBox,
                                QFileDialog, QMessageBox, QInputDialog, QDialog, QFrame,
                                QTabWidget, QLineEdit, QApplication)
-from PySide6.QtCore import Qt, QThread, Signal, QSize
+from PySide6.QtCore import Qt, QThread, Signal, QSize, QTimer
 from PySide6.QtGui import QFont, QMovie
 
 # 假设 UserManager 在 user_manager.py 中，如果不存在请确保相关逻辑兼容
@@ -308,6 +308,110 @@ class SettingWindow(QMainWindow):
         self.setup_ui()
         self._apply_adaptive_stylesheet()
         self.refresh_view()
+
+        # 延时检查是否有新版词库可迁移 (避免阻塞UI初始化)
+        QTimer.singleShot(800, self.check_migration)
+
+    def check_migration(self):
+        """检查是否有新版词库可迁移"""
+        if not self.model.words: return
+
+        # 获取当前词库的文件名部分
+        current_name = os.path.basename(self.model.current_wordlist_name)
+
+        # 映射表：{旧关键词: 新文件名}
+        # 目前主要针对 CET6，后续可添加其他
+        migration_map = {
+            "4-CET6-顺序.json": "4-CET6-顺序-词根词缀.json"
+        }
+
+        target_file = None
+        for key, target in migration_map.items():
+            # 匹配逻辑：包含旧关键词，且不包含“词根词缀” (防止已经是新版还提示)
+            if key in current_name and "词根词缀" not in current_name:
+                target_file = target
+                break
+
+        if target_file:
+            reply = QMessageBox.question(
+                self,
+                "✨ 发现词库升级",
+                f"检测到当前词库有包含【词根词缀】的增强版：\n{target_file}\n\n升级后将显示单词的来源、拆解和记忆辅助信息。\n您的学习进度将被完全保留。\n\n是否立即迁移？",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+
+            if reply == QMessageBox.StandardButton.Yes:
+                self.perform_migration(target_file)
+
+    def perform_migration(self, filename):
+        """执行迁移下载"""
+        base_url = "https://raw.githubusercontent.com/Junpgle/LearnWord/master/%E8%AF%8D%E5%BA%93/"
+        url = base_url + filename
+
+        self.mig_progress_dialog = DownloadProgressDialog(f"正在升级词库: {filename}", self)
+        self.mig_downloader = DownloadWorker(url, filename)
+        self.mig_downloader.progress_updated.connect(self.mig_progress_dialog.setValue)
+        self.mig_downloader.finished.connect(self.on_migration_finished)
+        self.mig_progress_dialog.canceled.connect(self.mig_downloader.stop)
+
+        self.mig_downloader.start()
+        self.mig_progress_dialog.exec()
+
+    def on_migration_finished(self, success, content, filename):
+        """迁移下载完成后的处理"""
+        self.mig_progress_dialog.close()
+
+        if not success:
+            QMessageBox.warning(self, "迁移失败", f"下载失败: {content}")
+            return
+
+        try:
+            # 1. 备份当前进度 (构建旧单词映射表)
+            old_words_map = {w.word: w for w in self.model.words}
+
+            # 2. 解析新词库 (使用 model 的内部方法)
+            new_words_list = self.model._parse_json_content(content)
+
+            if not new_words_list:
+                raise Exception("新词库内容解析为空")
+
+            # 3. 合并进度 (将旧进度复制到新对象)
+            merged_count = 0
+            for new_w in new_words_list:
+                if new_w.word in old_words_map:
+                    old_w = old_words_map[new_w.word]
+                    # 迁移关键字段
+                    new_w.stage = old_w.stage
+                    new_w.learned = old_w.learned
+                    new_w.attempts = old_w.attempts
+                    new_w.reviewed = old_w.reviewed
+                    new_w.tested = old_w.tested
+                    merged_count += 1
+
+            # 4. 保存新文件到本地 downloads 目录
+            download_dir = os.path.join(self.model.data_dir, "downloads")
+            if not os.path.exists(download_dir): os.makedirs(download_dir)
+            save_path = os.path.join(download_dir, filename)
+
+            with open(save_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+
+            # 5. 更新模型并保存
+            self.model.words = new_words_list
+            self.model.current_wordlist_name = f"[增强版] {filename}"
+            self.model.save_progress()  # 保存合并后的进度到 progress.json
+
+            # 6. 刷新界面
+            self.refresh_view()
+
+            QMessageBox.information(self, "升级成功",
+                                    f"词库已升级为增强版！\n已成功迁移 {merged_count} 个单词的学习记录。")
+
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"迁移过程中发生错误: {str(e)}")
+            # 尝试重新加载旧进度以防数据损坏
+            self.model.load_progress()
+            self.refresh_view()
 
     def setup_ui(self):
         # 1. 顶部工具栏
