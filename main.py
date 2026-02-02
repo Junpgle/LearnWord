@@ -30,8 +30,8 @@ from user_manager import UserManager
 from vocab_model import VocabModel
 
 # 设定当前程序版本号
-CURRENT_VERSION = "v1.4.0"
-CURRENT_VERSION_DATE = "20260110"
+CURRENT_VERSION = "v2.0.0"
+CURRENT_VERSION_DATE = "20260202"
 
 
 # ★★★ 资源路径获取函数 ★★★
@@ -328,6 +328,7 @@ class AccountPanel(QFrame):
         self.pwd_input.setText("")
         self.stack.setCurrentIndex(0)
 
+
 # =================================================================
 # 梦幻背景组件 (DreamyBackground)
 # =================================================================
@@ -419,21 +420,19 @@ class DreamyBackground(QWidget):
         w = self.width()
         h = self.height()
 
-        # --- 1. 绘制底层梦幻光晕 (保持不变) ---
+        # --- 1. 绘制底层梦幻光晕 ---
         painter.fillRect(self.rect(), QColor(10, 12, 18))
 
-        # (这里保留你原有的光晕绘制代码，为了节省篇幅我省略了具体的 draw_halo 计算逻辑)
-        # ... 请确保这里有你原来的 draw_halo 逻辑 ...
         self.time_offset += 0.02
 
         def draw_halo(cx, cy, radius, color, alpha_base):
             breath = (math.sin(self.time_offset) + 1) / 2
             current_alpha = int(alpha_base + 30 * breath)
             gradient = QRadialGradient(cx, cy, radius)
-            c = QColor(color);
+            c = QColor(color)
             c.setAlpha(current_alpha)
             gradient.setColorAt(0, c)
-            c_end = QColor(color);
+            c_end = QColor(color)
             c_end.setAlpha(0)
             gradient.setColorAt(1, c_end)
             painter.setBrush(QBrush(gradient))
@@ -443,7 +442,6 @@ class DreamyBackground(QWidget):
         x1 = w * 0.2 + math.sin(self.time_offset * 0.5) * 50
         y1 = h * 0.3 + math.cos(self.time_offset * 0.3) * 30
         draw_halo(x1, y1, w * 0.8, QColor(0, 160, 255), 30)
-        # ... 其他光团 ...
 
         # --- 2. 绘制壁纸 OR 视频 (带透明度) ---
         painter.setOpacity(self.wallpaper_opacity)
@@ -588,7 +586,7 @@ class WallpaperLoader(QObject):
             # 但为了保险起见，这里也可以设为 True，或者保持 False
             should_overwrite = False
 
-            # ★★ 核心下载逻辑修改 ★★★
+        # ★★ 核心下载逻辑修改 ★★★
         if download_url and filename:
             save_path = os.path.join(save_dir, filename)
             try:
@@ -612,6 +610,7 @@ class WallpaperLoader(QObject):
                 return
 
         self.finished.emit("")
+
 
 # =================================================================
 # 句子加载器 (SentenceLoader)
@@ -1449,7 +1448,6 @@ class MainWindow(QMainWindow):
         self._start_announcement_load()
         self._start_update_check()
 
-
         # 初始化子窗口对象
         self.learn_win = None
         self.review_win = None
@@ -1779,7 +1777,6 @@ class MainWindow(QMainWindow):
             finally:
                 self.ann_thread = None
                 self.ann_worker = None
-
 
         # 3. 启动新线程 (保持不变)
         self.ann_thread = QThread()

@@ -1,14 +1,10 @@
 import csv, json, os, shutil, sys
+import re
 from dataclasses import dataclass, asdict
 from typing import List
 import requests
 import random
 from io import StringIO
-
-
-# ==========================================
-# ★★★ 核心路径处理函数 ★★★
-# ==========================================
 
 def get_user_data_dir():
     """获取 Windows 用户 AppData 目录，避免权限问题"""
@@ -48,6 +44,10 @@ class WordItem:
     definition: str = ""
     pos: str = ""
     example: str = ""
+    # --- 新增字段 ---
+    etymology: str = ""  # 词根词源 (存储为多行字符串)
+    phrases: str = ""  # 短语搭配 (存储为多行字符串)
+    # ----------------
     stage: int = 1
     learned: bool = False
     attempts: int = 0
@@ -64,6 +64,10 @@ class WordItem:
             definition=d.get("definition", ""),
             pos=d.get("pos", ""),
             example=d.get("example", ""),
+            # --- 读取新增字段，提供默认空值以兼容旧存档 ---
+            etymology=d.get("etymology", ""),
+            phrases=d.get("phrases", ""),
+            # ----------------------------------------
             stage=int(d.get("stage", 1)),
             attempts=int(d.get("attempts", 0)),
             learned=bool(d.get("learned", False)),
@@ -72,8 +76,206 @@ class WordItem:
         )
 
 
+import re
+
+
+def get_word_rich_text(item: WordItem, mode="simple") -> str:
+    """
+    构造单词显示的富文本 (HTML)，采用左右分栏布局。
+    mode: "simple" | "full" | "hint" | "spelling"
+    ✅ 已优化：无滚动条 | 无多余空行 | 行距精准控制
+    """
+    definition = item.definition or "[无释义]"
+    etymology = getattr(item, 'etymology', '')
+    phrases = getattr(item, 'phrases', '')
+
+    # =============== 核心修复：最外层容器禁用滚动条 ===============
+    # 所有内容包裹在此div中，彻底消除滚动条
+    def wrap_content(html: str) -> str:
+        return f"""
+        <div style='overflow: hidden; padding: 0; margin: 0; width: 100%;'>
+            {html}
+        </div>
+        """
+
+    # 2. Simple 模式
+    if mode == "simple":
+        content = f"""
+        <div style='text-align: center; margin-top: 30px; padding: 0;'>
+            <div style='font-size: 40pt; font-weight: bold; color: #2c3e50; line-height: 1.0; padding: 0; margin: 0;'>{item.word}</div>
+        </div>
+        """
+        return wrap_content(content)
+
+    # 3. 左侧核心词义（精准行距：8px → 6px）
+    if mode in ("hint", "spelling"):
+        left_top_html = f"""
+        <div style='font-size: 16pt; color: #e67e22; font-weight: bold; margin-bottom: 8px; padding: 0;'>请拼写单词：</div>
+        <div style='font-size: 14pt; color: #7f8c8d; font-style: italic; margin-top: 8px; padding: 0;'>{item.pos}</div>
+        <div style='font-size: 16pt; color: #2980b9; font-weight: bold; line-height: 1.2; margin-top: 6px; padding: 0;'>{definition}</div>
+        """
+    else:
+        left_top_html = f"""
+        <div style='font-size: 32pt; font-weight: bold; color: #2c3e50; line-height: 1.0; padding: 0; margin: 0;'>{item.word}</div>
+        <div style='font-size: 14pt; color: #7f8c8d; font-style: italic; margin-top: 8px; padding: 0;'>{item.pos}</div>
+        <div style='font-size: 16pt; color: #2980b9; font-weight: bold; line-height: 1.2; margin-top: 6px; padding: 0;'>{definition}</div>
+        """
+
+    # 4. Spelling 模式：仅返回核心词义
+    if mode == "spelling":
+        content = f"<div style='padding: 10px 0; margin: 0;'>{left_top_html}</div>"
+        return wrap_content(content)
+
+    # 5. 左侧短语（语义化列表 + 紧凑间距）
+    left_bottom_html = ""
+    if phrases:
+        phrases_text = phrases.strip()
+        if mode == "hint":
+            try:
+                pattern = re.compile(re.escape(item.word), re.IGNORECASE)
+                phrases_text = pattern.sub("<b>_____</b>", phrases_text)
+            except Exception:
+                pass
+
+        p_lines = [line.strip() for line in phrases_text.splitlines() if line.strip()]
+        if p_lines:
+            ul_items = "".join(f"<li style='margin: 2px 0; padding: 0;'>{p}</li>" for p in p_lines)
+            left_bottom_html = f"""
+            <div style='margin-top: 20px; padding: 0;'>
+                <div style='font-size: 12pt; color: #e67e22; font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 3px; padding-top: 0;'>🔗 短语搭配</div>
+                <ul style='list-style-type: disc; margin: 0; padding-left: 18px; line-height: 1.4; color: #34495e; font-size: 11pt;'>
+                    {ul_items}
+                </ul>
+            </div>
+            """
+        else:
+            left_bottom_html = "<div style='margin-top: 20px; color: #ccc; font-size: 10pt;'>(暂无短语)</div>"
+    else:
+        left_bottom_html = "<div style='margin-top: 20px; color: #ccc; font-size: 10pt;'>(暂无短语)</div>"
+
+    # 6. 右侧词源（✅ 修复来源 / 释义之间的视觉空行）
+    right_html = ""
+    if etymology:
+        limit = 1200
+        display_ety = etymology.strip()
+        is_truncated = len(display_ety) > limit
+        if is_truncated:
+            display_ety = display_ety[:limit]
+
+        e_lines = [line.strip() for line in display_ety.splitlines() if line.strip()]
+        ety_divs = []
+        header_keys = ["词根：", "词根:", "前缀：", "前缀:", "后缀：", "后缀:", "词根词缀：", "词根词缀:"]
+
+        for line in e_lines:
+            # --- 词根 / 前缀 / 后缀标题 ---
+            if any(line.startswith(key) for key in header_keys):
+                mt = "0px" if not ety_divs else "16px"
+                ety_divs.append(
+                    f"""
+                    <div style='margin-top: {mt};
+                                font-weight: bold;
+                                color: #d35400;
+                                font-size: 11pt;
+                                border-left: 3px solid #d35400;
+                                padding-left: 7px;
+                                padding-top: 1px;
+                                padding-bottom: 1px;'>
+                        {line}
+                    </div>
+                    """
+                )
+
+            # --- 【来源及含义】块（✅ 关键修复点） ---
+            elif "【来源及含义】" in line:
+                content = line.replace("【来源及含义】", "").strip()
+                if ":" in content:
+                    src, mean = content.split(":", 1)
+                    ety_divs.append(
+                        f"""
+                        <div style='margin-top: 3px; color: #555;'>
+                            <div style='margin: 0;'>
+                                <span style='color: #7f8c8d; font-weight: bold;'>• 来源：</span>
+                                {src.strip()}
+                            </div>
+                            <div style='margin-top: 2px;'>
+                                <span style='color: #7f8c8d; font-weight: bold;'>• 释义：</span>
+                                {mean.strip()}
+                            </div>
+                        </div>
+                        """
+                    )
+                else:
+                    ety_divs.append(
+                        f"""
+                        <div style='margin-top: 3px; color: #555;'>
+                            <span style='color: #7f8c8d; font-weight: bold;'>• 来源及含义：</span>
+                            {content}
+                        </div>
+                        """
+                    )
+
+            # --- 普通说明行 ---
+            else:
+                mt = "3px" if ety_divs else "0px"
+                ety_divs.append(
+                    f"<div style='margin-top: {mt}; color: #666; font-size: 10pt;'>{line}</div>"
+                )
+
+        formatted_ety = "".join(ety_divs)
+
+        if is_truncated:
+            formatted_ety += (
+                "<div style='margin-top: 3px; color: #95a5a6; font-style: italic; font-size: 9.5pt;'>"
+                "... [内容过长已折叠]</div>"
+            )
+
+        right_html = f"""
+        <div style='font-size: 12pt;
+                    color: #e67e22;
+                    font-weight: bold;
+                    margin-bottom: 8px;
+                    border-bottom: 1px solid #eee;
+                    padding-bottom: 3px;
+                    padding-top: 0;'>
+            🌱 来源及含义
+        </div>
+        <div style='font-size: 10pt;
+                    color: #34495e;
+                    line-height: 1.45;
+                    margin: 0;
+                    padding: 0;'>
+            {formatted_ety}
+        </div>
+        """
+
+    # 7. 最终组装（表格布局 + 紧凑内边距）
+    if not right_html or not right_html.strip():
+        content = f"""
+        <div style='padding: 8px 0; margin: 0;'>
+            {left_top_html}
+            {left_bottom_html}
+        </div>
+        """
+        return wrap_content(content)
+
+    content = f"""
+    <table width='100%' border='0' cellspacing='0' cellpadding='0' style='margin: 0; padding: 0; border-collapse: collapse;'>
+        <tr>
+            <td width='50%' valign='top' style='padding-right: 25px; padding-top: 0; padding-bottom: 0; margin: 0;'>
+                {left_top_html}
+                {left_bottom_html}
+            </td>
+            <td width='50%' valign='top' style='border-left: 1px solid #ecf0f1; padding-left: 25px; padding-top: 0; padding-bottom: 0; margin: 0;'>
+                {right_html}
+            </td>
+        </tr>
+    </table>
+    """
+    return wrap_content(content)
+
 class VocabModel:
     """词汇数据模型"""
+
     def __init__(self):
         self.words: List[WordItem] = []
         self.current_wordlist_name = "未加载"
@@ -85,7 +287,6 @@ class VocabModel:
         self.progress_path = os.path.join(self.data_dir, "progress.json")
         self.settings_path = os.path.join(self.data_dir, "settings.json")
 
-        # --- 修改处：增加 daily_date 和 daily_batch 的默认值 ---
         self.settings = {
             "learn_count": 10,
             "review_count": 15,
@@ -93,9 +294,6 @@ class VocabModel:
             "daily_date": "",  # 记录日期
             "daily_batch": []  # 记录今日单词ID列表
         }
-
-        # 注意：这里不要直接调用 load_settings，统一放在 load_all_data 中处理
-        # self.load_settings() <--- 建议删掉这行，由 load_all_data 统一管理
 
     # =============== 设置相关 ===============
     def save_settings(self):
@@ -119,6 +317,9 @@ class VocabModel:
     # =============== 单词库相关 ===============
 
     def _parse_json_content(self, content: str) -> List[WordItem]:
+        """
+        解析 JSON 内容，支持原有格式和带有词根/短语的新格式
+        """
         words_list = []
         try:
             data = json.loads(content)
@@ -126,13 +327,13 @@ class VocabModel:
             items = data if isinstance(data, list) else data.get("words", [])
 
             for item in items:
-                # 兼容 WordItem 字典格式 或 原始 JSON 格式
+                # 检查是否为包含 translations 的详细格式 (新词库格式)
                 if "translations" in item:
-                    # 原始格式
                     word = item.get('word', '').strip()
-                    translations = item.get('translations', [])
                     if not word: continue
 
+                    # 1. 解析翻译和词性
+                    translations = item.get('translations', [])
                     definition_parts = []
                     pos_parts = []
                     for t in translations:
@@ -141,17 +342,52 @@ class VocabModel:
                             definition_parts.append(translation)
                             pos_parts.append(t.get('type', 'n/a'))
 
+                    definition_str = "; ".join(definition_parts)
+                    pos_str = ", ".join(sorted(list(set(pos_parts))))
+
+                    # 2. 解析词源 (Etymology) - 列表转字符串
+                    etymology_data = item.get('etymology', [])
+                    etymology_str = ""
+                    if isinstance(etymology_data, list):
+                        # 将列表中的每一项用换行符连接
+                        etymology_str = "\n".join([str(e) for e in etymology_data if e])
+                    elif isinstance(etymology_data, str):
+                        etymology_str = etymology_data
+
+                    # 3. 解析短语 (Phrases) - 列表对象转格式化字符串
+                    phrases_data = item.get('phrases', [])
+                    phrases_str = ""
+                    if isinstance(phrases_data, list):
+                        p_lines = []
+                        for p in phrases_data:
+                            # 格式示例: "make up (组成)"
+                            p_content = p.get('phrase', '')
+                            p_trans = p.get('translation', '')
+                            if p_content:
+                                if p_trans:
+                                    p_lines.append(f"{p_content} ({p_trans})")
+                                else:
+                                    p_lines.append(p_content)
+                        phrases_str = "\n".join(p_lines)
+                    elif isinstance(phrases_data, str):
+                        phrases_str = phrases_data
+
+                    # 创建对象
                     words_list.append(WordItem(
                         word=word,
-                        definition="; ".join(definition_parts),
-                        pos=", ".join(sorted(list(set(pos_parts)))),
+                        definition=definition_str,
+                        pos=pos_str,
+                        etymology=etymology_str,
+                        phrases=phrases_str
                     ))
                 else:
-                    # WordItem 格式
+                    # 兼容旧的简单 WordItem 字典格式 (可能是直接从 progress.json 导入的)
                     words_list.append(WordItem.from_dict(item))
             return words_list
         except Exception as e:
             print(f"解析 JSON 出错: {e}")
+            import traceback
+            traceback.print_exc()
             return []
 
     def _parse_csv_content(self, content: str) -> List[WordItem]:
@@ -271,9 +507,7 @@ class VocabModel:
         3. 尝试加载内置默认词库 (资源文件)
         4. 最后加载独立设置 (settings.json)，确保每日计划是最新的
         """
-        # self.load_settings()  <--- 删除这行 (原来在这里)
         self.current_wordlist_name = "未加载"
-
         data_loaded = False
 
         # 1. 尝试加载进度 (位于用户数据目录)
@@ -302,9 +536,7 @@ class VocabModel:
                 self.save_progress()
                 data_loaded = True
 
-        # --- 修改处：最后加载 settings.json ---
-        # 无论前面加载了什么数据，settings.json 里保存的 "daily_batch" 应该是最新的
-        # 这样可以防止 load_progress 中的旧 settings 覆盖掉今天的计划
+        # 最后加载 settings.json
         self.load_settings()
 
         if not data_loaded:
@@ -327,7 +559,7 @@ class VocabModel:
             if filename.endswith(".json"):
                 path = os.path.join(backup_dir, filename)
                 try:
-                    # 获取文件创建时间 [cite: 204]
+                    # 获取文件创建时间
                     ctime = os.path.getctime(path)
                     with open(path, 'r', encoding='utf-8') as f:
                         data = json.load(f)
@@ -342,5 +574,4 @@ class VocabModel:
                         })
                 except Exception:
                     continue
-        # 按时间降序排列 [cite: 33]
         return sorted(backups, key=lambda x: x['time'], reverse=True)

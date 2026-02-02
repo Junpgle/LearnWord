@@ -3,7 +3,6 @@ import json
 import requests
 import datetime
 import sys
-# ★★★ 新增 QTabWidget, QLineEdit ★★★
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                QPushButton, QProgressBar, QSpinBox, QTextEdit, QGroupBox,
                                QFileDialog, QMessageBox, QInputDialog, QDialog, QFrame,
@@ -11,38 +10,13 @@ from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, Q
 from PySide6.QtCore import Qt, QThread, Signal, QSize
 from PySide6.QtGui import QFont, QMovie
 
-from user_manager import UserManager
+# 假设 UserManager 在 user_manager.py 中，如果不存在请确保相关逻辑兼容
+try:
+    from user_manager import UserManager
+except ImportError:
+    UserManager = None
+
 from vocab_model import VocabModel
-
-# ★★★ 样式常量 (减少代码重复) ★★★
-BTN_STYLE = """
-    QPushButton {
-        background-color: #0078d7;
-        color: white;
-        border: none;
-        border-radius: 8px;
-    }
-    QPushButton:hover {
-        background-color: #339af0;
-    }
-    QPushButton:disabled {
-        background-color: #cccccc;
-        color: #666666;
-    }
-"""
-
-# 为登录框增加样式
-INPUT_STYLE = """
-    QLineEdit {
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        padding: 5px;
-        font-size: 14px;
-    }
-    QLineEdit:focus {
-        border: 1px solid #0078d7;
-    }
-"""
 
 # --- 样式常量 ---
 BTN_STYLE = """
@@ -57,26 +31,11 @@ BTN_STYLE = """
     QPushButton:disabled { background-color: #cccccc; color: #666666; }
 """
 
-
 GROUP_BOX_STYLE = "QGroupBox{border:1px solid #ddd; border-radius:12px; padding:15px; margin-top: 10px; font-weight: bold;}"
 
 PROGRESS_BAR_STYLE = """
     QProgressBar { border: 1px solid #e0e0e0; border-radius: 10px; text-align: center; background: #f5f5f5;}
     QProgressBar::chunk { background-color: %s; border-radius: 10px; }
-"""
-
-GROUP_BOX_STYLE = "QGroupBox{border:1px solid #ccc;border-radius:12px;padding:10px;}"
-
-PROGRESS_BAR_STYLE = """
-    QProgressBar {
-        border: 1px solid #aaa;
-        border-radius: 10px;
-        text-align: center;
-    }
-    QProgressBar::chunk {
-        background-color: %s;
-        border-radius: 10px;
-    }
 """
 
 
@@ -285,7 +244,8 @@ class BackupManagerDialog(QDialog):
 
             btn_load = QPushButton("加载")
             btn_del = QPushButton("删除")
-            btn_del.setStyleSheet("background-color: #dc3545; color: white;")
+            btn_del.setStyleSheet(
+                "background-color: #dc3545; color: white; border: none; border-radius: 4px; padding: 5px;")
 
             btn_load.clicked.connect(lambda chk=False, p=b['path']: self.load_backup(p))
             btn_del.clicked.connect(lambda chk=False, p=b['path']: self.delete_backup(p))
@@ -342,7 +302,7 @@ class SettingWindow(QMainWindow):
                 panel = main_win.findChild(QWidget, "AccountPanel")
                 self.user_manager = getattr(panel, 'user_manager', None)
 
-        if not self.user_manager:
+        if not self.user_manager and UserManager:
             self.user_manager = UserManager()
 
         self.setWindowTitle("设置与数据管理")
@@ -356,7 +316,7 @@ class SettingWindow(QMainWindow):
         self.refresh_view()
 
     def setup_ui(self):
-        # 1. 顶部工具栏 (设置 Stretch 让按钮铺满)
+        # 1. 顶部工具栏
         tool_group = QGroupBox("数据操作")
         tool_group.setStyleSheet(GROUP_BOX_STYLE)
         tool_layout = QHBoxLayout(tool_group)
@@ -381,54 +341,62 @@ class SettingWindow(QMainWindow):
         content_layout = QHBoxLayout()
         left_side = QVBoxLayout()
 
-        progress_group = QGroupBox("进度统计");
+        # 进度统计
+        progress_group = QGroupBox("进度统计")
         progress_group.setStyleSheet(GROUP_BOX_STYLE)
         prog_v = QVBoxLayout(progress_group)
-        self.progress = QProgressBar();
+        self.progress = QProgressBar()
         self.progress.setStyleSheet(PROGRESS_BAR_STYLE % "#0078d7")
-        self.review_progress = QProgressBar();
+        self.review_progress = QProgressBar()
         self.review_progress.setStyleSheet(PROGRESS_BAR_STYLE % "#ffa500")
-        self.test_progress = QProgressBar();
+        self.test_progress = QProgressBar()
         self.test_progress.setStyleSheet(PROGRESS_BAR_STYLE % "#32cd32")
-        prog_v.addWidget(QLabel("学习进度："));
+        prog_v.addWidget(QLabel("学习进度："))
         prog_v.addWidget(self.progress)
-        prog_v.addWidget(QLabel("复习进度："));
+        prog_v.addWidget(QLabel("复习进度："))
         prog_v.addWidget(self.review_progress)
-        prog_v.addWidget(QLabel("测试进度："));
+        prog_v.addWidget(QLabel("测试进度："))
         prog_v.addWidget(self.test_progress)
         left_side.addWidget(progress_group)
 
-        set_group = QGroupBox("参数配置");
+        # 参数配置
+        set_group = QGroupBox("参数配置")
         set_group.setStyleSheet(GROUP_BOX_STYLE)
         set_v = QVBoxLayout(set_group)
-        self.learn_spin = QSpinBox();
-        self.review_spin = QSpinBox();
+        self.learn_spin = QSpinBox()
+        self.review_spin = QSpinBox()
         self.test_spin = QSpinBox()
         for txt, spin, key in [("单次学习：", self.learn_spin, "learn_count"),
                                ("单次复习：", self.review_spin, "review_count"),
                                ("单次测试：", self.test_spin, "test_count")]:
-            row = QHBoxLayout();
-            row.addWidget(QLabel(txt));
+            row = QHBoxLayout()
+            row.addWidget(QLabel(txt))
             spin.setRange(1, 500)
             spin.setValue(self.model.settings.get(key, 20))
             spin.valueChanged.connect(lambda v, k=key: self._auto_save_setting(k, v))
-            row.addWidget(spin);
+            row.addWidget(spin)
             set_v.addLayout(row)
         left_side.addWidget(set_group)
         content_layout.addLayout(left_side, 2)
 
-        pre_group = QGroupBox("当前词库预览");
+        # 词库预览
+        pre_group = QGroupBox("当前词库预览")
         pre_group.setStyleSheet(GROUP_BOX_STYLE)
         pre_v = QVBoxLayout(pre_group)
         self.wordlist_name_label = QLabel()
-        self.words_view = QTextEdit();
+        self.words_view = QTextEdit()
         self.words_view.setReadOnly(True)
-        pre_v.addWidget(self.wordlist_name_label);
+        # 设置字体稍微小一点以便显示更多信息
+        font = QFont("Consolas", 9)
+        font.setStyleHint(QFont.StyleHint.Monospace)
+        self.words_view.setFont(font)
+
+        pre_v.addWidget(self.wordlist_name_label)
         pre_v.addWidget(self.words_view)
         content_layout.addWidget(pre_group, 3)
 
         self.main_layout.addLayout(content_layout)
-        self.lbl_cloud_status = QLabel();
+        self.lbl_cloud_status = QLabel()
         self.main_layout.addWidget(self.lbl_cloud_status)
 
         # 信号
@@ -438,79 +406,10 @@ class SettingWindow(QMainWindow):
         self.btn_cloud_backup.clicked.connect(self.handle_backup)
         self.btn_cloud_restore.clicked.connect(self.handle_restore)
 
-    def handle_backup(self):
-        """处理云端备份 (同步统计数据到网页端)"""
-        temp = os.path.join(self.model.data_dir, "cloud_sync_temp.json")
-        try:
-            # 1. 保存内存中的最新进度到临时文件
-            self.model.save_progress(temp)
+    def _auto_save_setting(self, k, v):
+        self.model.settings[k] = v
+        self.model.save_settings()
 
-            # 2. 提取并计算各种统计数字
-            learned, total = self.model.get_stats()
-            # 统计复习过的单词（learned 且 reviewed 为 True）
-            reviewed = sum(1 for w in self.model.words if w.learned and w.reviewed)
-            # 统计通过测试的单词
-            tested = sum(1 for w in self.model.words if w.tested)
-
-            # 封装成字典
-            stats = {
-                "wordlist_name": self.model.current_wordlist_name,
-                "learned_count": learned,
-                "total_count": total,
-                "reviewed_count": reviewed,
-                "tested_count": tested
-            }
-
-            # 3. 执行备份
-            self.btn_cloud_backup.setText("正在上传...")
-            self.btn_cloud_backup.setEnabled(False)
-            QApplication.processEvents()  # 强制刷新UI显示
-
-            success, msg = self.user_manager.backup_progress(temp, stats_dict=stats)
-
-            if success:
-                QMessageBox.information(self, "成功", "备份成功！网页端已实时同步您的学习进度。")
-            else:
-                # 针对 SSL 错误提供更友好的提示
-                err_msg = str(msg)
-                if "SSL" in err_msg or "EOF" in err_msg:
-                    err_msg = "网络 HTTPS 握手失败 (SSL Error)。\n提示：请关闭系统代理、VPN 后重试。"
-                QMessageBox.warning(self, "备份失败", err_msg)
-
-        except Exception as e:
-            QMessageBox.critical(self, "错误", f"发生意外错误: {str(e)}")
-        finally:
-            self.btn_cloud_backup.setText("☁️ 云端备份")
-            self.btn_cloud_backup.setEnabled(True)
-            if os.path.exists(temp): os.remove(temp)
-
-    def refresh_view(self):
-        """刷新界面内容和云端按钮状态"""
-        is_logged = self.user_manager.is_logged_in()
-        self.btn_cloud_backup.setEnabled(is_logged)
-        self.btn_cloud_restore.setEnabled(is_logged)
-
-        if is_logged:
-            user = self.user_manager.get_username()
-            self.lbl_cloud_status.setText(f"云端状态：已登录为 {user} (同步已就绪)")
-            self.lbl_cloud_status.setStyleSheet("color: #28a745; font-weight: bold;")
-        else:
-            self.lbl_cloud_status.setText("云端状态：未登录 (请在主界面登录账户以开启同步)")
-            self.lbl_cloud_status.setStyleSheet("color: #d32f2f;")
-
-        self.wordlist_name_label.setText(f"当前文件: {self.model.current_wordlist_name}")
-        learned, total = self.model.get_stats()
-
-        # 更新进度条
-        self.progress.setRange(0, total if total > 0 else 1)
-        self.progress.setValue(learned)
-        self.progress.setFormat(f"已学 {learned}/{total}")
-
-        # 更新预览内容 (仅限前100行防卡顿)
-        lines = [f"[{w.stage}] {w.word} : {w.definition}" for w in self.model.words[:100]]
-        self.words_view.setPlainText("\n".join(lines))
-
-    # --- 辅助方法 ---
     def _create_backup(self):
         backup_dir = os.path.join(self.model.data_dir, "backup")
         if not os.path.exists(backup_dir): os.makedirs(backup_dir, exist_ok=True)
@@ -522,68 +421,72 @@ class SettingWindow(QMainWindow):
         except Exception as e:
             print(f"Backup failed: {e}")
 
-    def _auto_save_setting(self, k, v):
-        self.model.settings[k] = v
-        self.model.save_settings()
+    def refresh_view(self):
+        """刷新界面内容和云端按钮状态，并展示新词库特性"""
+        # 云端状态
+        if self.user_manager:
+            is_logged = self.user_manager.is_logged_in()
+            self.btn_cloud_backup.setEnabled(is_logged)
+            self.btn_cloud_restore.setEnabled(is_logged)
 
-    def open_backup_manager(self):
-        if BackupManagerDialog(self.model, self).exec() == QDialog.DialogCode.Accepted:
-            self.refresh_view()
-
-    # --- 导入/下载方法 ---
-    def import_wordlist(self):
-        path, _ = QFileDialog.getOpenFileName(self, "选择单词库", "", "词库文件 (*.csv *.json)")
-        if path:
-            self._create_backup()
-            if path.lower().endswith('.json'):
-                self.model.load_words_from_json(path)
+            if is_logged:
+                user = self.user_manager.get_username()
+                self.lbl_cloud_status.setText(f"云端状态：已登录为 {user} (同步已就绪)")
+                self.lbl_cloud_status.setStyleSheet("color: #28a745; font-weight: bold;")
             else:
-                self.model.load_words_from_csv(path)
-            self.model.save_progress()
-            self.refresh_view()
+                self.lbl_cloud_status.setText("云端状态：未登录 (请在主界面登录账户以开启同步)")
+                self.lbl_cloud_status.setStyleSheet("color: #d32f2f;")
+        else:
+            self.lbl_cloud_status.setText("用户系统未加载")
 
-    def download_wordlist(self):
-        available = ["1-初中-顺序.json", "2-高中-顺序.json", "3-CET4-顺序.json", "4-CET6-顺序.json", "5-考研-顺序.json"]
-        item, ok = QInputDialog.getItem(self, "下载词库", "选择词库:", available, 0, False)
-        if ok and item:
-            url = f"https://raw.githubusercontent.com/Junpgle/LearnWord/master/%E8%AF%8D%E5%BA%93/{item}"
-            self.dl_dlg = DownloadProgressDialog(f"下载: {item}", self)
-            self.worker = DownloadWorker(url, item)
-            self.worker.progress_updated.connect(self.dl_dlg.setValue)
-            self.worker.finished.connect(self._on_dl_finished)
-            self.worker.start()
-            self.dl_dlg.exec()
+        self.wordlist_name_label.setText(f"当前文件: {self.model.current_wordlist_name}")
+        learned, total = self.model.get_stats()
 
-    def _on_dl_finished(self, success, content, filename):
-        self.dl_dlg.close()
-        if success:
-            self._create_backup()
-            path = os.path.join(self.model.data_dir, filename)
-            with open(path, 'w', encoding='utf-8') as f: f.write(content)
-            self.model.load_words_from_json(path)
-            self.model.current_wordlist_name = f"[下载] {filename}"
-            self.model.save_progress()
-            self.refresh_view()
+        # 更新进度条
+        self.progress.setRange(0, total if total > 0 else 1)
+        self.progress.setValue(learned)
+        self.progress.setFormat(f"已学 {learned}/{total}")
 
-    def handle_restore(self):
-        if QMessageBox.question(self, "确认", "恢复将覆盖本地进度，是否继续？") == QMessageBox.StandardButton.Yes:
-            temp = os.path.join(self.model.data_dir, "cloud_restore_temp.json")
-            success, msg = self.user_manager.restore_progress(temp)
-            if success:
-                self._create_backup()
-                self.model.load_progress(temp)
-                self.model.save_progress()
-                self.refresh_view()
-                QMessageBox.information(self, "成功", "已从云端恢复进度。")
-            else:
-                QMessageBox.warning(self, "失败", msg)
-            if os.path.exists(temp): os.remove(temp)
+        # 计算详细统计 (复习/测试)
+        reviewed_count = sum(1 for w in self.model.words if w.learned and w.reviewed)
+        tested_count = sum(1 for w in self.model.words if w.tested)
 
-    def open_backup_manager(self):
-        if BackupManagerDialog(self.model, self).exec() == QDialog.DialogCode.Accepted: self.refresh_view()
+        self.review_progress.setMaximum(learned if learned > 0 else 1)
+        self.review_progress.setValue(reviewed_count)
+        self.review_progress.setFormat(f"已复习 {reviewed_count}/{learned}")
 
-    def _auto_save_setting(self, k, v):
-        self.model.settings[k] = v; self.model.save_settings()
+        self.test_progress.setMaximum(total if total > 0 else 1)
+        self.test_progress.setValue(tested_count)
+        self.test_progress.setFormat(f"已测试 {tested_count}/{total}")
+
+        # 更新预览内容 (针对新格式增强预览)
+        lines = []
+        preview_limit = 100
+        for i, w in enumerate(self.model.words[:preview_limit]):
+            # 基础信息
+            line = f"[{w.stage}] {w.word}"
+            if w.pos:
+                line += f" ({w.pos})"
+            line += f" : {w.definition}"
+
+            # --- 新增：显示新特性标记 ---
+            extras = []
+            if w.etymology:
+                extras.append("★词源")
+            if w.phrases:
+                extras.append("★短语")
+
+            if extras:
+                # 使用不同颜色或者只是文字标记
+                line += f"   [{' '.join(extras)}]"
+            # --------------------------
+
+            lines.append(line)
+
+        if len(self.model.words) > preview_limit:
+            lines.append(f"\n... (还有 {len(self.model.words) - preview_limit} 个单词)")
+
+        self.words_view.setPlainText("\n".join(lines))
 
     def import_wordlist(self):
         file_filter = "单词库文件 (*.csv *.json);;CSV Files (*.csv);;JSON Files (*.json);;All Files (*)"
@@ -595,30 +498,43 @@ class SettingWindow(QMainWindow):
         self._create_backup()
 
         loaded_words = []
-        if path.lower().endswith('.json'):
-            loaded_words = self.model.load_words_from_json(path)
-        elif path.lower().endswith('.csv'):
-            loaded_words = self.model.load_words_from_csv(path)
-        else:
-            QMessageBox.warning(self, "导入失败", "不支持的文件类型。请选择 CSV 或 JSON 文件。")
-            return
+        try:
+            if path.lower().endswith('.json'):
+                loaded_words = self.model.load_words_from_json(path)
+            elif path.lower().endswith('.csv'):
+                loaded_words = self.model.load_words_from_csv(path)
+            else:
+                QMessageBox.warning(self, "导入失败", "不支持的文件类型。请选择 CSV 或 JSON 文件。")
+                return
 
-        if not loaded_words:
-            QMessageBox.critical(self, "导入失败", f"文件格式错误或文件为空: {os.path.basename(path)}")
-            return
+            if not loaded_words:
+                QMessageBox.critical(self, "导入失败", f"文件格式错误或文件为空: {os.path.basename(path)}")
+                return
 
-        self.model.save_progress()
-        QMessageBox.information(self, "导入成功",
-                                f"已自动备份旧进度。\n成功导入 {len(self.model.words)} 个单词。新词库已设置为当前词库。")
-        self.refresh_view()
+            self.model.current_wordlist_name = os.path.basename(path)
+            self.model.save_progress()
+            QMessageBox.information(self, "导入成功",
+                                    f"已自动备份旧进度。\n成功导入 {len(self.model.words)} 个单词。")
+            self.refresh_view()
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"导入时发生错误: {str(e)}")
 
     def download_wordlist(self):
         BASE_URL = "https://raw.githubusercontent.com/Junpgle/LearnWord/master/%E8%AF%8D%E5%BA%93/"
-        available_dics = ["1-初中-顺序.json", "2-高中-顺序.json", "3-CET4-顺序.json", "4-CET6-顺序.json",
-                          "5-考研-顺序.json", "6-托福-顺序.json", "7-SAT-顺序.json"]
+        # 确保列表中包含带有词根词缀的新词库
+        available_dics = [
+            "1-初中-顺序.json",
+            "2-高中-顺序.json",
+            "3-CET4-顺序.json",
+            "4-CET6-顺序.json",
+            "4-CET6-顺序-词根词缀.json",  # 新词库
+            "5-考研-顺序.json",
+            "6-托福-顺序.json",
+            "7-SAT-顺序.json"
+        ]
 
         item, ok = QInputDialog.getItem(
-            self, "下载词库", "选择要下载的词库文件:", available_dics, 0, False
+            self, "下载词库", "选择要下载的词库文件:\n(带'词根词缀'的文件包含详细词源解析)", available_dics, 4, False
         )
 
         if not ok or not item:
@@ -690,122 +606,70 @@ class SettingWindow(QMainWindow):
                                 f"下载并导入成功！\n文件已保存至: {save_path}\n成功导入 {len(self.model.words)} 个单词。")
         self.refresh_view()
 
-    def open_current_wordlist(self):
-        path = None
-        if os.path.exists(self.model.last_json_path):
-            path = self.model.last_json_path
-        elif os.path.exists(self.model.last_words_path):
-            path = self.model.last_words_path
+    def handle_backup(self):
+        """处理云端备份 (同步统计数据到网页端)"""
+        if not self.user_manager: return
 
-        if not path:
-            QMessageBox.warning(self, "打开失败", "未找到上次导入的单词库文件。")
-            return
-
+        temp = os.path.join(self.model.data_dir, "cloud_sync_temp.json")
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                data = f.read()
+            # 1. 保存内存中的最新进度到临时文件
+            self.model.save_progress(temp)
 
-            self._preview = QTextEdit()
-            self._preview.setReadOnly(True)
-            self._preview.setPlainText(data)
-            self._preview.setWindowTitle(f"词库内容预览: {os.path.basename(path)}")
-            self._preview.resize(640, 420)
-            self._preview.show()
+            # 2. 提取并计算各种统计数字
+            learned, total = self.model.get_stats()
+            # 统计复习过的单词（learned 且 reviewed 为 True）
+            reviewed = sum(1 for w in self.model.words if w.learned and w.reviewed)
+            # 统计通过测试的单词
+            tested = sum(1 for w in self.model.words if w.tested)
+
+            # 封装成字典
+            stats = {
+                "wordlist_name": self.model.current_wordlist_name,
+                "learned_count": learned,
+                "total_count": total,
+                "reviewed_count": reviewed,
+                "tested_count": tested
+            }
+
+            # 3. 执行备份
+            self.btn_cloud_backup.setText("正在上传...")
+            self.btn_cloud_backup.setEnabled(False)
+            QApplication.processEvents()  # 强制刷新UI显示
+
+            success, msg = self.user_manager.backup_progress(temp, stats_dict=stats)
+
+            if success:
+                QMessageBox.information(self, "成功", "备份成功！网页端已实时同步您的学习进度。")
+            else:
+                # 针对 SSL 错误提供更友好的提示
+                err_msg = str(msg)
+                if "SSL" in err_msg or "EOF" in err_msg:
+                    err_msg = "网络 HTTPS 握手失败 (SSL Error)。\n提示：请关闭系统代理、VPN 后重试。"
+                QMessageBox.warning(self, "备份失败", err_msg)
+
         except Exception as e:
-            QMessageBox.critical(self, "错误", f"打开文件失败: {str(e)}")
+            QMessageBox.critical(self, "错误", f"发生意外错误: {str(e)}")
+        finally:
+            self.btn_cloud_backup.setText("☁️ 云端备份")
+            self.btn_cloud_backup.setEnabled(True)
+            if os.path.exists(temp): os.remove(temp)
 
-    def save_progress_to_file(self):
-        self.model.settings["learn_count"] = self.learn_spin.value()
-        self.model.settings["review_count"] = self.review_spin.value()
-        self.model.settings["test_count"] = self.test_spin.value()
-        self.model.save_settings()
+    def handle_restore(self):
+        if not self.user_manager: return
 
-        date_str = datetime.datetime.now().strftime("%Y%m%d")
-        safe_name = self.model.current_wordlist_name
-        for char in '/\\:*?"<>|':
-            safe_name = safe_name.replace(char, '_')
-        if not safe_name: safe_name = "Unknown"
-
-        default_name = f"Progress_{date_str}_{safe_name}.json"
-        default_save_path = os.path.join(self.model.data_dir, default_name)
-
-        path, _ = QFileDialog.getSaveFileName(
-            self,
-            "选择保存学习进度的文件",
-            default_save_path,
-            "学习进度文件 (*.json);;所有文件 (*)"
-        )
-
-        if not path: return
-
-        try:
-            self.model.save_progress(path)
-            self.model.save_progress()
-
-            QMessageBox.information(self, "保存成功",
-                                    f"设置与学习进度已保存到:\n{path}")
-            self.refresh_view()
-        except Exception as e:
-            QMessageBox.critical(self, "保存失败", f"保存文件失败: {str(e)}")
-
-    def load_progress_from_file(self):
-        path, _ = QFileDialog.getOpenFileName(
-            self,
-            "选择学习进度文件",
-            self.model.data_dir,
-            "学习进度文件 (*.json);;所有文件 (*)"
-        )
-
-        if not path: return
-
-        self._create_backup()
-
-        try:
-            self.model.load_progress(path)
-            self.model.save_progress()
-
-            QMessageBox.information(self, "加载成功", f"已自动备份旧进度。\n已从 {os.path.basename(path)} 加载进度")
-            self.refresh_view()
-        except FileNotFoundError:
-            QMessageBox.information(self, "加载失败", f"文件未找到: {path}")
-        except json.JSONDecodeError:
-            QMessageBox.critical(self, "加载失败", f"文件内容格式错误，无法解析为 JSON: {path}")
-        except Exception as e:
-            QMessageBox.critical(self, "加载失败", f"加载文件失败: {str(e)}")
+        if QMessageBox.question(self, "确认", "恢复将覆盖本地进度，是否继续？") == QMessageBox.StandardButton.Yes:
+            temp = os.path.join(self.model.data_dir, "cloud_restore_temp.json")
+            success, msg = self.user_manager.restore_progress(temp)
+            if success:
+                self._create_backup()
+                self.model.load_progress(temp)
+                self.model.save_progress()
+                self.refresh_view()
+                QMessageBox.information(self, "成功", "已从云端恢复进度。")
+            else:
+                QMessageBox.warning(self, "失败", msg)
+            if os.path.exists(temp): os.remove(temp)
 
     def open_backup_manager(self):
-        dlg = BackupManagerDialog(self.model, self)
-        if dlg.exec() == QDialog.DialogCode.Accepted:
+        if BackupManagerDialog(self.model, self).exec() == QDialog.DialogCode.Accepted:
             self.refresh_view()
-
-    def refresh_view(self):
-        self.wordlist_name_label.setText(f"当前文件: {self.model.current_wordlist_name}")
-
-        learned, total = self.model.get_stats()
-
-        self.progress.setMaximum(total if total > 0 else 1)
-        self.progress.setValue(learned)
-        self.progress.setFormat(f"已学习 {learned} / 全部 {total}")
-
-        learned_words = [w for w in self.model.words if w.learned]
-        reviewed_words = [w for w in learned_words if w.reviewed]
-        tested_words = [w for w in self.model.words if w.tested]
-
-        learned_count = len(learned_words)
-        reviewed_count = len(reviewed_words)
-        tested_count = len(tested_words)
-
-        self.review_progress.setMaximum(learned_count if learned_count > 0 else 1)
-        self.review_progress.setValue(reviewed_count)
-        self.review_progress.setFormat(f"已复习 {reviewed_count} / 已学习 {learned_count}")
-
-        self.test_progress.setMaximum(total if total > 0 else 1)
-        self.test_progress.setValue(tested_count)
-        self.test_progress.setFormat(f"已测试 {tested_count} / 全部 {total}")
-
-        lines = [f"[{w.stage}] {w.word} : {w.definition}" for w in self.model.words]
-        self.words_view.setPlainText("\n".join(lines))
-
-    def _auto_save_setting(self, key, value):
-        self.model.settings[key] = value
-        self.model.save_settings()

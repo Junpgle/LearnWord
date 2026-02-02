@@ -6,10 +6,12 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QLabel, QLineEdit,
-    QPushButton, QMessageBox, QHBoxLayout, QSizePolicy
+    QPushButton, QMessageBox, QHBoxLayout, QSizePolicy,
+    QScrollArea, QFrame
 )
 
-from vocab_model import VocabModel
+# 引入 VocabModel 和 通用富文本工具函数
+from vocab_model import VocabModel, get_word_rich_text
 
 
 class TestWindow(QMainWindow):
@@ -18,35 +20,51 @@ class TestWindow(QMainWindow):
         self.model = model
         self.model.load_settings()
         self.setWindowTitle("单词测试模式")
-        self.setFixedSize(1000, 700)
+        self.setFixedSize(1000, 750)  # 稍微增加高度以适应内容
         central = QWidget()
         self.setCentralWidget(central)
         layout = QVBoxLayout(central)
+        layout.setSpacing(10)
+        layout.setContentsMargins(20, 20, 20, 20)
 
         # 返回按钮布局
         btn_row = QHBoxLayout()
         btn_row.addStretch()
         self.btn_return = QPushButton("返回主页面")
+        self.btn_return.clicked.connect(self.close)
         btn_row.addWidget(self.btn_return)
         layout.addLayout(btn_row)
 
-        layout.addStretch(1)
-
-        # --- 修改点 1: 填空/释义显示区域 ---
-        # 使用 AlignmentFlag 修复 PySide6 报错
+        # 1. 顶部：拼写填空提示 (例如: a _ _ l e)
         self.cloze = QLabel("", alignment=Qt.AlignmentFlag.AlignCenter)
-
-        # 使用 Weight.Bold 修复 PySide6 报错
-        self.cloze.setFont(QFont("MiSans", 22, QFont.Weight.Bold))
-
-        # ★★★ 关键设置：开启自动换行，解决文字变成省略号的问题 ★★★
+        self.cloze.setFont(QFont("MiSans", 26, QFont.Weight.Bold))
         self.cloze.setWordWrap(True)
-
-        # 设置尺寸策略：垂直方向允许被撑大 (使用 Policy 修复报错)
+        # 设置策略防止被过度压缩
         self.cloze.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
-
         layout.addWidget(self.cloze)
-        # --------------------------------
+
+        # 2. 中间：富文本提示区域 (使用 QScrollArea 包裹)
+        # 这里显示释义、词源和短语(关键词被遮盖)
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.NoFrame)
+        self.scroll_area.setStyleSheet("background: transparent;")
+
+        self.scroll_content = QWidget()
+        self.scroll_layout = QVBoxLayout(self.scroll_content)
+        self.scroll_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.hint_label = QLabel("", alignment=Qt.AlignmentFlag.AlignCenter)
+        # 字体稍小一点，区别于顶部的填空题
+        self.hint_label.setFont(QFont("MiSans", 16))
+        self.hint_label.setWordWrap(True)
+        self.hint_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+
+        self.scroll_layout.addWidget(self.hint_label)
+        self.scroll_area.setWidget(self.scroll_content)
+
+        # 添加到布局，设置伸缩因子为 2，占据主要空间
+        layout.addWidget(self.scroll_area, 2)
 
         # 用户输入框
         self.input = QLineEdit()
@@ -75,15 +93,12 @@ class TestWindow(QMainWindow):
         row.addStretch(1)
         layout.addLayout(row)
 
-        # --- 修改点 2: 计分板修复 ---
+        # 计分板
         self.score = QLabel("0 / 0 (0.00%)", alignment=Qt.AlignmentFlag.AlignCenter)
         self.score.setFont(QFont("MiSans", 18, QFont.Weight.Bold))
         layout.addWidget(self.score)
 
-        layout.addStretch(1)
-
         # 信号连接
-        self.btn_return.clicked.connect(self.close)
         self.submit.clicked.connect(self.on_submit)
         self.next_btn.clicked.connect(self.next_q)
         self.input.returnPressed.connect(self.on_submit)
@@ -97,7 +112,7 @@ class TestWindow(QMainWindow):
 
         self._prepare_and_start()
 
-        # 样式表 (保持不变)
+        # 样式表
         central.setStyleSheet("""
             QPushButton {
                 padding: 12px 24px;
@@ -134,14 +149,21 @@ class TestWindow(QMainWindow):
                 border-radius: 8px;
                 font-size: 18px;
             }
+            /* 滚动区域标签行高 */
+            QLabel {
+                line-height: 1.5;
+            }
         """)
 
     def _prepare_and_start(self):
         count = self.model.settings.get("test_count", 20)
+        # 获取未测试过的单词
         pool = [w for w in self.model.words if not w.tested]
 
         if not pool:
             QMessageBox.information(self, "提示", "词库为空或所有单词已测试完毕。")
+            # 延时关闭防止闪退
+            QTimer.singleShot(100, self.close)
             return
 
         random.shuffle(pool)
@@ -156,7 +178,8 @@ class TestWindow(QMainWindow):
         self.next_btn.setEnabled(False)
 
         if not self.test_list:
-            self.cloze.setText(f"🎉 本次测试完成！ 🎉\n" f"得分：{self.correct} / {self.total}")
+            self.cloze.setText("🎉 本次测试完成！ 🎉")
+            self.hint_label.setText(f"最终得分：{self.correct} / {self.total}")
             self.submit.hide()
             self.next_btn.hide()
             self.input.hide()
@@ -166,15 +189,13 @@ class TestWindow(QMainWindow):
             return
 
         self.current = self.test_list.pop(0)
-        cloze = self._make_cloze(self.current.word)
 
-        if self.current.definition:
-            # 这里的 replace 配合 setWordWrap(True) 就能完美显示多行了
-            clean_definition = self.current.definition.replace('\n', ' / ')
-            pos = self.current.pos
-            self.cloze.setText(f"{cloze}\n\n词性:{pos}.\n释义: {clean_definition}\n")
-        else:
-            self.cloze.setText(cloze)
+        # 1. 设置顶部的填空文本 (例如: a _ _ l e)
+        cloze_str = self._make_cloze(self.current.word)
+        self.cloze.setText(cloze_str)
+
+        # 2. 设置中间的富文本提示 (Mode='hint' 会隐藏短语中的目标单词)
+        self.hint_label.setText(get_word_rich_text(self.current, mode="hint"))
 
         self.input.setText("")
         self.input.setFocus()
@@ -193,6 +214,7 @@ class TestWindow(QMainWindow):
             self.correct += 1
             QMessageBox.information(self, "正确", "回答正确！")
 
+            # 标记为已测试
             tested_word_str = self.current.word
             model_word = next(
                 (w for w in self.model.words if w.word.lower() == tested_word_str.lower()),
